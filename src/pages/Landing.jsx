@@ -4,22 +4,18 @@ import { Section } from '../components/layout/Section';
 import { PrimaryButton } from '../components/buttons/PrimaryButton';
 import { SecondaryButton } from '../components/buttons/SecondaryButton';
 import { StatusBadge } from '../components/status/StatusBadge';
+import { WalletButton } from '../components/wallet/WalletButton';
 import { HeroVisual } from '../components/landing/HeroVisual';
 import { TrustMetrics } from '../components/landing/TrustMetrics';
 import { ProblemStatement } from '../components/landing/ProblemStatement';
 import { HowItWorks } from '../components/landing/HowItWorks';
 import { FeatureGrid } from '../components/landing/FeatureGrid';
 import { StellarSection } from '../components/landing/StellarSection';
-import { Wallet, Play, Shield, ArrowRight } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const Landing = () => {
   const navigate = useNavigate();
-
-  const handleWalletClick = () => {
-    // Navigate directly to dashboard for Phase 3 routing integration
-    navigate('/dashboard');
-  };
 
   return (
     <PageContainer>
@@ -52,14 +48,7 @@ export const Landing = () => {
 
             {/* Primary & Secondary CTAs */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
-              <PrimaryButton 
-                icon={Wallet} 
-                pulse={true}
-                onClick={handleWalletClick}
-                ariaLabel="Connect Freighter Wallet and launch escrow dashboard"
-              >
-                Connect Freighter Wallet
-              </PrimaryButton>
+              <WalletButton pulse />
 
               <SecondaryButton 
                 icon={Play}

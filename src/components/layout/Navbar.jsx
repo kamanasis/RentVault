@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { PrimaryButton } from '../buttons/PrimaryButton';
-import { StatusBadge } from '../status/StatusBadge';
-import { Shield, Wallet, Menu, X } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { WalletButton } from '../wallet/WalletButton';
+import { NetworkBadge } from '../wallet/NetworkBadge';
+import { useWallet } from '../../context/WalletContext';
+import { Shield, Menu, X } from 'lucide-react';
 
 export const Navbar = () => {
   const location = useLocation();
-  const navigate = useNavigate();
+  const { connected, network } = useWallet();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isHome = location.pathname === '/';
@@ -15,13 +16,9 @@ export const Navbar = () => {
     { name: 'Features', href: isHome ? '#features' : '/#features' },
     { name: 'How It Works', href: isHome ? '#how-it-works' : '/#how-it-works' },
     { name: 'Security', href: isHome ? '#security' : '/#security' },
+    { name: 'Dashboard', href: '/dashboard' },
     { name: 'Stellar Docs', href: 'https://soroban.stellar.org', external: true },
   ];
-
-  const handleWalletClick = () => {
-    setMobileMenuOpen(false);
-    navigate('/dashboard');
-  };
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur-md bg-background/80 border-b border-border/60 transition-all duration-300">
@@ -59,6 +56,19 @@ export const Navbar = () => {
                   </a>
                 );
               }
+              if (link.href.startsWith('/')) {
+                return (
+                  <Link
+                    key={idx}
+                    to={link.href}
+                    className={`px-4 py-2 rounded-full text-caption font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-glow ${
+                      location.pathname === link.href ? 'bg-primary text-white font-semibold' : 'text-text-secondary hover:text-text-primary hover:bg-surface'
+                    }`}
+                  >
+                    {link.name}
+                  </Link>
+                );
+              }
               return (
                 <a
                   key={idx}
@@ -73,18 +83,8 @@ export const Navbar = () => {
 
           {/* Right Header Controls */}
           <div className="hidden md:flex items-center gap-4">
-            <StatusBadge variant="primary" size="sm">
-              Stellar Testnet
-            </StatusBadge>
-            
-            <PrimaryButton 
-              icon={Wallet}
-              pulse={true}
-              onClick={handleWalletClick}
-              ariaLabel="Connect Freighter Wallet button"
-            >
-              Connect Freighter Wallet
-            </PrimaryButton>
+            <NetworkBadge network={network || 'TESTNET'} />
+            <WalletButton pulse={!connected} />
           </div>
 
           {/* Mobile Menu Button */}
@@ -103,7 +103,7 @@ export const Navbar = () => {
         <div className="md:hidden bg-card/95 backdrop-blur-xl border-b border-border px-4 py-6 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-border">
             <span className="text-caption text-text-secondary">Network</span>
-            <StatusBadge variant="primary" size="sm">Stellar Testnet</StatusBadge>
+            <NetworkBadge network={network || 'TESTNET'} />
           </div>
 
           <nav aria-label="Mobile Navigation" className="flex flex-col gap-2">
@@ -121,15 +121,7 @@ export const Navbar = () => {
             ))}
           </nav>
 
-          <PrimaryButton 
-            icon={Wallet}
-            pulse={true}
-            fullWidth
-            onClick={handleWalletClick}
-            ariaLabel="Connect Freighter Wallet button mobile"
-          >
-            Connect Freighter Wallet
-          </PrimaryButton>
+          <WalletButton pulse={!connected} fullWidth />
         </div>
       )}
     </header>
