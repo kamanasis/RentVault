@@ -9,11 +9,11 @@ export const Card = ({
 }) => {
   return (
     <motion.div
-      whileHover={hoverEffect ? { y: -4, transition: { duration: 0.2 } } : {}}
+      whileHover={hoverEffect ? { y: -4, transition: { duration: 0.25, ease: 'easeOut' } } : {}}
       className={`
-        bg-card border border-border rounded-3xl p-6
+        bg-card border border-border rounded-3xl p-6 sm:p-8
         shadow-card-glow transition-all duration-300
-        ${hoverEffect ? 'hover:border-border-subtle hover:shadow-stellar' : ''}
+        ${hoverEffect ? 'hover:border-primary/40 hover:shadow-stellar' : ''}
         ${className}
       `}
       {...props}

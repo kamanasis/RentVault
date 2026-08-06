@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { PrimaryButton } from '../buttons/PrimaryButton';
 import { StatusBadge } from '../status/StatusBadge';
 import { Shield, Wallet, Menu, X } from 'lucide-react';
 
 export const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isHome = location.pathname === '/';
@@ -17,13 +18,18 @@ export const Navbar = () => {
     { name: 'Stellar Docs', href: 'https://soroban.stellar.org', external: true },
   ];
 
+  const handleWalletClick = () => {
+    setMobileMenuOpen(false);
+    navigate('/dashboard');
+  };
+
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-md bg-background/70 border-b border-border/40 transition-all duration-300">
+    <header className="sticky top-0 z-50 backdrop-blur-md bg-background/80 border-b border-border/60 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 group">
+          <Link to="/" className="flex items-center gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-glow rounded-xl p-1">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-primary to-primary-glow flex items-center justify-center text-white shadow-stellar group-hover:scale-105 transition-transform">
               <Shield className="w-5 h-5" />
             </div>
@@ -38,7 +44,7 @@ export const Navbar = () => {
           </Link>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden md:flex items-center gap-1 bg-surface/50 px-3 py-1.5 rounded-full border border-border/50 backdrop-blur-sm">
+          <nav aria-label="Main Navigation" className="hidden md:flex items-center gap-1 bg-surface/60 px-3 py-1.5 rounded-full border border-border/60 backdrop-blur-sm">
             {navLinks.map((link, idx) => {
               if (link.external) {
                 return (
@@ -47,7 +53,7 @@ export const Navbar = () => {
                     href={link.href}
                     target="_blank"
                     rel="noreferrer"
-                    className="px-4 py-2 rounded-full text-caption font-medium text-text-secondary hover:text-text-primary hover:bg-surface/80 transition-all"
+                    className="px-4 py-2 rounded-full text-caption font-medium text-text-secondary hover:text-text-primary hover:bg-surface transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-glow"
                   >
                     {link.name}
                   </a>
@@ -57,7 +63,7 @@ export const Navbar = () => {
                 <a
                   key={idx}
                   href={link.href}
-                  className="px-4 py-2 rounded-full text-caption font-medium text-text-secondary hover:text-text-primary hover:bg-surface/80 transition-all"
+                  className="px-4 py-2 rounded-full text-caption font-medium text-text-secondary hover:text-text-primary hover:bg-surface transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-glow"
                 >
                   {link.name}
                 </a>
@@ -73,7 +79,9 @@ export const Navbar = () => {
             
             <PrimaryButton 
               icon={Wallet}
-              onClick={() => alert('Phase 2 Placeholder: Freighter Wallet connection will be integrated in Phase 3!')}
+              pulse={true}
+              onClick={handleWalletClick}
+              ariaLabel="Connect Freighter Wallet button"
             >
               Connect Freighter Wallet
             </PrimaryButton>
@@ -82,8 +90,8 @@ export const Navbar = () => {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2.5 rounded-xl bg-surface border border-border text-text-secondary hover:text-text-primary"
-            aria-label="Toggle menu"
+            className="md:hidden p-2.5 rounded-xl bg-surface border border-border text-text-secondary hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-glow"
+            aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -98,7 +106,7 @@ export const Navbar = () => {
             <StatusBadge variant="primary" size="sm">Stellar Testnet</StatusBadge>
           </div>
 
-          <nav className="flex flex-col gap-2">
+          <nav aria-label="Mobile Navigation" className="flex flex-col gap-2">
             {navLinks.map((link, idx) => (
               <a
                 key={idx}
@@ -115,11 +123,10 @@ export const Navbar = () => {
 
           <PrimaryButton 
             icon={Wallet}
+            pulse={true}
             fullWidth
-            onClick={() => {
-              setMobileMenuOpen(false);
-              alert('Phase 2 Placeholder: Freighter Wallet connection will be integrated in Phase 3!');
-            }}
+            onClick={handleWalletClick}
+            ariaLabel="Connect Freighter Wallet button mobile"
           >
             Connect Freighter Wallet
           </PrimaryButton>

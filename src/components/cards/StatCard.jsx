@@ -13,11 +13,11 @@ export const StatCard = ({
 }) => {
   return (
     <Card hoverEffect className={`flex flex-col justify-between ${className}`}>
-      <div className="flex items-center justify-between gap-4 mb-3">
+      <div className="flex items-center justify-between gap-4 mb-4">
         <span className="text-caption text-text-secondary font-medium">{title}</span>
         {Icon && (
-          <div className="w-10 h-10 rounded-2xl bg-surface border border-border flex items-center justify-center text-primary">
-            <Icon className="w-5 h-5" />
+          <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center text-primary-glow flex-shrink-0">
+            <Icon className="w-6 h-6" />
           </div>
         )}
       </div>

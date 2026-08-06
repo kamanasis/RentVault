@@ -16,6 +16,11 @@ import { useNavigate } from 'react-router-dom';
 export const Landing = () => {
   const navigate = useNavigate();
 
+  const handleWalletClick = () => {
+    // Navigate directly to dashboard for Phase 3 routing integration
+    navigate('/dashboard');
+  };
+
   return (
     <PageContainer>
       {/* 1. Two-Column Hero Section */}
@@ -26,11 +31,11 @@ export const Landing = () => {
           <div className="lg:col-span-7 space-y-6 text-left">
             
             {/* Small Stellar Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface/80 border border-primary/30 shadow-sm">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface/90 border border-primary/30 shadow-sm">
               <StatusBadge variant="primary" size="sm">
                 Built on Stellar Testnet
               </StatusBadge>
-              <span className="text-caption text-text-secondary">
+              <span className="text-caption text-text-secondary font-medium">
                 • Powered by Soroban
               </span>
             </div>
@@ -40,16 +45,18 @@ export const Landing = () => {
               Rental deposits, <span className="bg-gradient-to-r from-primary via-primary-glow to-white bg-clip-text text-transparent">secured by smart contracts.</span>
             </h1>
 
-            {/* Supporting Copy */}
+            {/* Value Proposition Hero Supporting Text */}
             <p className="text-body text-text-secondary text-lg leading-relaxed max-w-xl">
-              RentVault locks rental security deposits in Soroban-powered escrow contracts on the Stellar blockchain, automatically enforcing lease terms, transparent utility bill deductions, and instant refunds.
+              RentVault is a <strong className="text-text-primary font-semibold">decentralized escrow</strong> platform built on the <strong className="text-text-primary font-semibold">Stellar Testnet</strong> using <strong className="text-text-primary font-semibold">Soroban smart contracts</strong> to lock security deposits and execute <strong className="text-text-primary font-semibold">automatic deposit release</strong> upon lease completion.
             </p>
 
             {/* Primary & Secondary CTAs */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
               <PrimaryButton 
                 icon={Wallet} 
-                onClick={() => alert('Phase 2 Placeholder: Freighter Wallet connection will be integrated in Phase 3!')}
+                pulse={true}
+                onClick={handleWalletClick}
+                ariaLabel="Connect Freighter Wallet and launch escrow dashboard"
               >
                 Connect Freighter Wallet
               </PrimaryButton>
@@ -57,6 +64,7 @@ export const Landing = () => {
               <SecondaryButton 
                 icon={Play}
                 onClick={() => navigate('/dashboard')}
+                ariaLabel="Watch 3-minute demo video of RentVault"
               >
                 Watch 3-min Demo
               </SecondaryButton>
