@@ -48,27 +48,38 @@ export const HeroVisual = () => {
         </span>
       </motion.div>
 
-      {/* Floating Web3 Activity Chips */}
+      {/* Dynamic Floating Escrow Balance Card */}
       <motion.div 
         animate={{ y: [-3, 3, -3] }}
         transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute top-8 left-2 z-20 bg-card/95 backdrop-blur-md border border-border px-4 py-2.5 rounded-2xl shadow-lg flex items-center gap-3"
+        className="absolute top-8 left-2 z-20 bg-card/95 backdrop-blur-md border border-border px-4 py-2.5 rounded-2xl shadow-lg flex items-center gap-3 max-w-[210px]"
       >
-        <div className="w-8 h-8 rounded-xl bg-surface border border-border flex items-center justify-center text-success">
+        <div className="w-8 h-8 rounded-xl bg-surface border border-border flex items-center justify-center text-success flex-shrink-0">
           <Coins className="w-4 h-4" />
         </div>
         <div>
           <div className="text-[10px] text-text-muted uppercase tracking-wider font-medium">Escrow Balance</div>
-          <div className="text-xs font-bold text-text-primary">2,500 XLM Locked</div>
+          {connected ? (
+            <div>
+              <div className="text-xs font-bold text-text-primary">0 XLM Locked</div>
+              <div className="text-[9px] text-text-muted">No active escrow agreements</div>
+            </div>
+          ) : (
+            <div>
+              <div className="text-xs font-bold text-text-primary">0 XLM</div>
+              <div className="text-[9px] text-text-muted">Connect wallet to view escrows</div>
+            </div>
+          )}
         </div>
       </motion.div>
 
+      {/* Floating Freighter Wallet Connection Status Card */}
       <motion.div 
         animate={{ y: [4, -4, 4] }}
         transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
         className="absolute bottom-10 right-2 z-20 bg-card/95 backdrop-blur-md border border-border px-4 py-2.5 rounded-2xl shadow-lg flex items-center gap-3"
       >
-        <div className="w-8 h-8 rounded-xl bg-surface border border-border flex items-center justify-center text-primary-glow">
+        <div className="w-8 h-8 rounded-xl bg-surface border border-border flex items-center justify-center text-primary-glow flex-shrink-0">
           <Key className="w-4 h-4" />
         </div>
         <div>
