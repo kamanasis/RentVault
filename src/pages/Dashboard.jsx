@@ -7,11 +7,13 @@ import { WalletCard } from '../components/wallet/WalletCard';
 import { WalletStatus } from '../components/wallet/WalletStatus';
 import { WalletButton } from '../components/wallet/WalletButton';
 import { TransactionList } from '../components/wallet/TransactionList';
+import { AgreementCard } from '../components/agreements/AgreementCard';
 import { NetworkBadge } from '../components/wallet/NetworkBadge';
 import { StatusBadge } from '../components/status/StatusBadge';
 import { PrimaryButton } from '../components/buttons/PrimaryButton';
 import { SecondaryButton } from '../components/buttons/SecondaryButton';
 import { useWallet } from '../context/WalletContext';
+import { useAgreements } from '../context/AgreementContext';
 import { 
   Building, 
   UserCheck, 
@@ -27,25 +29,26 @@ import { useNavigate } from 'react-router-dom';
 export const Dashboard = () => {
   const navigate = useNavigate();
   const { connected, address, network, disconnectWallet } = useWallet();
+  const { agreements } = useAgreements();
 
   const quickActions = [
     {
       title: 'Continue as Landlord',
-      subtitle: 'Create & manage rental agreements',
+      subtitle: 'Create digital rental security agreements',
       icon: Building,
       badge: 'Escrow Creator',
-      action: () => navigate('/agreement/create'),
+      action: () => navigate('/agreements/new'),
       accent: 'border-primary/40 hover:border-primary',
-      ctaText: 'Open Action',
+      ctaText: 'New Agreement',
     },
     {
       title: 'Continue as Tenant',
-      subtitle: 'Deposit XLM & view lease terms',
+      subtitle: 'Review & manage your active agreements',
       icon: UserCheck,
       badge: 'Escrow Tenant',
-      action: () => navigate('/agreement/AGR-2026-9041'),
+      action: () => navigate('/agreements'),
       accent: 'border-success/40 hover:border-success',
-      ctaText: 'Open Action',
+      ctaText: 'View Agreements',
     },
     {
       title: 'Send Test XLM',
@@ -117,7 +120,7 @@ export const Dashboard = () => {
           {/* Phase 4 Live XLM Balance Card */}
           <BalanceCard />
 
-          {/* Phase 4.5 Recent Transactions Preview Section (Directly Below Balance Card) */}
+          {/* Phase 4.5 Recent Transactions Preview Section */}
           <TransactionList limit={3} isPreview={true} />
 
           {/* Top Section: Wallet Overview & Session Status Grid */}
@@ -179,29 +182,45 @@ export const Dashboard = () => {
             </div>
           </div>
 
-          {/* Active Agreements Overview Placeholder */}
+          {/* Phase 5 Active Agreements Overview Section */}
           <Section className="py-2">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-h2 text-text-primary">Active Escrow Contracts</h2>
-              <PrimaryButton icon={Plus} onClick={() => navigate('/agreement/create')}>
-                Create Agreement
-              </PrimaryButton>
+              <div>
+                <h2 className="text-h2 text-text-primary mb-1">Active Rental Agreements</h2>
+                <p className="text-caption text-text-secondary">Digital security deposit agreements managed via RentVault.</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <SecondaryButton onClick={() => navigate('/agreements')}>
+                  View All ({agreements.length})
+                </SecondaryButton>
+                <PrimaryButton icon={Plus} onClick={() => navigate('/agreements/new')}>
+                  Create Agreement
+                </PrimaryButton>
+              </div>
             </div>
 
-            <Card className="p-8 text-center border-dashed">
-              <div className="max-w-md mx-auto space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center text-text-muted mx-auto">
-                  <ShieldCheck className="w-6 h-6" />
+            {agreements.length === 0 ? (
+              <Card className="p-8 text-center border-dashed">
+                <div className="max-w-md mx-auto space-y-4">
+                  <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center text-text-muted mx-auto">
+                    <Building className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-h3 text-text-primary">No rental agreements created</h3>
+                  <p className="text-body text-text-secondary">
+                    Create your first digital rental agreement to establish deposit terms and utility reserves.
+                  </p>
+                  <PrimaryButton icon={Plus} onClick={() => navigate('/agreements/new')}>
+                    Create Agreement Now
+                  </PrimaryButton>
                 </div>
-                <h3 className="text-h3 text-text-primary">Ready for Phase 5 Soroban Escrow</h3>
-                <p className="text-body text-text-secondary">
-                  Your Freighter wallet <code className="font-mono text-primary-glow">{address.slice(0, 6)}...{address.slice(-4)}</code> is authenticated on Stellar Testnet with live Horizon connectivity.
-                </p>
-                <SecondaryButton onClick={() => navigate('/agreement/create')}>
-                  Start New Agreement Draft
-                </SecondaryButton>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {agreements.slice(0, 3).map((ag) => (
+                  <AgreementCard key={ag.id} agreement={ag} />
+                ))}
               </div>
-            </Card>
+            )}
           </Section>
         </div>
       )}
