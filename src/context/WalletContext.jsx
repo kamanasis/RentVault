@@ -6,7 +6,7 @@ import {
   getAddress,
   getNetwork
 } from '@stellar/freighter-api';
-import { fetchAccountBalance, fundAccountWithFriendbot } from '../services/stellar';
+import { fetchAccountBalance, fetchAccountTransactions, fundAccountWithFriendbot } from '../services/stellar';
 
 const WalletContext = createContext();
 
@@ -27,6 +27,10 @@ export const WalletProvider = ({ children }) => {
   const [isFetchingBalance, setIsFetchingBalance] = useState(false);
   const [balanceUpdatedAt, setBalanceUpdatedAt] = useState(null);
   const [isUnfunded, setIsUnfunded] = useState(false);
+
+  // Live Transactions State
+  const [transactions, setTransactions] = useState([]);
+  const [isFetchingTransactions, setIsFetchingTransactions] = useState(false);
 
   // Helper to format public key: GB7X...42F0
   const truncateAddress = (addr) => {
@@ -68,12 +72,30 @@ export const WalletProvider = ({ children }) => {
     }
   }, [address]);
 
-  // Refresh balance trigger
-  const refreshBalance = useCallback(() => {
-    if (address) {
-      return fetchBalance(address);
+  // Fetch recent transactions from Horizon Testnet
+  const fetchTransactions = useCallback(async (targetAddress, limit = 10) => {
+    const pubKey = targetAddress || address;
+    if (!pubKey) return [];
+
+    setIsFetchingTransactions(true);
+    try {
+      const txs = await fetchAccountTransactions(pubKey, limit);
+      setTransactions(txs);
+      return txs;
+    } catch (err) {
+      console.warn('[WalletContext] Transactions fetch error:', err);
+      return [];
+    } finally {
+      setIsFetchingTransactions(false);
     }
-  }, [address, fetchBalance]);
+  }, [address]);
+
+  // Refresh balance & transactions trigger
+  const refreshBalance = useCallback(async () => {
+    if (address) {
+      await Promise.all([fetchBalance(address), fetchTransactions(address, 10)]);
+    }
+  }, [address, fetchBalance, fetchTransactions]);
 
   // Fund unfunded account via Friendbot
   const fundTestnetAccount = async () => {
@@ -81,10 +103,10 @@ export const WalletProvider = ({ children }) => {
     setIsFetchingBalance(true);
     try {
       await fundAccountWithFriendbot(address);
-      await fetchBalance(address);
+      await refreshBalance();
     } catch (err) {
       setError(err?.message || 'Failed to fund account via Friendbot.');
-    } finally {
+    } fontally {
       setIsFetchingBalance(false);
     }
   };
@@ -101,10 +123,11 @@ export const WalletProvider = ({ children }) => {
       setConnectedAt(savedTime ? parseInt(savedTime, 10) : Date.now());
       setConnected(true);
       fetchBalance(savedAddress);
+      fetchTransactions(savedAddress, 10);
     }
 
     checkFreighterInstalled();
-  }, [fetchBalance]);
+  }, [fetchBalance, fetchTransactions]);
 
   // Connect Wallet Flow
   const connectWallet = async (useDemo = false) => {
@@ -113,7 +136,7 @@ export const WalletProvider = ({ children }) => {
     setError(null);
     const now = Date.now();
 
-    // Demo Mode Fallback for testing when extension is not installed
+    // Demo Mode Fallback
     if (useDemo) {
       const demoAddr = 'GB7X42F098A190B38812TESTNETRENTVAULTKEY99';
       setAddress(demoAddr);
@@ -126,11 +149,27 @@ export const WalletProvider = ({ children }) => {
       setShowInstallModal(false);
       setShowNetworkModal(false);
       
-      // Fetch balance or demo balance
       setXlmBalance('10,000.00');
       setRawBalance(10000);
       setIsUnfunded(false);
       setBalanceUpdatedAt(now);
+      setTransactions([
+        {
+          id: 'demo-tx-1',
+          hash: '8f92a10e2b4c129d39f4011029419082001',
+          direction: 'received',
+          type: 'payment',
+          amount: '10,000.00',
+          asset: 'XLM',
+          counterparty: 'GAAXFRIENDBOTSTLRKEY9901829',
+          sender: 'GAAXFRIENDBOTSTLRKEY9901829',
+          recipient: demoAddr,
+          timestamp: new Date().toISOString(),
+          status: 'confirmed',
+          fee: '100 stroops',
+          ledger: 'Confirmed',
+        }
+      ]);
       setLoading(false);
       return { success: true, address: demoAddr };
     }
@@ -188,8 +227,8 @@ export const WalletProvider = ({ children }) => {
         setShowNetworkModal(true);
       }
 
-      // Fetch live XLM balance automatically after successful connection
-      await fetchBalance(pubKey);
+      // Fetch live XLM balance & transactions automatically after connection
+      await Promise.all([fetchBalance(pubKey), fetchTransactions(pubKey, 10)]);
 
       return { success: true, address: pubKey };
     } catch (err) {
@@ -211,6 +250,7 @@ export const WalletProvider = ({ children }) => {
     setConnectedAt(null);
     setXlmBalance('0.00');
     setRawBalance(0);
+    setTransactions([]);
     setIsUnfunded(false);
     setBalanceUpdatedAt(null);
     setError(null);
@@ -233,7 +273,10 @@ export const WalletProvider = ({ children }) => {
         isFetchingBalance,
         balanceUpdatedAt,
         isUnfunded,
+        transactions,
+        isFetchingTransactions,
         fetchBalance,
+        fetchTransactions,
         refreshBalance,
         fundTestnetAccount,
         loading,

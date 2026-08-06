@@ -43,6 +43,56 @@ export const fetchAccountBalance = async (publicKey) => {
 };
 
 /**
+ * Fetch recent payments & transactions for an account from Horizon Testnet
+ */
+export const fetchAccountTransactions = async (publicKey, limit = 10) => {
+  console.log(`[Stellar Horizon] Fetching payments for account: ${publicKey} (limit: ${limit})`);
+  if (!publicKey || publicKey.trim() === '') {
+    return [];
+  }
+
+  try {
+    const paymentsCall = await server.payments().forAccount(publicKey).order('desc').limit(limit).call();
+    console.log('[Stellar Horizon] Payments response:', paymentsCall);
+
+    const records = paymentsCall.records || [];
+    const formattedTxs = records.map((record) => {
+      const isSent = record.from === publicKey;
+      const isPayment = record.type === 'payment' || record.type === 'create_account';
+      
+      let amount = '0.00';
+      if (record.type === 'payment') {
+        amount = parseFloat(record.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      } else if (record.type === 'create_account') {
+        amount = parseFloat(record.starting_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+
+      return {
+        id: record.id,
+        hash: record.transaction_hash,
+        direction: isSent ? 'sent' : 'received',
+        type: record.type,
+        amount: amount,
+        asset: record.asset_type === 'native' || !record.asset_type ? 'XLM' : record.asset_code,
+        counterparty: isSent ? record.to : record.from,
+        sender: record.from || 'N/A',
+        recipient: record.to || record.account || 'N/A',
+        timestamp: record.created_at,
+        status: 'confirmed',
+        fee: record.fee_charged || '100 stroops',
+        ledger: record.transaction_successful ? 'Confirmed' : 'Failed',
+      };
+    });
+
+    return formattedTxs;
+  } catch (err) {
+    console.warn('[Stellar Horizon] Fetch transactions warning:', err);
+    // If account not found 404, return empty list
+    return [];
+  }
+};
+
+/**
  * Fund testnet account using Stellar Friendbot
  */
 export const fundAccountWithFriendbot = async (publicKey) => {
@@ -71,7 +121,6 @@ export const sendTestPayment = async ({ sourceAddress, recipientAddress, amount 
     throw new Error('Missing required transaction parameters.');
   }
 
-  // Validate recipient Stellar address key syntax
   if (!StellarSdk.StrKey.isValidEd25519PublicKey(recipientAddress)) {
     throw new Error('Invalid recipient Stellar public key format (must start with G and be 56 characters long).');
   }
@@ -82,10 +131,8 @@ export const sendTestPayment = async ({ sourceAddress, recipientAddress, amount 
   }
 
   try {
-    // 1. Fetch source account from Horizon
     const sourceAccount = await server.loadAccount(sourceAddress);
 
-    // 2. Build payment operation & transaction
     const fee = await server.fetchBaseFee();
     const transaction = new StellarSdk.TransactionBuilder(sourceAccount, {
       fee: fee.toString(),
@@ -104,8 +151,6 @@ export const sendTestPayment = async ({ sourceAddress, recipientAddress, amount 
     const unsignedXdr = transaction.toXDR();
     console.log('[Stellar Payment] Unsigned Transaction XDR created:', unsignedXdr);
 
-    // 3. Request Freighter signature
-    console.log('[Stellar Payment] Requesting Freighter signature...');
     const signRes = await signTransaction(unsignedXdr, {
       network: 'TESTNET',
       networkPassphrase: StellarSdk.Networks.TESTNET,
@@ -126,8 +171,6 @@ export const sendTestPayment = async ({ sourceAddress, recipientAddress, amount 
       throw new Error('Transaction signing was cancelled by user.');
     }
 
-    // 4. Submit signed transaction XDR to Horizon RPC
-    console.log('[Stellar Payment] Submitting signed XDR to Horizon Testnet RPC...');
     const transactionToSubmit = StellarSdk.TransactionBuilder.fromXDR(
       signedXdr,
       StellarSdk.Networks.TESTNET
@@ -144,7 +187,6 @@ export const sendTestPayment = async ({ sourceAddress, recipientAddress, amount 
     };
   } catch (err) {
     console.error('[Stellar Payment Error]:', err);
-    // Parse Horizon transaction result codes if available
     const horizonErrorData = err?.response?.data?.extras?.result_codes;
     if (horizonErrorData) {
       const codeStr = JSON.stringify(horizonErrorData);

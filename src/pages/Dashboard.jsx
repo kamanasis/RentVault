@@ -6,6 +6,7 @@ import { BalanceCard } from '../components/wallet/BalanceCard';
 import { WalletCard } from '../components/wallet/WalletCard';
 import { WalletStatus } from '../components/wallet/WalletStatus';
 import { WalletButton } from '../components/wallet/WalletButton';
+import { TransactionList } from '../components/wallet/TransactionList';
 import { NetworkBadge } from '../components/wallet/NetworkBadge';
 import { StatusBadge } from '../components/status/StatusBadge';
 import { PrimaryButton } from '../components/buttons/PrimaryButton';
@@ -35,6 +36,7 @@ export const Dashboard = () => {
       badge: 'Escrow Creator',
       action: () => navigate('/agreement/create'),
       accent: 'border-primary/40 hover:border-primary',
+      ctaText: 'Open Action',
     },
     {
       title: 'Continue as Tenant',
@@ -43,6 +45,7 @@ export const Dashboard = () => {
       badge: 'Escrow Tenant',
       action: () => navigate('/agreement/AGR-2026-9041'),
       accent: 'border-success/40 hover:border-success',
+      ctaText: 'Open Action',
     },
     {
       title: 'Send Test XLM',
@@ -51,14 +54,16 @@ export const Dashboard = () => {
       badge: 'Testnet Payment',
       action: () => navigate('/payment'),
       accent: 'border-warning/40 hover:border-warning',
+      ctaText: 'Send XLM',
     },
     {
-      title: 'View Transactions',
-      subtitle: 'Inspect on-chain Soroban contract logs',
+      title: 'Recent Transactions',
+      subtitle: 'View your Stellar Testnet wallet transaction history and payment activity',
       icon: FileText,
-      badge: 'Horizon Ledger',
+      badge: 'Horizon API',
       action: () => navigate('/transactions'),
       accent: 'border-primary/40 hover:border-primary-glow',
+      ctaText: 'Open History',
     },
   ];
 
@@ -112,6 +117,9 @@ export const Dashboard = () => {
           {/* Phase 4 Live XLM Balance Card */}
           <BalanceCard />
 
+          {/* Phase 4.5 Recent Transactions Preview Section (Directly Below Balance Card) */}
+          <TransactionList limit={3} isPreview={true} />
+
           {/* Top Section: Wallet Overview & Session Status Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
@@ -155,14 +163,14 @@ export const Dashboard = () => {
                         <h3 className="text-h3 text-text-primary mb-1 group-hover:text-primary-glow transition-colors">
                           {qa.title}
                         </h3>
-                        <p className="text-caption text-text-secondary">
+                        <p className="text-caption text-text-secondary leading-relaxed">
                           {qa.subtitle}
                         </p>
                       </div>
                     </div>
 
                     <div className="pt-4 mt-4 border-t border-border/60 flex items-center text-caption font-medium text-primary-glow group-hover:translate-x-1 transition-transform">
-                      <span>Open Action</span>
+                      <span>{qa.ctaText}</span>
                       <ArrowRight className="w-4 h-4 ml-1" />
                     </div>
                   </Card>
