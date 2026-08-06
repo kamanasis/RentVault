@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { WalletProvider } from './context/WalletContext';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
+import { WalletErrorBanner } from './components/wallet/WalletErrorBanner';
 import { FreighterInstallModal } from './components/wallet/FreighterInstallModal';
 import { WrongNetworkModal } from './components/wallet/WrongNetworkModal';
 import { Landing } from './pages/Landing';
@@ -42,6 +43,7 @@ export function App() {
       <BrowserRouter>
         <div className="flex flex-col min-h-screen bg-background text-text-primary selection:bg-primary selection:text-white">
           <Navbar />
+          <WalletErrorBanner />
           <div className="flex-1">
             <Routes>
               <Route path="/" element={<Landing />} />
