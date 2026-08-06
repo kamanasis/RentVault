@@ -106,7 +106,7 @@ export const WalletProvider = ({ children }) => {
       await refreshBalance();
     } catch (err) {
       setError(err?.message || 'Failed to fund account via Friendbot.');
-    } fontally {
+    } finally {
       setIsFetchingBalance(false);
     }
   };
