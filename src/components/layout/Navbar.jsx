@@ -8,15 +8,17 @@ export const Navbar = () => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const isHome = location.pathname === '/';
+
   const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'Dashboard', path: '/dashboard' },
-    { name: 'Create Agreement', path: '/agreement/create' },
-    { name: 'Transactions', path: '/transactions' },
+    { name: 'Features', href: isHome ? '#features' : '/#features' },
+    { name: 'How It Works', href: isHome ? '#how-it-works' : '/#how-it-works' },
+    { name: 'Security', href: isHome ? '#security' : '/#security' },
+    { name: 'Stellar Docs', href: 'https://soroban.stellar.org', external: true },
   ];
 
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-md bg-background/80 border-b border-border/50">
+    <header className="sticky top-0 z-50 backdrop-blur-md bg-background/70 border-b border-border/40 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           
@@ -36,21 +38,29 @@ export const Navbar = () => {
           </Link>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden md:flex items-center gap-1 bg-surface/60 p-1.5 rounded-full border border-border/60">
-            {navLinks.map((link) => {
-              const isActive = location.pathname === link.path;
+          <nav className="hidden md:flex items-center gap-1 bg-surface/50 px-3 py-1.5 rounded-full border border-border/50 backdrop-blur-sm">
+            {navLinks.map((link, idx) => {
+              if (link.external) {
+                return (
+                  <a
+                    key={idx}
+                    href={link.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2 rounded-full text-caption font-medium text-text-secondary hover:text-text-primary hover:bg-surface/80 transition-all"
+                  >
+                    {link.name}
+                  </a>
+                );
+              }
               return (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`px-5 py-2 rounded-full text-caption font-medium transition-all duration-200 ${
-                    isActive 
-                      ? 'bg-primary text-white shadow-sm' 
-                      : 'text-text-secondary hover:text-text-primary hover:bg-surface'
-                  }`}
+                <a
+                  key={idx}
+                  href={link.href}
+                  className="px-4 py-2 rounded-full text-caption font-medium text-text-secondary hover:text-text-primary hover:bg-surface/80 transition-all"
                 >
                   {link.name}
-                </Link>
+                </a>
               );
             })}
           </nav>
@@ -63,7 +73,7 @@ export const Navbar = () => {
             
             <PrimaryButton 
               icon={Wallet}
-              onClick={() => alert('Phase 1 Placeholder: Wallet connection will be implemented in future phases.')}
+              onClick={() => alert('Phase 2 Placeholder: Freighter Wallet connection will be integrated in Phase 3!')}
             >
               Connect Freighter Wallet
             </PrimaryButton>
@@ -82,26 +92,24 @@ export const Navbar = () => {
 
       {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-card border-b border-border px-4 py-6 space-y-4">
+        <div className="md:hidden bg-card/95 backdrop-blur-xl border-b border-border px-4 py-6 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-border">
             <span className="text-caption text-text-secondary">Network</span>
             <StatusBadge variant="primary" size="sm">Stellar Testnet</StatusBadge>
           </div>
 
           <nav className="flex flex-col gap-2">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
+            {navLinks.map((link, idx) => (
+              <a
+                key={idx}
+                href={link.href}
+                target={link.external ? '_blank' : '_self'}
+                rel={link.external ? 'noreferrer' : ''}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`px-4 py-3 rounded-2xl text-body font-medium ${
-                  location.pathname === link.path 
-                    ? 'bg-primary text-white' 
-                    : 'text-text-secondary hover:bg-surface'
-                }`}
+                className="px-4 py-3 rounded-2xl text-body font-medium text-text-secondary hover:bg-surface hover:text-text-primary"
               >
                 {link.name}
-              </Link>
+              </a>
             ))}
           </nav>
 
@@ -110,7 +118,7 @@ export const Navbar = () => {
             fullWidth
             onClick={() => {
               setMobileMenuOpen(false);
-              alert('Phase 1 Placeholder: Wallet connection will be implemented in future phases.');
+              alert('Phase 2 Placeholder: Freighter Wallet connection will be integrated in Phase 3!');
             }}
           >
             Connect Freighter Wallet
