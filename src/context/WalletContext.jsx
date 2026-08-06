@@ -13,6 +13,7 @@ export const WalletProvider = ({ children }) => {
   const [connected, setConnected] = useState(false);
   const [address, setAddress] = useState('');
   const [network, setNetwork] = useState('');
+  const [connectedAt, setConnectedAt] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isInstalled, setIsInstalled] = useState(true);
@@ -42,10 +43,12 @@ export const WalletProvider = ({ children }) => {
   useEffect(() => {
     const savedAddress = sessionStorage.getItem('rentvault_wallet_address');
     const savedNetwork = sessionStorage.getItem('rentvault_wallet_network');
+    const savedTime = sessionStorage.getItem('rentvault_wallet_connected_at');
 
     if (savedAddress) {
       setAddress(savedAddress);
       setNetwork(savedNetwork || 'TESTNET');
+      setConnectedAt(savedTime ? parseInt(savedTime, 10) : Date.now());
       setConnected(true);
     }
 
@@ -56,15 +59,18 @@ export const WalletProvider = ({ children }) => {
   const connectWallet = async (useDemo = false) => {
     setLoading(true);
     setError(null);
+    const now = Date.now();
 
     // If user opts for Demo Testnet Wallet (e.g. without extension installed)
     if (useDemo) {
       const demoAddr = 'GB7X42F098A190B38812TESTNETRENTVAULTKEY99';
       setAddress(demoAddr);
       setNetwork('TESTNET');
+      setConnectedAt(now);
       setConnected(true);
       sessionStorage.setItem('rentvault_wallet_address', demoAddr);
       sessionStorage.setItem('rentvault_wallet_network', 'TESTNET');
+      sessionStorage.setItem('rentvault_wallet_connected_at', now.toString());
       setShowInstallModal(false);
       setLoading(false);
       return { success: true, address: demoAddr };
@@ -99,9 +105,11 @@ export const WalletProvider = ({ children }) => {
 
       setAddress(pubKey);
       setNetwork(currentNet);
+      setConnectedAt(now);
       setConnected(true);
       sessionStorage.setItem('rentvault_wallet_address', pubKey);
       sessionStorage.setItem('rentvault_wallet_network', currentNet);
+      sessionStorage.setItem('rentvault_wallet_connected_at', now.toString());
 
       if (!isTestnet) {
         setShowNetworkModal(true);
@@ -123,11 +131,13 @@ export const WalletProvider = ({ children }) => {
     setConnected(false);
     setAddress('');
     setNetwork('');
+    setConnectedAt(null);
     setError(null);
     setShowInstallModal(false);
     setShowNetworkModal(false);
     sessionStorage.removeItem('rentvault_wallet_address');
     sessionStorage.removeItem('rentvault_wallet_network');
+    sessionStorage.removeItem('rentvault_wallet_connected_at');
   };
 
   return (
@@ -136,6 +146,7 @@ export const WalletProvider = ({ children }) => {
         connected,
         address,
         network,
+        connectedAt,
         loading,
         error,
         isInstalled,
