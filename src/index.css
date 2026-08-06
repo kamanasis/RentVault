@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background: linear-gradient(135deg, #07111F 0%, #0B1728 50%, #07111F 100%);
+    background-attachment: fixed;
+    color: #F8FAFC;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+/* Custom Scrollbar for Stellar Midnight */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #07111F;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #16263D;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #233554;
+}
+
+/* Focus Ring for Accessibility */
+:focus-visible {
+  outline: 2px solid #60A5FA;
+  outline-offset: 2px;
+}
