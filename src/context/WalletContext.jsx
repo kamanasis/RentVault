@@ -164,7 +164,7 @@ export const WalletProvider = ({ children }) => {
         console.warn('[RentVault Wallet] Connected to wrong network! User prompted to switch to Stellar Testnet.');
       }
 
-      console.log('[RentVault Wallet] Connection complete. Navigation success!');
+      console.log('[RentVault Wallet] Connection complete.');
       return { success: true, address: pubKey };
     } catch (err) {
       console.error('[RentVault Wallet Error] Connection failed:', err);
@@ -177,7 +177,7 @@ export const WalletProvider = ({ children }) => {
     }
   };
 
-  // Disconnect Flow
+  // Disconnect Flow - Completely clears all session & state flags
   const disconnectWallet = () => {
     console.log('[RentVault Wallet] Disconnecting wallet session...');
     setConnected(false);
@@ -187,9 +187,8 @@ export const WalletProvider = ({ children }) => {
     setError(null);
     setShowInstallModal(false);
     setShowNetworkModal(false);
-    sessionStorage.removeItem('rentvault_wallet_address');
-    sessionStorage.removeItem('rentvault_wallet_network');
-    sessionStorage.removeItem('rentvault_wallet_connected_at');
+    sessionStorage.clear();
+    console.log('[RentVault Wallet] Session storage cleared. Wallet disconnected across all subscribed pages.');
   };
 
   const clearError = () => setError(null);

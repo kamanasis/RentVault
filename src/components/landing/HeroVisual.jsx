@@ -1,8 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Lock, CheckCircle2, Coins, Cpu, Key } from 'lucide-react';
+import { useWallet } from '../../context/WalletContext';
 
 export const HeroVisual = () => {
+  const { connected, address, truncateAddress } = useWallet();
+
   return (
     <div className="relative w-full max-w-lg mx-auto aspect-square flex items-center justify-center p-4">
       {/* Background Radial Ambient Glow - Soft & Subtle */}
@@ -40,7 +43,9 @@ export const HeroVisual = () => {
           <Lock className="w-3.5 h-3.5 text-success" />
           <span>RentVault Escrow</span>
         </div>
-        <span className="text-[10px] text-text-muted font-mono mt-0.5 tracking-wider">CB7X...XLM9</span>
+        <span className="text-[10px] text-text-muted font-mono mt-0.5 tracking-wider">
+          {connected ? truncateAddress(address) : 'CB7X...XLM9'}
+        </span>
       </motion.div>
 
       {/* Floating Web3 Activity Chips */}
@@ -68,9 +73,15 @@ export const HeroVisual = () => {
         </div>
         <div>
           <div className="text-[10px] text-text-muted uppercase tracking-wider font-medium">Freighter Wallet</div>
-          <div className="text-xs font-bold text-success flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" /> Connected
-          </div>
+          {connected ? (
+            <div className="text-xs font-bold text-success flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" /> Connected
+            </div>
+          ) : (
+            <div className="text-xs font-bold text-text-muted flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-border" /> Disconnected
+            </div>
+          )}
         </div>
       </motion.div>
     </div>
