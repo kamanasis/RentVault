@@ -3,7 +3,7 @@ import {
   isConnected,
   isAllowed,
   setAllowed,
-  getPublicKey,
+  getAddress,
   getNetwork
 } from '@stellar/freighter-api';
 
@@ -30,18 +30,16 @@ export const WalletProvider = ({ children }) => {
   const checkFreighterInstalled = async () => {
     console.log('[RentVault Wallet] Checking Freighter extension installation...');
     try {
-      // Check window object first for instant browser extension injection
       const windowHasFreighter = typeof window !== 'undefined' && Boolean(window.freighter || window.freighterApi);
       
       const res = await isConnected();
-      console.log('[RentVault Wallet] isConnected() response:', res);
+      console.log('[RentVault Wallet] isConnected() result:', res);
       
       const hasFreighter = windowHasFreighter || (typeof res === 'object' ? Boolean(res?.isConnected) : Boolean(res));
       setIsInstalled(hasFreighter);
       return hasFreighter;
     } catch (err) {
       console.warn('[RentVault Wallet] Freighter detection check failed:', err);
-      // Fallback check on window object
       const windowHasFreighter = typeof window !== 'undefined' && Boolean(window.freighter || window.freighterApi);
       setIsInstalled(windowHasFreighter);
       return windowHasFreighter;
@@ -67,7 +65,7 @@ export const WalletProvider = ({ children }) => {
 
   // Connect Wallet Flow
   const connectWallet = async (useDemo = false) => {
-    console.log('[RentVault Wallet] Starting wallet connection flow...');
+    console.log('[RentVault Wallet] Starting Freighter v6.0.1 wallet connection flow...');
     setLoading(true);
     setError(null);
     const now = Date.now();
@@ -90,20 +88,20 @@ export const WalletProvider = ({ children }) => {
     }
 
     try {
+      // Step 1: Detect Freighter
       const installed = await checkFreighterInstalled();
 
       if (!installed) {
         console.warn('[RentVault Wallet] Freighter extension not detected in browser.');
         setShowInstallModal(true);
         setError('Freighter browser wallet is not installed.');
-        setLoading(false);
         return { success: false, error: 'Freighter not installed' };
       }
 
-      // Step 1: Request permission via setAllowed()
+      // Step 2: Call setAllowed()
       console.log('[RentVault Wallet] Requesting wallet access via setAllowed()...');
       const allowedRes = await setAllowed();
-      console.log('[RentVault Wallet] setAllowed() response:', allowedRes);
+      console.log('[RentVault Wallet] setAllowed result:', allowedRes);
 
       const isUserAllowed = typeof allowedRes === 'object' ? allowedRes?.isAllowed !== false : Boolean(allowedRes);
       
@@ -111,31 +109,31 @@ export const WalletProvider = ({ children }) => {
         throw new Error(`Freighter Permission Error: ${allowedRes.error}`);
       }
 
-      // Step 2: Retrieve public wallet address via getPublicKey()
-      console.log('[RentVault Wallet] Retrieving public key via getPublicKey()...');
-      const keyRes = await getPublicKey();
-      console.log('[RentVault Wallet] getPublicKey() response:', keyRes);
+      // Step 3: Call getAddress() (Replaces deprecated getPublicKey)
+      console.log('[RentVault Wallet] Retrieving wallet address via getAddress()...');
+      const addressRes = await getAddress();
+      console.log('[RentVault Wallet] getAddress result:', addressRes);
 
       let pubKey = '';
-      if (typeof keyRes === 'string') {
-        pubKey = keyRes;
-      } else if (keyRes && typeof keyRes === 'object') {
-        if (keyRes.error) {
-          throw new Error(keyRes.error);
+      if (typeof addressRes === 'string') {
+        pubKey = addressRes;
+      } else if (addressRes && typeof addressRes === 'object') {
+        if (addressRes.error) {
+          throw new Error(`Wallet error: ${addressRes.error}`);
         }
-        pubKey = keyRes.address || keyRes.publicKey || keyRes.pubkey || '';
+        pubKey = addressRes.address || addressRes.publicKey || addressRes.pubkey || '';
       }
 
       if (!pubKey || pubKey.trim() === '') {
-        throw new Error('Wallet connection was cancelled or public key is unavailable.');
+        throw new Error('User rejected wallet connection or address is unavailable.');
       }
 
-      // Step 3: Retrieve active network via getNetwork()
-      console.log('[RentVault Wallet] Retrieving active network via getNetwork()...');
+      // Step 4: Call getNetwork()
+      console.log('[RentVault Wallet] Retrieving network via getNetwork()...');
       let currentNet = 'TESTNET';
       try {
         const netRes = await getNetwork();
-        console.log('[RentVault Wallet] getNetwork() response:', netRes);
+        console.log('[RentVault Wallet] getNetwork result:', netRes);
         if (typeof netRes === 'string') {
           currentNet = netRes;
         } else if (netRes && typeof netRes === 'object') {
@@ -145,10 +143,11 @@ export const WalletProvider = ({ children }) => {
         console.warn('[RentVault Wallet] Could not determine network automatically, defaulting to TESTNET:', netErr);
       }
 
-      // Step 4: Verify Stellar Testnet
+      // Step 5: Verify Stellar Testnet
       const isTestnet = currentNet.toUpperCase().includes('TESTNET');
       console.log(`[RentVault Wallet] Connected to ${currentNet}. Is Testnet: ${isTestnet}`);
 
+      // Step 6: Update WalletContext & sessionStorage
       setAddress(pubKey);
       setNetwork(currentNet);
       setConnectedAt(now);
@@ -158,19 +157,23 @@ export const WalletProvider = ({ children }) => {
       sessionStorage.setItem('rentvault_wallet_network', currentNet);
       sessionStorage.setItem('rentvault_wallet_connected_at', now.toString());
 
+      console.log('[RentVault Wallet] WalletContext updated successfully with address:', pubKey);
+
       if (!isTestnet) {
         setShowNetworkModal(true);
         console.warn('[RentVault Wallet] Connected to wrong network! User prompted to switch to Stellar Testnet.');
       }
 
-      setLoading(false);
+      console.log('[RentVault Wallet] Connection complete. Navigation success!');
       return { success: true, address: pubKey };
     } catch (err) {
       console.error('[RentVault Wallet Error] Connection failed:', err);
       const errMsg = err?.message || 'Failed to connect Freighter wallet.';
       setError(errMsg);
-      setLoading(false);
       return { success: false, error: errMsg };
+    } finally {
+      // Step 7: Always clear loading state in finally block
+      setLoading(false);
     }
   };
 
