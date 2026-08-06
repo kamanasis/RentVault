@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
   isConnected,
   isAllowed,
@@ -6,6 +6,7 @@ import {
   getAddress,
   getNetwork
 } from '@stellar/freighter-api';
+import { fetchAccountBalance, fundAccountWithFriendbot } from '../services/stellar';
 
 const WalletContext = createContext();
 
@@ -20,6 +21,13 @@ export const WalletProvider = ({ children }) => {
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [showNetworkModal, setShowNetworkModal] = useState(false);
 
+  // Live Balance State
+  const [xlmBalance, setXlmBalance] = useState('0.00');
+  const [rawBalance, setRawBalance] = useState(0);
+  const [isFetchingBalance, setIsFetchingBalance] = useState(false);
+  const [balanceUpdatedAt, setBalanceUpdatedAt] = useState(null);
+  const [isUnfunded, setIsUnfunded] = useState(false);
+
   // Helper to format public key: GB7X...42F0
   const truncateAddress = (addr) => {
     if (!addr) return '';
@@ -28,21 +36,56 @@ export const WalletProvider = ({ children }) => {
 
   // Robust Freighter extension detection
   const checkFreighterInstalled = async () => {
-    console.log('[RentVault Wallet] Checking Freighter extension installation...');
     try {
       const windowHasFreighter = typeof window !== 'undefined' && Boolean(window.freighter || window.freighterApi);
-      
       const res = await isConnected();
-      console.log('[RentVault Wallet] isConnected() result:', res);
-      
       const hasFreighter = windowHasFreighter || (typeof res === 'object' ? Boolean(res?.isConnected) : Boolean(res));
       setIsInstalled(hasFreighter);
       return hasFreighter;
     } catch (err) {
-      console.warn('[RentVault Wallet] Freighter detection check failed:', err);
       const windowHasFreighter = typeof window !== 'undefined' && Boolean(window.freighter || window.freighterApi);
       setIsInstalled(windowHasFreighter);
       return windowHasFreighter;
+    }
+  };
+
+  // Fetch live account balance from Horizon Testnet
+  const fetchBalance = useCallback(async (targetAddress) => {
+    const pubKey = targetAddress || address;
+    if (!pubKey) return;
+
+    setIsFetchingBalance(true);
+    try {
+      const data = await fetchAccountBalance(pubKey);
+      setXlmBalance(data.balance);
+      setRawBalance(data.raw);
+      setIsUnfunded(data.isUnfunded);
+      setBalanceUpdatedAt(Date.now());
+    } catch (err) {
+      console.warn('[WalletContext] Balance fetch error:', err);
+    } finally {
+      setIsFetchingBalance(false);
+    }
+  }, [address]);
+
+  // Refresh balance trigger
+  const refreshBalance = useCallback(() => {
+    if (address) {
+      return fetchBalance(address);
+    }
+  }, [address, fetchBalance]);
+
+  // Fund unfunded account via Friendbot
+  const fundTestnetAccount = async () => {
+    if (!address) return;
+    setIsFetchingBalance(true);
+    try {
+      await fundAccountWithFriendbot(address);
+      await fetchBalance(address);
+    } catch (err) {
+      setError(err?.message || 'Failed to fund account via Friendbot.');
+    } finally {
+      setIsFetchingBalance(false);
     }
   };
 
@@ -57,22 +100,21 @@ export const WalletProvider = ({ children }) => {
       setNetwork(savedNetwork || 'TESTNET');
       setConnectedAt(savedTime ? parseInt(savedTime, 10) : Date.now());
       setConnected(true);
-      console.log('[RentVault Wallet] Restored active wallet session:', savedAddress);
+      fetchBalance(savedAddress);
     }
 
     checkFreighterInstalled();
-  }, []);
+  }, [fetchBalance]);
 
   // Connect Wallet Flow
   const connectWallet = async (useDemo = false) => {
-    console.log('[RentVault Wallet] Starting Freighter v6.0.1 wallet connection flow...');
+    console.log('[RentVault Wallet] Starting wallet connection flow...');
     setLoading(true);
     setError(null);
     const now = Date.now();
 
     // Demo Mode Fallback for testing when extension is not installed
     if (useDemo) {
-      console.log('[RentVault Wallet] Connecting via Demo Testnet Account...');
       const demoAddr = 'GB7X42F098A190B38812TESTNETRENTVAULTKEY99';
       setAddress(demoAddr);
       setNetwork('TESTNET');
@@ -83,36 +125,27 @@ export const WalletProvider = ({ children }) => {
       sessionStorage.setItem('rentvault_wallet_connected_at', now.toString());
       setShowInstallModal(false);
       setShowNetworkModal(false);
+      
+      // Fetch balance or demo balance
+      setXlmBalance('10,000.00');
+      setRawBalance(10000);
+      setIsUnfunded(false);
+      setBalanceUpdatedAt(now);
       setLoading(false);
       return { success: true, address: demoAddr };
     }
 
     try {
-      // Step 1: Detect Freighter
       const installed = await checkFreighterInstalled();
 
       if (!installed) {
-        console.warn('[RentVault Wallet] Freighter extension not detected in browser.');
         setShowInstallModal(true);
         setError('Freighter browser wallet is not installed.');
         return { success: false, error: 'Freighter not installed' };
       }
 
-      // Step 2: Call setAllowed()
-      console.log('[RentVault Wallet] Requesting wallet access via setAllowed()...');
-      const allowedRes = await setAllowed();
-      console.log('[RentVault Wallet] setAllowed result:', allowedRes);
-
-      const isUserAllowed = typeof allowedRes === 'object' ? allowedRes?.isAllowed !== false : Boolean(allowedRes);
-      
-      if (allowedRes?.error) {
-        throw new Error(`Freighter Permission Error: ${allowedRes.error}`);
-      }
-
-      // Step 3: Call getAddress() (Replaces deprecated getPublicKey)
-      console.log('[RentVault Wallet] Retrieving wallet address via getAddress()...');
+      await setAllowed();
       const addressRes = await getAddress();
-      console.log('[RentVault Wallet] getAddress result:', addressRes);
 
       let pubKey = '';
       if (typeof addressRes === 'string') {
@@ -128,26 +161,20 @@ export const WalletProvider = ({ children }) => {
         throw new Error('User rejected wallet connection or address is unavailable.');
       }
 
-      // Step 4: Call getNetwork()
-      console.log('[RentVault Wallet] Retrieving network via getNetwork()...');
       let currentNet = 'TESTNET';
       try {
         const netRes = await getNetwork();
-        console.log('[RentVault Wallet] getNetwork result:', netRes);
         if (typeof netRes === 'string') {
           currentNet = netRes;
         } else if (netRes && typeof netRes === 'object') {
           currentNet = netRes.network || netRes.networkName || 'TESTNET';
         }
       } catch (netErr) {
-        console.warn('[RentVault Wallet] Could not determine network automatically, defaulting to TESTNET:', netErr);
+        console.warn('[RentVault Wallet] Network check warning:', netErr);
       }
 
-      // Step 5: Verify Stellar Testnet
       const isTestnet = currentNet.toUpperCase().includes('TESTNET');
-      console.log(`[RentVault Wallet] Connected to ${currentNet}. Is Testnet: ${isTestnet}`);
 
-      // Step 6: Update WalletContext & sessionStorage
       setAddress(pubKey);
       setNetwork(currentNet);
       setConnectedAt(now);
@@ -157,14 +184,13 @@ export const WalletProvider = ({ children }) => {
       sessionStorage.setItem('rentvault_wallet_network', currentNet);
       sessionStorage.setItem('rentvault_wallet_connected_at', now.toString());
 
-      console.log('[RentVault Wallet] WalletContext updated successfully with address:', pubKey);
-
       if (!isTestnet) {
         setShowNetworkModal(true);
-        console.warn('[RentVault Wallet] Connected to wrong network! User prompted to switch to Stellar Testnet.');
       }
 
-      console.log('[RentVault Wallet] Connection complete.');
+      // Fetch live XLM balance automatically after successful connection
+      await fetchBalance(pubKey);
+
       return { success: true, address: pubKey };
     } catch (err) {
       console.error('[RentVault Wallet Error] Connection failed:', err);
@@ -172,23 +198,25 @@ export const WalletProvider = ({ children }) => {
       setError(errMsg);
       return { success: false, error: errMsg };
     } finally {
-      // Step 7: Always clear loading state in finally block
       setLoading(false);
     }
   };
 
-  // Disconnect Flow - Completely clears all session & state flags
+  // Disconnect Flow
   const disconnectWallet = () => {
     console.log('[RentVault Wallet] Disconnecting wallet session...');
     setConnected(false);
     setAddress('');
     setNetwork('');
     setConnectedAt(null);
+    setXlmBalance('0.00');
+    setRawBalance(0);
+    setIsUnfunded(false);
+    setBalanceUpdatedAt(null);
     setError(null);
     setShowInstallModal(false);
     setShowNetworkModal(false);
     sessionStorage.clear();
-    console.log('[RentVault Wallet] Session storage cleared. Wallet disconnected across all subscribed pages.');
   };
 
   const clearError = () => setError(null);
@@ -200,6 +228,14 @@ export const WalletProvider = ({ children }) => {
         address,
         network,
         connectedAt,
+        xlmBalance,
+        rawBalance,
+        isFetchingBalance,
+        balanceUpdatedAt,
+        isUnfunded,
+        fetchBalance,
+        refreshBalance,
+        fundTestnetAccount,
         loading,
         error,
         clearError,

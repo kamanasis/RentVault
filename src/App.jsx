@@ -8,6 +8,7 @@ import { FreighterInstallModal } from './components/wallet/FreighterInstallModal
 import { WrongNetworkModal } from './components/wallet/WrongNetworkModal';
 import { Landing } from './pages/Landing';
 import { Dashboard } from './pages/Dashboard';
+import { SendPayment } from './pages/SendPayment';
 import { CreateAgreement } from './pages/CreateAgreement';
 import { AgreementDetails } from './pages/AgreementDetails';
 import { Deposit } from './pages/Deposit';
@@ -23,7 +24,7 @@ import { SecondaryButton } from './components/buttons/SecondaryButton';
 // Generic placeholder component for sub-routes
 const PlaceholderPage = ({ title, subtitle }) => (
   <PageContainer className="max-w-3xl text-center py-16">
-    <StatusBadge variant="primary" className="mb-4">Phase 3 Route Placeholder</StatusBadge>
+    <StatusBadge variant="primary" className="mb-4">Phase 4 Route Placeholder</StatusBadge>
     <h1 className="text-h1 text-text-primary mb-3">{title}</h1>
     <p className="text-body text-text-secondary mb-8">{subtitle}</p>
     <Card className="max-w-md mx-auto p-8 border border-border">
@@ -48,6 +49,7 @@ export function App() {
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/payment" element={<SendPayment />} />
               <Route path="/agreement/create" element={<CreateAgreement />} />
               <Route path="/agreement/:id" element={<AgreementDetails />} />
               <Route path="/agreement/:id/deposit" element={<Deposit />} />

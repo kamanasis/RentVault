@@ -2,6 +2,7 @@ import React from 'react';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Section } from '../components/layout/Section';
 import { Card } from '../components/cards/Card';
+import { BalanceCard } from '../components/wallet/BalanceCard';
 import { WalletCard } from '../components/wallet/WalletCard';
 import { WalletStatus } from '../components/wallet/WalletStatus';
 import { WalletButton } from '../components/wallet/WalletButton';
@@ -18,8 +19,7 @@ import {
   Plus, 
   ShieldCheck, 
   Wallet,
-  ArrowRight,
-  ExternalLink
+  ArrowRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -46,10 +46,10 @@ export const Dashboard = () => {
     },
     {
       title: 'Send Test XLM',
-      subtitle: 'Fund testnet account via Stellar Faucet',
+      subtitle: 'Send native payment on Stellar Testnet',
       icon: Send,
-      badge: 'Stellar Faucet',
-      action: () => window.open('https://laboratory.stellar.org/#account-creator?network=test', '_blank'),
+      badge: 'Testnet Payment',
+      action: () => navigate('/payment'),
       accent: 'border-warning/40 hover:border-warning',
     },
     {
@@ -76,7 +76,7 @@ export const Dashboard = () => {
             )}
           </div>
           <p className="text-body text-text-secondary">
-            Manage your Soroban smart contract agreements, wallet session, and security deposit escrow vaults.
+            Manage your Soroban smart contract agreements, live XLM account balance, and security deposit escrow vaults.
           </p>
         </div>
 
@@ -109,6 +109,9 @@ export const Dashboard = () => {
         </Card>
       ) : (
         <div className="space-y-8">
+          {/* Phase 4 Live XLM Balance Card */}
+          <BalanceCard />
+
           {/* Top Section: Wallet Overview & Session Status Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
@@ -182,9 +185,9 @@ export const Dashboard = () => {
                 <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center text-text-muted mx-auto">
                   <ShieldCheck className="w-6 h-6" />
                 </div>
-                <h3 className="text-h3 text-text-primary">Ready for Phase 4 Smart Contracts</h3>
+                <h3 className="text-h3 text-text-primary">Ready for Phase 5 Soroban Escrow</h3>
                 <p className="text-body text-text-secondary">
-                  Your Freighter wallet <code className="font-mono text-primary-glow">{address.slice(0, 6)}...{address.slice(-4)}</code> is authenticated on Stellar Testnet and ready for Soroban escrow contract deployment.
+                  Your Freighter wallet <code className="font-mono text-primary-glow">{address.slice(0, 6)}...{address.slice(-4)}</code> is authenticated on Stellar Testnet with live Horizon connectivity.
                 </p>
                 <SecondaryButton onClick={() => navigate('/agreement/create')}>
                   Start New Agreement Draft
