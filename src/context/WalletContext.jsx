@@ -20,6 +20,7 @@ export const WalletProvider = ({ children }) => {
   const [isInstalled, setIsInstalled] = useState(true);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [showNetworkModal, setShowNetworkModal] = useState(false);
+  const [showSwitchModal, setShowSwitchModal] = useState(false);
 
   // Live Balance State
   const [xlmBalance, setXlmBalance] = useState('0.00');
@@ -129,6 +130,38 @@ export const WalletProvider = ({ children }) => {
     checkFreighterInstalled();
   }, [fetchBalance, fetchTransactions]);
 
+  // Active account change polling listener for Freighter
+  useEffect(() => {
+    if (!connected || !address || address.startsWith('GB7X42F098A190B38812TESTNETRENTVAULTKEY99')) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await getAddress();
+        let activeKey = '';
+        if (typeof res === 'string') {
+          activeKey = res;
+        } else if (res && typeof res === 'object') {
+          activeKey = res.address || res.publicKey || '';
+        }
+
+        if (activeKey && activeKey !== address) {
+          console.log(`[WalletContext] Detected active Freighter account switch: ${address} -> ${activeKey}`);
+          const now = Date.now();
+          setAddress(activeKey);
+          setConnectedAt(now);
+          sessionStorage.setItem('rentvault_wallet_address', activeKey);
+          sessionStorage.setItem('rentvault_wallet_connected_at', now.toString());
+          fetchBalance(activeKey);
+          fetchTransactions(activeKey, 10);
+        }
+      } catch (err) {
+        // Silent poll warning
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [connected, address, fetchBalance, fetchTransactions]);
+
   // Connect Wallet Flow
   const connectWallet = async (useDemo = false) => {
     console.log('[RentVault Wallet] Starting wallet connection flow...');
@@ -148,6 +181,7 @@ export const WalletProvider = ({ children }) => {
       sessionStorage.setItem('rentvault_wallet_connected_at', now.toString());
       setShowInstallModal(false);
       setShowNetworkModal(false);
+      setShowSwitchModal(false);
       
       setXlmBalance('10,000.00');
       setRawBalance(10000);
@@ -241,6 +275,44 @@ export const WalletProvider = ({ children }) => {
     }
   };
 
+  // Switch Wallet Action: opens account switch modal
+  const openSwitchModal = () => {
+    setShowSwitchModal(true);
+  };
+
+  // Reconnect Active Freighter Account
+  const reconnectWallet = async () => {
+    setLoading(true);
+    try {
+      await setAllowed();
+      const res = await getAddress();
+      let pubKey = '';
+      if (typeof res === 'string') {
+        pubKey = res;
+      } else if (res && typeof res === 'object') {
+        pubKey = res.address || res.publicKey || '';
+      }
+
+      if (pubKey) {
+        const now = Date.now();
+        setAddress(pubKey);
+        setConnectedAt(now);
+        setConnected(true);
+        sessionStorage.setItem('rentvault_wallet_address', pubKey);
+        sessionStorage.setItem('rentvault_wallet_connected_at', now.toString());
+        await Promise.all([fetchBalance(pubKey), fetchTransactions(pubKey, 10)]);
+      }
+
+      setShowSwitchModal(false);
+      setError(null);
+    } catch (err) {
+      console.error('[WalletContext] Reconnect error:', err);
+      setError('Failed to reconnect active Freighter account.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Disconnect Flow
   const disconnectWallet = () => {
     console.log('[RentVault Wallet] Disconnecting wallet session...');
@@ -256,6 +328,7 @@ export const WalletProvider = ({ children }) => {
     setError(null);
     setShowInstallModal(false);
     setShowNetworkModal(false);
+    setShowSwitchModal(false);
     sessionStorage.clear();
   };
 
@@ -287,6 +360,10 @@ export const WalletProvider = ({ children }) => {
         setShowInstallModal,
         showNetworkModal,
         setShowNetworkModal,
+        showSwitchModal,
+        setShowSwitchModal,
+        openSwitchModal,
+        reconnectWallet,
         connectWallet,
         disconnectWallet,
         truncateAddress,

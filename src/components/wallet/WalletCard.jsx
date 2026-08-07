@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '../cards/Card';
 import { NetworkBadge } from './NetworkBadge';
+import { SecondaryButton } from '../buttons/SecondaryButton';
 import { useWallet } from '../../context/WalletContext';
-import { Copy, Check, Wallet, ShieldCheck, Key, ExternalLink, Clock } from 'lucide-react';
+import { Copy, Check, Wallet, ShieldCheck, Key, ExternalLink, Clock, RefreshCw } from 'lucide-react';
 
 export const WalletCard = () => {
-  const { connected, address, network, connectedAt } = useWallet();
+  const { connected, address, network, connectedAt, openSwitchModal, disconnectWallet } = useWallet();
   const [copied, setCopied] = useState(false);
   const [timeAgo, setTimeAgo] = useState('Connected just now');
 
@@ -125,7 +126,7 @@ export const WalletCard = () => {
         </div>
       </div>
 
-      {/* Action Shortcuts & Security Clearance Row */}
+      {/* Action Shortcuts & Switch Wallet Row */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-2 border-t border-border/60">
         
         {/* Open Stellar Explorer Button */}
@@ -142,11 +143,22 @@ export const WalletCard = () => {
           <ExternalLink className="w-4 h-4 text-primary-glow" />
         </motion.a>
 
-        <div className="flex items-center gap-4 text-caption text-text-secondary justify-end">
-          <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-success" />
-            <span>Freighter Verified</span>
-          </div>
+        {/* Phase 6.6 Switch Wallet & Disconnect Controls */}
+        <div className="flex items-center gap-2 justify-end">
+          <SecondaryButton 
+            icon={RefreshCw} 
+            onClick={openSwitchModal}
+            className="text-xs"
+          >
+            Switch Wallet
+          </SecondaryButton>
+
+          <SecondaryButton 
+            onClick={disconnectWallet}
+            className="text-xs"
+          >
+            Disconnect
+          </SecondaryButton>
         </div>
 
       </div>

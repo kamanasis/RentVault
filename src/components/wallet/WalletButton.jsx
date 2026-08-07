@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Wallet, Loader2, LogOut, CheckCircle2 } from 'lucide-react';
+import { Wallet, Loader2, LogOut, RefreshCw } from 'lucide-react';
 import { useWallet } from '../../context/WalletContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,12 +9,11 @@ export const WalletButton = ({
   pulse = false,
   className = '' 
 }) => {
-  const { connected, address, loading, connectWallet, disconnectWallet, truncateAddress } = useWallet();
+  const { connected, address, loading, connectWallet, openSwitchModal, disconnectWallet, truncateAddress } = useWallet();
   const navigate = useNavigate();
 
   const handleClick = async () => {
     if (connected) {
-      // If clicked while connected, navigate to dashboard or show dropdown
       navigate('/dashboard');
     } else {
       const res = await connectWallet();
@@ -50,9 +49,9 @@ export const WalletButton = ({
           onClick={() => navigate('/dashboard')}
           className={`
             inline-flex items-center justify-center gap-2 
-            px-5 py-3 rounded-full font-mono text-caption text-text-primary 
+            px-4 py-2.5 rounded-full font-mono text-caption text-text-primary 
             bg-surface border border-border hover:border-primary/50
-            shadow-sm transition-all duration-200 cursor-pointer min-h-[44px]
+            shadow-sm transition-all duration-200 cursor-pointer min-h-[40px]
             ${className}
           `}
         >
@@ -60,11 +59,21 @@ export const WalletButton = ({
           <span>{truncateAddress(address)}</span>
         </motion.button>
 
+        {/* Phase 6.6 Switch Account Button */}
+        <button
+          onClick={openSwitchModal}
+          title="Switch Freighter Account"
+          className="p-2.5 rounded-full bg-surface border border-border text-text-secondary hover:text-primary-glow hover:border-primary/50 transition-colors cursor-pointer"
+          aria-label="Switch Freighter account"
+        >
+          <RefreshCw className="w-4 h-4" />
+        </button>
+
         <button
           onClick={disconnectWallet}
-          title="Disconnect Wallet"
-          className="p-3 rounded-full bg-surface border border-border text-text-muted hover:text-error hover:border-error/40 transition-colors cursor-pointer"
-          aria-label="Disconnect wallet"
+          title="Disconnect Wallet Session"
+          className="p-2.5 rounded-full bg-surface border border-border text-text-muted hover:text-error hover:border-error/40 transition-colors cursor-pointer"
+          aria-label="Disconnect wallet session"
         >
           <LogOut className="w-4 h-4" />
         </button>

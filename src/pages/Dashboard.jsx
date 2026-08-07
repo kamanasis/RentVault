@@ -24,14 +24,13 @@ import {
   Wallet,
   ArrowRight,
   Shield,
-  Layers,
-  Filter
+  RefreshCw
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const Dashboard = () => {
   const navigate = useNavigate();
-  const { connected, address, network, disconnectWallet } = useWallet();
+  const { connected, address, network, openSwitchModal, disconnectWallet } = useWallet();
   const { agreements } = useAgreements();
 
   const [workspaceFilter, setWorkspaceFilter] = useState('all'); // 'all' | 'landlord' | 'tenant'
@@ -72,9 +71,14 @@ export const Dashboard = () => {
 
         <div className="flex items-center gap-3">
           {connected ? (
-            <SecondaryButton onClick={disconnectWallet}>
-              Disconnect Session
-            </SecondaryButton>
+            <>
+              <SecondaryButton icon={RefreshCw} onClick={openSwitchModal}>
+                Switch Wallet
+              </SecondaryButton>
+              <SecondaryButton onClick={disconnectWallet}>
+                Disconnect Session
+              </SecondaryButton>
+            </>
           ) : (
             <WalletButton pulse />
           )}

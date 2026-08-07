@@ -7,6 +7,7 @@ import { Footer } from './components/layout/Footer';
 import { WalletErrorBanner } from './components/wallet/WalletErrorBanner';
 import { FreighterInstallModal } from './components/wallet/FreighterInstallModal';
 import { WrongNetworkModal } from './components/wallet/WrongNetworkModal';
+import { SwitchWalletModal } from './components/wallet/SwitchWalletModal';
 import { Landing } from './pages/Landing';
 import { Dashboard } from './pages/Dashboard';
 import { SendPayment } from './pages/SendPayment';
@@ -76,9 +77,10 @@ export function App() {
             </div>
             <Footer />
 
-            {/* Wallet Error & Install Modals */}
+            {/* Wallet Error, Install & Switch Modals */}
             <FreighterInstallModal />
             <WrongNetworkModal />
+            <SwitchWalletModal />
           </div>
         </BrowserRouter>
       </AgreementProvider>
