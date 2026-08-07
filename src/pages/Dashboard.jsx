@@ -37,19 +37,24 @@ export const Dashboard = () => {
 
   const normalizedAddress = (address || '').toLowerCase().trim();
 
-  // Role-filtered agreement sets
+  // Role-filtered agreement sets for connected wallet
   const landlordAgreements = agreements.filter(
     (a) => (a.landlordWallet || '').toLowerCase().trim() === normalizedAddress
   );
   const tenantAgreements = agreements.filter(
     (a) => (a.tenantWallet || '').toLowerCase().trim() === normalizedAddress
   );
+  const userAgreements = agreements.filter((a) => {
+    const landlord = (a.landlordWallet || '').toLowerCase().trim();
+    const tenant = (a.tenantWallet || '').toLowerCase().trim();
+    return landlord === normalizedAddress || tenant === normalizedAddress;
+  });
 
   const activeAgreementsList = workspaceFilter === 'landlord'
     ? landlordAgreements
     : workspaceFilter === 'tenant'
     ? tenantAgreements
-    : agreements;
+    : userAgreements;
 
   return (
     <PageContainer>
@@ -119,7 +124,7 @@ export const Dashboard = () => {
             </div>
           </div>
 
-          {/* Phase 6.5 Role Workspaces Grid */}
+          {/* Role Workspaces Grid */}
           <div>
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -259,15 +264,15 @@ export const Dashboard = () => {
             </div>
           </div>
 
-          {/* Phase 6.5 Role-Filtered Agreements Section */}
+          {/* Role-Filtered Agreements Section */}
           <Section className="py-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div>
                 <h2 className="text-h2 text-text-primary mb-1">Your Role Agreements</h2>
-                <p className="text-caption text-text-secondary">Filtered by your connected wallet identity.</p>
+                <p className="text-caption text-text-secondary">Filtered exclusively by your connected wallet identity.</p>
               </div>
 
-              {/* Role Filter Tabs */}
+              {/* Dynamic Role Filter Tabs */}
               <div className="flex items-center gap-2 bg-surface/60 p-1.5 rounded-2xl border border-border/60">
                 <button
                   onClick={() => setWorkspaceFilter('all')}
@@ -275,7 +280,7 @@ export const Dashboard = () => {
                     workspaceFilter === 'all' ? 'bg-primary text-white font-semibold shadow-sm' : 'text-text-secondary hover:text-text-primary'
                   }`}
                 >
-                  All ({agreements.length})
+                  All ({userAgreements.length})
                 </button>
                 <button
                   onClick={() => setWorkspaceFilter('landlord')}
@@ -307,14 +312,14 @@ export const Dashboard = () => {
                       ? 'No agreements created by your wallet' 
                       : workspaceFilter === 'tenant' 
                       ? 'No agreements assigned to your tenant wallet' 
-                      : 'No rental agreements found'}
+                      : 'No participating agreements for this wallet'}
                   </h3>
                   <p className="text-body text-text-secondary max-w-md mx-auto">
                     {workspaceFilter === 'landlord' 
                       ? 'Create your first digital rental agreement as a landlord.' 
                       : workspaceFilter === 'tenant' 
                       ? 'Ask your landlord to assign an agreement to your Stellar wallet address.' 
-                      : 'Create or view digital security deposit agreements.'}
+                      : 'This wallet address is not currently associated with any active rental agreements.'}
                   </p>
                 </div>
                 {workspaceFilter === 'landlord' && (

@@ -6,21 +6,48 @@ import { PrimaryButton } from '../components/buttons/PrimaryButton';
 import { SecondaryButton } from '../components/buttons/SecondaryButton';
 import { InputField } from '../components/forms/InputField';
 import { useAgreements } from '../context/AgreementContext';
-import { Search, Plus, Filter, ArrowUpDown, FileCheck, Building } from 'lucide-react';
+import { useWallet } from '../context/WalletContext';
+import { Search, Plus, Filter, ArrowUpDown, FileCheck, Building, ShieldCheck, UserCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const AgreementDashboard = () => {
   const navigate = useNavigate();
   const { agreements, loading } = useAgreements();
+  const { address } = useWallet();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('All'); // 'All' | 'As Landlord' | 'As Tenant'
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
 
-  const filterOptions = ['All', 'Awaiting Deposit', 'Deposit Locked', 'Lease Active', 'Completed'];
+  const normalizedAddress = (address || '').toLowerCase().trim();
 
-  // Filter & Sort Logic
-  const filteredAgreements = agreements
+  // Internal identity filtering: connected wallet must participate as Landlord or Tenant
+  const landlordAgreements = agreements.filter(
+    (a) => (a.landlordWallet || '').toLowerCase().trim() === normalizedAddress
+  );
+
+  const tenantAgreements = agreements.filter(
+    (a) => (a.tenantWallet || '').toLowerCase().trim() === normalizedAddress
+  );
+
+  const userAgreements = agreements.filter((a) => {
+    const landlord = (a.landlordWallet || '').toLowerCase().trim();
+    const tenant = (a.tenantWallet || '').toLowerCase().trim();
+    return landlord === normalizedAddress || tenant === normalizedAddress;
+  });
+
+  const statusOptions = ['All', 'Awaiting Deposit', 'Deposit Locked', 'Lease Active', 'Refund Completed'];
+
+  // Base list depending on Role filter tab
+  const roleBaseAgreements = roleFilter === 'As Landlord' 
+    ? landlordAgreements 
+    : roleFilter === 'As Tenant' 
+    ? tenantAgreements 
+    : userAgreements;
+
+  // Filter & Sort Logic applied on roleBaseAgreements
+  const filteredAgreements = roleBaseAgreements
     .filter((a) => {
       const matchesSearch = 
         a.propertyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -52,7 +79,7 @@ export const AgreementDashboard = () => {
         <div>
           <h1 className="text-h1 text-text-primary mb-1">Rental Agreement Dashboard</h1>
           <p className="text-body text-text-secondary">
-            Manage, filter, and track all digital rental security deposit escrows.
+            View and manage rental agreements strictly associated with your connected Freighter wallet.
           </p>
         </div>
 
@@ -62,7 +89,39 @@ export const AgreementDashboard = () => {
       </div>
 
       {/* Filter & Search Bar */}
-      <Card className="mb-8 space-y-4 p-5 sm:p-6">
+      <Card className="mb-8 space-y-5 p-5 sm:p-6">
+        {/* Role Tabs */}
+        <div className="flex items-center justify-between gap-4 pb-4 border-b border-border/60">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setRoleFilter('All')}
+              className={`px-4 py-2 rounded-xl text-caption font-semibold transition-all cursor-pointer ${
+                roleFilter === 'All' ? 'bg-primary text-white shadow-sm' : 'bg-surface text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              All ({userAgreements.length})
+            </button>
+
+            <button
+              onClick={() => setRoleFilter('As Landlord')}
+              className={`px-4 py-2 rounded-xl text-caption font-semibold transition-all cursor-pointer ${
+                roleFilter === 'As Landlord' ? 'bg-primary text-white shadow-sm' : 'bg-surface text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              As Landlord ({landlordAgreements.length})
+            </button>
+
+            <button
+              onClick={() => setRoleFilter('As Tenant')}
+              className={`px-4 py-2 rounded-xl text-caption font-semibold transition-all cursor-pointer ${
+                roleFilter === 'As Tenant' ? 'bg-success text-white shadow-sm' : 'bg-surface text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              As Tenant ({tenantAgreements.length})
+            </button>
+          </div>
+        </div>
+
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
           {/* Search Input */}
           <div className="flex-1">
@@ -93,11 +152,11 @@ export const AgreementDashboard = () => {
         </div>
 
         {/* Status Filter Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-2 scrollbar-none border-t border-border/60">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none border-t border-border/60">
           <span className="text-xs text-text-muted font-medium flex items-center gap-1 mr-2 flex-shrink-0">
             <Filter className="w-3.5 h-3.5" /> Status:
           </span>
-          {filterOptions.map((opt) => {
+          {statusOptions.map((opt) => {
             const isActive = statusFilter === opt;
             return (
               <button
@@ -125,9 +184,9 @@ export const AgreementDashboard = () => {
           <div className="space-y-1">
             <h3 className="text-h3 text-text-primary">No agreements found</h3>
             <p className="text-caption text-text-secondary max-w-md mx-auto">
-              {searchQuery || statusFilter !== 'All' 
-                ? 'No rental agreements matched your search query or status filter.' 
-                : 'Create your first digital rental agreement to start managing escrow deposits.'}
+              {searchQuery || statusFilter !== 'All' || roleFilter !== 'All'
+                ? 'No rental agreements matched your current filters.' 
+                : 'This wallet address is not currently associated with any rental agreements.'}
             </p>
           </div>
           <div className="pt-2">
