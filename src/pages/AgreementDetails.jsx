@@ -33,7 +33,9 @@ import {
   ShieldCheck,
   AlertCircle,
   ExternalLink,
-  Info
+  Info,
+  CheckCircle2,
+  LockKeyhole
 } from 'lucide-react';
 
 export const AgreementDetails = () => {
@@ -97,9 +99,38 @@ export const AgreementDetails = () => {
 
   const isDepositLocked = agreement.status === 'Deposit Locked';
 
+  // Role permissions list items
+  const landlordPermissions = [
+    'Edit agreement metadata',
+    'Share agreement link',
+    'Monitor escrow status',
+    'View funding details',
+    'Access transaction history',
+  ];
+
+  const tenantPermissions = [
+    'Deposit security XLM',
+    'View agreement timeline',
+    'Monitor refund estimate',
+    'View funding details',
+    'Access transaction history',
+  ];
+
+  const guestPermissions = [
+    'View agreement details',
+    'View agreement timeline',
+    'Inspect wallet keys',
+  ];
+
+  const activePermissions = roleInfo.isLandlord 
+    ? landlordPermissions 
+    : roleInfo.isTenant 
+    ? tenantPermissions 
+    : guestPermissions;
+
   return (
     <PageContainer className="max-w-5xl">
-      {/* Top Navigation Row */}
+      {/* Top Navigation Row & Single Primary Action Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-border">
         <div>
           <button
@@ -119,7 +150,7 @@ export const AgreementDetails = () => {
           <p className="text-body text-text-secondary mt-1">{agreement.propertyAddress}</p>
         </div>
 
-        {/* Header Actions */}
+        {/* Primary Action Bar (Header Only - Zero Duplication) */}
         <div className="flex items-center gap-3">
           <SecondaryButton 
             icon={Share2} 
@@ -139,7 +170,7 @@ export const AgreementDetails = () => {
             </SecondaryButton>
           )}
 
-          {/* Deposit Escrow Header Action Scoped to Tenant */}
+          {/* Primary Deposit / Escrow Action Button */}
           <PrimaryButton 
             icon={Lock} 
             disabled={!roleInfo.isTenant || isDepositLocked}
@@ -162,7 +193,7 @@ export const AgreementDetails = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left 2 Columns: Main Details */}
+        {/* Left 2 Columns: Main Details & Timeline */}
         <div className="lg:col-span-2 space-y-6">
           {/* Wallet Mismatch Warning if Unauthorized */}
           {roleInfo.isUnauthorized && (
@@ -269,59 +300,44 @@ export const AgreementDetails = () => {
           </Card>
         </div>
 
-        {/* Right Column: Financial Summary & Role Controls */}
+        {/* Right Sidebar: Financial Summary & Informational Role-Based Summary Card */}
         <div className="space-y-6">
           <AgreementSummary agreement={agreement} />
 
-          <Card className="space-y-3">
-            <h4 className="text-caption font-semibold text-text-primary uppercase tracking-wider mb-2">
-              Role-Based Controls
-            </h4>
+          {/* Informational Role-Based Summary Card (No Duplicate Action Buttons) */}
+          <Card className="space-y-4 border-border/80 bg-background/50">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <span className="text-caption font-semibold text-text-primary uppercase tracking-wider">
+                Role-Based Controls
+              </span>
+              <RoleBadge role={roleInfo.role} />
+            </div>
 
-            {/* Landlord Only Controls */}
-            {roleInfo.isLandlord && (
-              <SecondaryButton 
-                fullWidth 
-                icon={Edit3}
-                onClick={() => setIsEditModalOpen(true)}
-              >
-                Edit Agreement Terms
-              </SecondaryButton>
-            )}
+            {/* Granted Permissions List */}
+            <div className="space-y-2">
+              <span className="text-xs text-text-muted font-medium block">Granted Permissions</span>
+              <ul className="space-y-2 text-xs text-text-secondary">
+                {activePermissions.map((perm, idx) => (
+                  <li key={idx} className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-success flex-shrink-0" />
+                    <span>{perm}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-            <SecondaryButton 
-              fullWidth 
-              icon={Share2}
-              onClick={handleShareAgreement}
-            >
-              {copiedShareLink ? 'Link Copied!' : 'Share Deposit Link'}
-            </SecondaryButton>
-
-            {/* Tenant Escrow Deposit Button */}
-            <div className="space-y-1 pt-1">
-              <PrimaryButton 
-                fullWidth 
-                icon={Lock}
-                disabled={!roleInfo.isTenant || isDepositLocked}
-                onClick={() => navigate(`/agreement/${agreement.id}/deposit`)}
-              >
-                {isDepositLocked 
-                  ? 'Escrow Already Funded' 
-                  : roleInfo.isTenant 
-                  ? 'Execute Soroban Deposit' 
-                  : roleInfo.isLandlord 
-                  ? 'Waiting for Tenant Deposit' 
-                  : 'Unauthorized Wallet'}
-              </PrimaryButton>
-
-              <p className="text-[11px] text-text-muted text-center flex items-center justify-center gap-1 leading-normal px-1">
-                <Info className="w-3.5 h-3.5 text-primary-glow flex-shrink-0" />
-                <span>
-                  {roleInfo.isTenant && !isDepositLocked && 'Authenticated as Tenant. Ready to deposit XLM.'}
-                  {roleInfo.isTenant && isDepositLocked && 'This deposit was funded by your connected wallet and is currently locked in the Soroban escrow contract.'}
-                  {roleInfo.isLandlord && !isDepositLocked && 'Only the tenant wallet assigned to this agreement can fund the escrow deposit.'}
-                  {roleInfo.isUnauthorized && 'This wallet is not authorized to fund or edit this agreement.'}
+            {/* Compact Escrow State Summary */}
+            <div className="p-3.5 bg-surface/60 rounded-2xl border border-border/60 space-y-1.5 text-xs">
+              <div className="flex items-center justify-between font-semibold">
+                <span className="text-text-muted">Escrow State</span>
+                <span className={isDepositLocked ? 'text-success' : 'text-warning'}>
+                  {isDepositLocked ? 'Deposit Locked' : 'Awaiting Deposit'}
                 </span>
+              </div>
+              <p className="text-[11px] text-text-secondary leading-relaxed">
+                {isDepositLocked 
+                  ? `Funded by tenant wallet (${totalEscrow} XLM locked on-chain)`
+                  : `Requires ${totalEscrow} XLM escrow deposit by assigned tenant`}
               </p>
             </div>
           </Card>
