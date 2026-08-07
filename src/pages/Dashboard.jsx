@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Section } from '../components/layout/Section';
 import { Card } from '../components/cards/Card';
@@ -22,7 +22,10 @@ import {
   Plus, 
   ShieldCheck, 
   Wallet,
-  ArrowRight
+  ArrowRight,
+  Shield,
+  Layers,
+  Filter
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -31,44 +34,23 @@ export const Dashboard = () => {
   const { connected, address, network, disconnectWallet } = useWallet();
   const { agreements } = useAgreements();
 
-  const quickActions = [
-    {
-      title: 'Continue as Landlord',
-      subtitle: 'Create digital rental security agreements',
-      icon: Building,
-      badge: 'Escrow Creator',
-      action: () => navigate('/agreements/new'),
-      accent: 'border-primary/40 hover:border-primary',
-      ctaText: 'New Agreement',
-    },
-    {
-      title: 'Continue as Tenant',
-      subtitle: 'Review & manage your active agreements',
-      icon: UserCheck,
-      badge: 'Escrow Tenant',
-      action: () => navigate('/agreements'),
-      accent: 'border-success/40 hover:border-success',
-      ctaText: 'View Agreements',
-    },
-    {
-      title: 'Send Test XLM',
-      subtitle: 'Send native payment on Stellar Testnet',
-      icon: Send,
-      badge: 'Testnet Payment',
-      action: () => navigate('/payment'),
-      accent: 'border-warning/40 hover:border-warning',
-      ctaText: 'Send XLM',
-    },
-    {
-      title: 'Recent Transactions',
-      subtitle: 'View your Stellar Testnet wallet transaction history and payment activity',
-      icon: FileText,
-      badge: 'Horizon API',
-      action: () => navigate('/transactions'),
-      accent: 'border-primary/40 hover:border-primary-glow',
-      ctaText: 'Open History',
-    },
-  ];
+  const [workspaceFilter, setWorkspaceFilter] = useState('all'); // 'all' | 'landlord' | 'tenant'
+
+  const normalizedAddress = (address || '').toLowerCase().trim();
+
+  // Role-filtered agreement sets
+  const landlordAgreements = agreements.filter(
+    (a) => (a.landlordWallet || '').toLowerCase().trim() === normalizedAddress
+  );
+  const tenantAgreements = agreements.filter(
+    (a) => (a.tenantWallet || '').toLowerCase().trim() === normalizedAddress
+  );
+
+  const activeAgreementsList = workspaceFilter === 'landlord'
+    ? landlordAgreements
+    : workspaceFilter === 'tenant'
+    ? tenantAgreements
+    : agreements;
 
   return (
     <PageContainer>
@@ -133,90 +115,213 @@ export const Dashboard = () => {
             </div>
           </div>
 
-          {/* Quick Actions Grid */}
+          {/* Phase 6.5 Role Workspaces Grid */}
           <div>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-h2 text-text-primary mb-1">Quick Escrow Actions</h2>
-                <p className="text-caption text-text-secondary">Choose an action to manage your rental deposit workflow.</p>
+                <h2 className="text-h2 text-text-primary mb-1">Role Workspaces & Actions</h2>
+                <p className="text-caption text-text-secondary">Select an action based on your wallet identity (Landlord or Tenant).</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {quickActions.map((qa, idx) => {
-                const Icon = qa.icon;
-                return (
-                  <Card
-                    key={idx}
-                    hoverEffect
-                    onClick={qa.action}
-                    className={`cursor-pointer group flex flex-col justify-between ${qa.accent}`}
-                  >
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center text-primary-glow group-hover:scale-105 transition-transform">
-                          <Icon className="w-6 h-6" />
-                        </div>
-                        <span className="text-[11px] font-mono font-semibold px-2.5 py-1 rounded-full bg-surface border border-border text-text-secondary">
-                          {qa.badge}
-                        </span>
-                      </div>
-
-                      <div>
-                        <h3 className="text-h3 text-text-primary mb-1 group-hover:text-primary-glow transition-colors">
-                          {qa.title}
-                        </h3>
-                        <p className="text-caption text-text-secondary leading-relaxed">
-                          {qa.subtitle}
-                        </p>
-                      </div>
+              {/* Landlord Workspace Card */}
+              <Card
+                hoverEffect
+                onClick={() => navigate('/agreements/new')}
+                className="cursor-pointer group flex flex-col justify-between border-primary/40 hover:border-primary"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center text-primary-glow group-hover:scale-105 transition-transform">
+                      <Shield className="w-6 h-6" />
                     </div>
+                    <span className="text-[11px] font-mono font-semibold px-2.5 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary-glow">
+                      Landlord Workspace
+                    </span>
+                  </div>
 
-                    <div className="pt-4 mt-4 border-t border-border/60 flex items-center text-caption font-medium text-primary-glow group-hover:translate-x-1 transition-transform">
-                      <span>{qa.ctaText}</span>
-                      <ArrowRight className="w-4 h-4 ml-1" />
+                  <div>
+                    <h3 className="text-h3 text-text-primary mb-1 group-hover:text-primary-glow transition-colors">
+                      Create New Agreement
+                    </h3>
+                    <p className="text-caption text-text-secondary leading-relaxed">
+                      Draft rental deposit terms, reserve allocations, and assign tenant wallet addresses.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-4 mt-4 border-t border-border/60 flex items-center text-caption font-medium text-primary-glow group-hover:translate-x-1 transition-transform">
+                  <span>Create Agreement</span>
+                  <ArrowRight className="w-4 h-4 ml-1" />
+                </div>
+              </Card>
+
+              {/* Tenant Workspace Card */}
+              <Card
+                hoverEffect
+                onClick={() => navigate('/agreements')}
+                className="cursor-pointer group flex flex-col justify-between border-success/40 hover:border-success"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center text-success group-hover:scale-105 transition-transform">
+                      <UserCheck className="w-6 h-6" />
                     </div>
-                  </Card>
-                );
-              })}
+                    <span className="text-[11px] font-mono font-semibold px-2.5 py-1 rounded-full bg-success/10 border border-success/30 text-success">
+                      Tenant Workspace
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-h3 text-text-primary mb-1 group-hover:text-success transition-colors">
+                      Fund Escrow Deposit
+                    </h3>
+                    <p className="text-caption text-text-secondary leading-relaxed">
+                      Review assigned agreements and execute Soroban smart contract deposit locks.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-4 mt-4 border-t border-border/60 flex items-center text-caption font-medium text-success group-hover:translate-x-1 transition-transform">
+                  <span>Fund Deposit</span>
+                  <ArrowRight className="w-4 h-4 ml-1" />
+                </div>
+              </Card>
+
+              {/* Send Test XLM */}
+              <Card
+                hoverEffect
+                onClick={() => navigate('/payment')}
+                className="cursor-pointer group flex flex-col justify-between border-warning/40 hover:border-warning"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center text-warning group-hover:scale-105 transition-transform">
+                      <Send className="w-6 h-6" />
+                    </div>
+                    <span className="text-[11px] font-mono font-semibold px-2.5 py-1 rounded-full bg-surface border border-border text-text-secondary">
+                      Testnet Payment
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-h3 text-text-primary mb-1 group-hover:text-warning transition-colors">
+                      Send Test XLM
+                    </h3>
+                    <p className="text-caption text-text-secondary leading-relaxed">
+                      Send native payments directly on Stellar Testnet via Freighter signing.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-4 mt-4 border-t border-border/60 flex items-center text-caption font-medium text-warning group-hover:translate-x-1 transition-transform">
+                  <span>Send XLM</span>
+                  <ArrowRight className="w-4 h-4 ml-1" />
+                </div>
+              </Card>
+
+              {/* Recent Transactions */}
+              <Card
+                hoverEffect
+                onClick={() => navigate('/transactions')}
+                className="cursor-pointer group flex flex-col justify-between border-primary/40 hover:border-primary-glow"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center text-primary-glow group-hover:scale-105 transition-transform">
+                      <FileText className="w-6 h-6" />
+                    </div>
+                    <span className="text-[11px] font-mono font-semibold px-2.5 py-1 rounded-full bg-surface border border-border text-text-secondary">
+                      Horizon API
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-h3 text-text-primary mb-1 group-hover:text-primary-glow transition-colors">
+                      Recent Transactions
+                    </h3>
+                    <p className="text-caption text-text-secondary leading-relaxed">
+                      View your Stellar Testnet wallet transaction history and payment activity.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-4 mt-4 border-t border-border/60 flex items-center text-caption font-medium text-primary-glow group-hover:translate-x-1 transition-transform">
+                  <span>Open History</span>
+                  <ArrowRight className="w-4 h-4 ml-1" />
+                </div>
+              </Card>
             </div>
           </div>
 
-          {/* Phase 5 Active Agreements Overview Section */}
+          {/* Phase 6.5 Role-Filtered Agreements Section */}
           <Section className="py-2">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div>
-                <h2 className="text-h2 text-text-primary mb-1">Active Rental Agreements</h2>
-                <p className="text-caption text-text-secondary">Digital security deposit agreements managed via RentVault.</p>
+                <h2 className="text-h2 text-text-primary mb-1">Your Role Agreements</h2>
+                <p className="text-caption text-text-secondary">Filtered by your connected wallet identity.</p>
               </div>
-              <div className="flex items-center gap-3">
-                <SecondaryButton onClick={() => navigate('/agreements')}>
-                  View All ({agreements.length})
-                </SecondaryButton>
-                <PrimaryButton icon={Plus} onClick={() => navigate('/agreements/new')}>
-                  Create Agreement
-                </PrimaryButton>
+
+              {/* Role Filter Tabs */}
+              <div className="flex items-center gap-2 bg-surface/60 p-1.5 rounded-2xl border border-border/60">
+                <button
+                  onClick={() => setWorkspaceFilter('all')}
+                  className={`px-3.5 py-1.5 rounded-xl text-caption font-medium transition-all cursor-pointer ${
+                    workspaceFilter === 'all' ? 'bg-primary text-white font-semibold shadow-sm' : 'text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  All ({agreements.length})
+                </button>
+                <button
+                  onClick={() => setWorkspaceFilter('landlord')}
+                  className={`px-3.5 py-1.5 rounded-xl text-caption font-medium transition-all cursor-pointer ${
+                    workspaceFilter === 'landlord' ? 'bg-primary text-white font-semibold shadow-sm' : 'text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  As Landlord ({landlordAgreements.length})
+                </button>
+                <button
+                  onClick={() => setWorkspaceFilter('tenant')}
+                  className={`px-3.5 py-1.5 rounded-xl text-caption font-medium transition-all cursor-pointer ${
+                    workspaceFilter === 'tenant' ? 'bg-success text-white font-semibold shadow-sm' : 'text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  As Tenant ({tenantAgreements.length})
+                </button>
               </div>
             </div>
 
-            {agreements.length === 0 ? (
-              <Card className="p-8 text-center border-dashed">
-                <div className="max-w-md mx-auto space-y-4">
-                  <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center text-text-muted mx-auto">
-                    <Building className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-h3 text-text-primary">No rental agreements created</h3>
-                  <p className="text-body text-text-secondary">
-                    Create your first digital rental agreement to establish deposit terms and utility reserves.
+            {activeAgreementsList.length === 0 ? (
+              <Card className="p-8 text-center border-dashed space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center text-text-muted mx-auto">
+                  <Building className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-h3 text-text-primary">
+                    {workspaceFilter === 'landlord' 
+                      ? 'No agreements created by your wallet' 
+                      : workspaceFilter === 'tenant' 
+                      ? 'No agreements assigned to your tenant wallet' 
+                      : 'No rental agreements found'}
+                  </h3>
+                  <p className="text-body text-text-secondary max-w-md mx-auto">
+                    {workspaceFilter === 'landlord' 
+                      ? 'Create your first digital rental agreement as a landlord.' 
+                      : workspaceFilter === 'tenant' 
+                      ? 'Ask your landlord to assign an agreement to your Stellar wallet address.' 
+                      : 'Create or view digital security deposit agreements.'}
                   </p>
+                </div>
+                {workspaceFilter === 'landlord' && (
                   <PrimaryButton icon={Plus} onClick={() => navigate('/agreements/new')}>
                     Create Agreement Now
                   </PrimaryButton>
-                </div>
+                )}
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {agreements.slice(0, 3).map((ag) => (
+                {activeAgreementsList.slice(0, 3).map((ag) => (
                   <AgreementCard key={ag.id} agreement={ag} />
                 ))}
               </div>

@@ -2,25 +2,24 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Card } from '../components/cards/Card';
-import { AgreementStatusBadge } from '../components/agreements/AgreementStatusBadge';
+import { NetworkBadge } from '../components/wallet/NetworkBadge';
+import { RoleBadge } from '../components/roles/RoleBadge';
+import { WalletMismatchNotice } from '../components/roles/WalletMismatchNotice';
 import { FundingProgress } from '../components/escrow/FundingProgress';
 import { EscrowStatusCard } from '../components/escrow/EscrowStatusCard';
 import { EscrowTransactionCard } from '../components/escrow/EscrowTransactionCard';
 import { PrimaryButton } from '../components/buttons/PrimaryButton';
 import { SecondaryButton } from '../components/buttons/SecondaryButton';
 import { WalletButton } from '../components/wallet/WalletButton';
-import { NetworkBadge } from '../components/wallet/NetworkBadge';
 import { useAgreements } from '../context/AgreementContext';
 import { useWallet } from '../context/WalletContext';
+import { evaluateAgreementRole } from '../utils/role';
 import { depositEscrowContract, getSorobanContractId } from '../services/soroban';
 import { 
   Lock, 
   ArrowLeft, 
   Wallet, 
   ShieldCheck, 
-  Coins, 
-  Cpu, 
-  CheckCircle2, 
   AlertCircle 
 } from 'lucide-react';
 
@@ -57,6 +56,9 @@ export const Deposit = () => {
     );
   }
 
+  // Evaluate connected wallet role for this agreement
+  const roleInfo = evaluateAgreementRole(address, agreement);
+
   const depositAmount = agreement.depositAmount || 0;
   const utilityReserve = agreement.utilityReserve || 0;
   const totalRequired = depositAmount + utilityReserve;
@@ -65,6 +67,12 @@ export const Deposit = () => {
   const handleExecuteDeposit = async () => {
     if (!connected || !address) {
       setErrorMessage('Please connect your Freighter wallet to execute escrow deposit.');
+      setDepositState('failure');
+      return;
+    }
+
+    if (!roleInfo.isTenant) {
+      setErrorMessage('Tenant authorization error. Connected wallet is not the assigned tenant key for this agreement.');
       setDepositState('failure');
       return;
     }
@@ -118,6 +126,7 @@ export const Deposit = () => {
           <div className="flex items-center gap-3">
             <h1 className="text-h1 text-text-primary">Deposit Escrow Funds</h1>
             <NetworkBadge network={network || 'TESTNET'} />
+            <RoleBadge role={roleInfo.role} />
           </div>
           <p className="text-body text-text-secondary mt-1">
             Lock security deposit XLM into Soroban smart contract vault for <span className="font-semibold text-text-primary">{agreement.propertyName}</span>.
@@ -155,6 +164,11 @@ export const Deposit = () => {
         />
       ) : (
         <div className="space-y-6">
+          {/* Wallet Mismatch Warning if not Tenant */}
+          {!roleInfo.isTenant && (
+            <WalletMismatchNotice requiredRole="tenant" connectedAddress={address} />
+          )}
+
           {/* Status State Card */}
           <EscrowStatusCard 
             status={depositState === 'locking' ? 'Locking Escrow' : depositState === 'failure' ? 'failure' : agreement.status} 
@@ -220,10 +234,16 @@ export const Deposit = () => {
               <PrimaryButton
                 icon={Lock}
                 onClick={handleExecuteDeposit}
-                disabled={depositState === 'locking' || agreement.status === 'Deposit Locked'}
+                disabled={!roleInfo.isTenant || depositState === 'locking' || agreement.status === 'Deposit Locked'}
                 className="w-full sm:w-auto min-w-[200px]"
               >
-                {depositState === 'locking' ? 'Locking on Soroban...' : agreement.status === 'Deposit Locked' ? 'Escrow Already Locked' : 'Confirm & Lock Escrow Deposit'}
+                {depositState === 'locking' 
+                  ? 'Locking on Soroban...' 
+                  : agreement.status === 'Deposit Locked' 
+                  ? 'Escrow Already Locked' 
+                  : roleInfo.isTenant 
+                  ? 'Confirm & Lock Escrow Deposit' 
+                  : 'Tenant Authorization Required'}
               </PrimaryButton>
             </div>
           </Card>
