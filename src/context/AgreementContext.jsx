@@ -14,6 +14,7 @@ const INITIAL_DEMO_AGREEMENTS = [
     tenantWallet: 'GDKX89A190B38812TESTNETTENANTKEY99881',
     depositAmount: 2300,
     utilityReserve: 200,
+    fundedAmount: 0,
     leaseStart: '2026-09-01',
     leaseEnd: '2027-08-31',
     notes: 'Includes reserved utility escrow for electricity and water settlement.',
@@ -28,11 +29,13 @@ const INITIAL_DEMO_AGREEMENTS = [
     tenantWallet: 'GC2Y19D488A1009182TESTNETTENANTKEY77',
     depositAmount: 1800,
     utilityReserve: 200,
+    fundedAmount: 2000,
     leaseStart: '2026-06-01',
     leaseEnd: '2027-05-31',
     notes: 'Escrow deposit locked on Stellar Testnet.',
     status: 'Deposit Locked',
     createdAt: '2026-05-20T14:30:00.000Z',
+    txHash: '8f92a10e2b4c129d39f4011029419082001',
   },
 ];
 
@@ -84,10 +87,11 @@ export const AgreementProvider = ({ children }) => {
       tenantWallet: formData.tenantWallet,
       depositAmount: parseFloat(formData.depositAmount) || 0,
       utilityReserve: parseFloat(formData.utilityReserve) || 0,
+      fundedAmount: 0,
       leaseStart: formData.leaseStart,
       leaseEnd: formData.leaseEnd,
       notes: formData.notes || '',
-      status: 'Awaiting Deposit', // Default status for Phase 5
+      status: 'Awaiting Deposit',
       createdAt: new Date().toISOString(),
     };
 
@@ -95,6 +99,28 @@ export const AgreementProvider = ({ children }) => {
     persistAgreements(updated);
     console.log('[AgreementContext] Created new agreement:', newAgreement);
     return newAgreement;
+  };
+
+  // Deposit Escrow Contract execution handler
+  const depositEscrow = (id, txData) => {
+    const updated = agreements.map((a) => {
+      if (a.id.toLowerCase() === id.toLowerCase()) {
+        const total = (a.depositAmount || 0) + (a.utilityReserve || 0);
+        return {
+          ...a,
+          status: 'Deposit Locked',
+          fundedAmount: total,
+          txHash: txData.hash,
+          txLedger: txData.ledger,
+          contractId: txData.contractId,
+          depositConfirmedAt: txData.timestamp || new Date().toISOString(),
+        };
+      }
+      return a;
+    });
+
+    persistAgreements(updated);
+    console.log(`[AgreementContext] Escrow deposited for agreement ${id}:`, txData);
   };
 
   // Get specific agreement by ID
@@ -123,6 +149,7 @@ export const AgreementProvider = ({ children }) => {
         agreements,
         loading,
         createAgreement,
+        depositEscrow,
         getAgreementById,
         updateAgreementStatus,
         deleteAgreement,

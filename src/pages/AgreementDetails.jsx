@@ -5,6 +5,8 @@ import { Card } from '../components/cards/Card';
 import { AgreementStatusBadge } from '../components/agreements/AgreementStatusBadge';
 import { AgreementSummary } from '../components/agreements/AgreementSummary';
 import { AgreementTimeline } from '../components/agreements/AgreementTimeline';
+import { FundingProgress } from '../components/escrow/FundingProgress';
+import { EscrowStatusCard } from '../components/escrow/EscrowStatusCard';
 import { PrimaryButton } from '../components/buttons/PrimaryButton';
 import { SecondaryButton } from '../components/buttons/SecondaryButton';
 import { useAgreements } from '../context/AgreementContext';
@@ -22,7 +24,8 @@ import {
   Lock, 
   ShieldCheck,
   AlertCircle,
-  Info
+  ExternalLink,
+  Cpu
 } from 'lucide-react';
 
 export const AgreementDetails = () => {
@@ -72,6 +75,10 @@ export const AgreementDetails = () => {
   }
 
   const leaseDurationText = calculateLeaseDuration(agreement.leaseStart, agreement.leaseEnd);
+  const depositAmount = agreement.depositAmount || 0;
+  const utilityReserve = agreement.utilityReserve || 0;
+  const totalEscrow = depositAmount + utilityReserve;
+  const fundedAmount = agreement.fundedAmount || (agreement.status === 'Deposit Locked' ? totalEscrow : 0);
 
   return (
     <PageContainer className="max-w-5xl">
@@ -106,9 +113,10 @@ export const AgreementDetails = () => {
 
           <PrimaryButton 
             icon={Lock} 
+            disabled={agreement.status === 'Deposit Locked'}
             onClick={() => navigate(`/agreement/${agreement.id}/deposit`)}
           >
-            Deposit Escrow
+            {agreement.status === 'Deposit Locked' ? 'Escrow Deposit Locked' : 'Deposit Escrow'}
           </PrimaryButton>
         </div>
       </div>
@@ -116,18 +124,17 @@ export const AgreementDetails = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left 2 Columns: Main Details */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Escrow Status Banner */}
-          <Card className="p-6 bg-warning/10 border-warning/30 space-y-2">
-            <div className="flex items-center gap-2 text-warning font-semibold text-caption">
-              <Clock className="w-4 h-4" />
-              <span>Escrow Status: Awaiting Deposit</span>
-            </div>
-            <p className="text-body text-text-secondary">
-              The tenant has not deposited the required security XLM into the Soroban escrow vault yet.
-            </p>
-          </Card>
+          {/* Phase 6 Escrow Status Card */}
+          <EscrowStatusCard status={agreement.status} />
 
-          {/* Phase 5.5 Agreement Lifecycle Timeline */}
+          {/* Phase 6 Funding Progress Widget */}
+          <FundingProgress 
+            requiredAmount={totalEscrow} 
+            fundedAmount={fundedAmount} 
+            status={agreement.status}
+          />
+
+          {/* Agreement Lifecycle Timeline */}
           <AgreementTimeline currentStatus={agreement.status} />
 
           {/* Parties Card */}
@@ -169,7 +176,7 @@ export const AgreementDetails = () => {
             </div>
           </Card>
 
-          {/* Lease Information Card with Real Duration Calculation */}
+          {/* Lease Information Card */}
           <Card className="space-y-4">
             <h3 className="text-h3 text-text-primary border-b border-border pb-3 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-primary-glow" /> Lease Information & Duration
@@ -190,12 +197,18 @@ export const AgreementDetails = () => {
               </div>
             </div>
 
-            {agreement.notes && (
-              <div className="pt-3 border-t border-border/60">
-                <span className="text-caption text-text-muted block mb-1">Additional Terms & Notes</span>
-                <p className="text-caption text-text-secondary bg-surface/50 p-3 rounded-xl border border-border/40 leading-relaxed">
-                  {agreement.notes}
-                </p>
+            {agreement.txHash && (
+              <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs font-mono">
+                <span className="text-text-muted font-sans">Soroban Deposit Transaction Hash:</span>
+                <a
+                  href={`https://testnet.steexp.com/tx/${agreement.txHash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary-glow hover:underline inline-flex items-center gap-1 truncate max-w-[220px]"
+                >
+                  <span>{agreement.txHash}</span>
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
+                </a>
               </div>
             )}
           </Card>
@@ -212,7 +225,7 @@ export const AgreementDetails = () => {
             <SecondaryButton 
               fullWidth 
               icon={Edit3}
-              onClick={() => alert('Phase 5.5 Placeholder: Agreement editing modal.')}
+              onClick={() => alert('Agreement terms editing modal.')}
             >
               Edit Agreement Terms
             </SecondaryButton>
@@ -224,19 +237,14 @@ export const AgreementDetails = () => {
               {copiedShareLink ? 'Link Copied!' : 'Share Agreement'}
             </SecondaryButton>
 
-            <div className="space-y-1 pt-1">
-              <PrimaryButton 
-                fullWidth 
-                icon={Lock}
-                onClick={() => navigate(`/agreement/${agreement.id}/deposit`)}
-              >
-                Deposit Escrow
-              </PrimaryButton>
-              <p className="text-[11px] text-text-muted text-center flex items-center justify-center gap-1">
-                <Info className="w-3 h-3 text-primary-glow flex-shrink-0" />
-                <span>This action will connect to the Soroban escrow contract in Phase 6.</span>
-              </p>
-            </div>
+            <PrimaryButton 
+              fullWidth 
+              icon={Lock}
+              disabled={agreement.status === 'Deposit Locked'}
+              onClick={() => navigate(`/agreement/${agreement.id}/deposit`)}
+            >
+              {agreement.status === 'Deposit Locked' ? 'Deposit Locked on-chain' : 'Execute Soroban Deposit'}
+            </PrimaryButton>
           </Card>
         </div>
       </div>
