@@ -29,11 +29,15 @@ export const AgreementActivityTimeline = ({ agreement }) => {
     return `${key.slice(0, 4)}...${key.slice(-4)}`;
   };
 
+  const createdDate = agreement.createdAt ? new Date(agreement.createdAt).toLocaleDateString() : new Date().toLocaleDateString();
+  const confirmedDate = agreement.depositConfirmedAt ? new Date(agreement.depositConfirmedAt).toLocaleDateString() : createdDate;
+  const refundDate = agreement.refundApprovedAt ? new Date(agreement.refundApprovedAt).toLocaleDateString() : 'Pending';
+
   const timelineEvents = [
     {
       id: '1',
       title: 'Agreement Draft Created',
-      description: `Created by Landlord (${truncateKey(agreement.landlordWallet)})`,
+      description: `Created by Landlord (${truncateKey(agreement.landlordWallet)}) on ${createdDate}`,
       icon: FileCheck,
       completed: true,
     },
@@ -47,28 +51,28 @@ export const AgreementActivityTimeline = ({ agreement }) => {
     {
       id: '3',
       title: 'Tenant Viewed Agreement',
-      description: 'Tenant authenticated via Freighter wallet',
+      description: 'Tenant authenticated via Freighter wallet session',
       icon: Eye,
       completed: true,
     },
     {
       id: '4',
       title: 'Escrow Deposit Locked',
-      description: isLocked ? `Locked ${(agreement.depositAmount || 0) + (agreement.utilityReserve || 0)} XLM in Soroban vault` : 'Awaiting tenant deposit',
+      description: isLocked ? `Locked ${(agreement.depositAmount || 0) + (agreement.utilityReserve || 0)} XLM on ${confirmedDate}` : 'Awaiting tenant deposit',
       icon: Lock,
       completed: isLocked,
     },
     {
       id: '5',
       title: 'Lease Activated',
-      description: isActive ? 'Rental occupancy period started' : 'Pending lease start',
+      description: isActive ? `Lease started on ${agreement.leaseStart || createdDate}` : 'Pending lease start',
       icon: Play,
       completed: isActive,
     },
     {
       id: '6',
       title: 'Lease Period Ended',
-      description: isEnded ? 'Lease duration expired' : 'Occupancy ongoing',
+      description: isEnded ? `Lease ended on ${agreement.leaseEnd || confirmedDate}` : 'Occupancy ongoing',
       icon: Clock,
       completed: isEnded,
     },
@@ -82,7 +86,7 @@ export const AgreementActivityTimeline = ({ agreement }) => {
     {
       id: '8',
       title: 'Tenant Approved Refund',
-      description: isCompleted ? 'Tenant reviewed and approved final refund' : 'Awaiting tenant review',
+      description: isCompleted ? `Tenant approved final refund on ${refundDate}` : 'Awaiting tenant review',
       icon: UserCheck,
       completed: isCompleted,
     },
@@ -96,7 +100,7 @@ export const AgreementActivityTimeline = ({ agreement }) => {
     {
       id: '10',
       title: 'Refund Completed',
-      description: isCompleted ? `Final Tenant Refund: ${agreement.finalRefundAmount || agreement.depositAmount} XLM on Stellar` : 'Escrow locked',
+      description: isCompleted ? `Final Refund: ${agreement.finalRefundAmount || agreement.depositAmount} XLM on Stellar` : 'Escrow locked',
       icon: CheckCircle2,
       completed: isCompleted,
     },

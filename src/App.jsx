@@ -19,27 +19,6 @@ import { Timeline } from './pages/Timeline';
 import { Settlement } from './pages/Settlement';
 import { Completion } from './pages/Completion';
 import { Transactions } from './pages/Transactions';
-import { PageContainer } from './components/layout/PageContainer';
-import { Card } from './components/cards/Card';
-import { StatusBadge } from './components/status/StatusBadge';
-import { SecondaryButton } from './components/buttons/SecondaryButton';
-
-// Generic placeholder component for sub-routes
-const PlaceholderPage = ({ title, subtitle }) => (
-  <PageContainer className="max-w-3xl text-center py-16">
-    <StatusBadge variant="primary" className="mb-4">Phase 5 Sub-Route Placeholder</StatusBadge>
-    <h1 className="text-h1 text-text-primary mb-3">{title}</h1>
-    <p className="text-body text-text-secondary mb-8">{subtitle}</p>
-    <Card className="max-w-md mx-auto p-8 border border-border">
-      <p className="text-caption text-text-muted mb-6">
-        This view is registered in React Router DOM with full design system support and will be populated in Phase 6 Soroban integration.
-      </p>
-      <SecondaryButton onClick={() => window.history.back()}>
-        Go Back
-      </SecondaryButton>
-    </Card>
-  </PageContainer>
-);
 
 export function App() {
   return (
@@ -57,27 +36,32 @@ export function App() {
                 <Route path="/agreements" element={<AgreementDashboard />} />
                 <Route path="/agreements/new" element={<CreateAgreement />} />
                 <Route path="/agreement/create" element={<CreateAgreement />} />
+                
+                {/* Standard Plural Routes */}
                 <Route path="/agreements/:id" element={<AgreementDetails />} />
+                <Route path="/agreements/:id/deposit" element={<Deposit />} />
+                <Route path="/agreements/:id/timeline" element={<Timeline />} />
+                <Route path="/agreements/:id/settlement" element={<Settlement />} />
+                <Route path="/agreements/:id/completed" element={<Completion />} />
+                <Route path="/agreements/:id/approval" element={<Settlement />} />
+                <Route path="/agreements/:id/release" element={<Settlement />} />
+
+                {/* Legacy Singular Route Aliases */}
                 <Route path="/agreement/:id" element={<AgreementDetails />} />
                 <Route path="/agreement/:id/deposit" element={<Deposit />} />
                 <Route path="/agreement/:id/timeline" element={<Timeline />} />
                 <Route path="/agreement/:id/settlement" element={<Settlement />} />
-                <Route 
-                  path="/agreement/:id/approval" 
-                  element={<PlaceholderPage title="Approval Pending" subtitle="Mutual approval state between landlord and tenant." />} 
-                />
-                <Route 
-                  path="/agreement/:id/release" 
-                  element={<PlaceholderPage title="Fund Release" subtitle="Smart contract release authorization interface." />} 
-                />
                 <Route path="/agreement/:id/completed" element={<Completion />} />
+                <Route path="/agreement/:id/approval" element={<Settlement />} />
+                <Route path="/agreement/:id/release" element={<Settlement />} />
+
                 <Route path="/transactions" element={<Transactions />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </div>
             <Footer />
 
-            {/* Wallet Error, Install & Switch Modals */}
+            {/* Wallet Modals */}
             <FreighterInstallModal />
             <WrongNetworkModal />
             <SwitchWalletModal />

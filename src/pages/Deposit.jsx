@@ -77,8 +77,10 @@ export const Deposit = () => {
       return;
     }
 
-    if (rawBalance > 0 && totalRequired > rawBalance - 1) {
-      setErrorMessage(`Insufficient wallet balance. Required: ${totalRequired} XLM, Available: ${xlmBalance} XLM.`);
+    // Priority 8: Client-side balance validation including fee reserve
+    const feeReserve = 1.0;
+    if (rawBalance <= 0 || totalRequired > (rawBalance - feeReserve)) {
+      setErrorMessage(`Insufficient XLM balance. Available: ${xlmBalance} XLM (Stellar fee reserve required).`);
       setDepositState('failure');
       return;
     }

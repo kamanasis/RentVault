@@ -36,10 +36,11 @@ export const SendPayment = () => {
     }
 
     const numAmount = parseFloat(amount);
+    const feeReserve = 1.0;
     if (!amount || isNaN(numAmount) || numAmount <= 0) {
       errors.amount = 'Amount must be greater than 0 XLM.';
-    } else if (rawBalance > 0 && numAmount > rawBalance - 1) {
-      errors.amount = `Insufficient balance. Available: ${xlmBalance} XLM (reserve required for fees).`;
+    } else if (rawBalance <= 0 || numAmount > (rawBalance - feeReserve)) {
+      errors.amount = `Insufficient XLM balance. Available: ${xlmBalance} XLM (reserve required for Stellar network fees).`;
     }
 
     setFormErrors(errors);
