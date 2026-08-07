@@ -74,7 +74,7 @@ export const AgreementProvider = ({ children }) => {
     }
   };
 
-  // Create new agreement with auto-generated ID (e.g. RV-2026-003)
+  // Create new agreement
   const createAgreement = (formData) => {
     const nextIndex = agreements.length + 1;
     const padIndex = String(nextIndex).padStart(3, '0');
@@ -98,11 +98,10 @@ export const AgreementProvider = ({ children }) => {
 
     const updated = [newAgreement, ...agreements];
     persistAgreements(updated);
-    console.log('[AgreementContext] Created new agreement:', newAgreement);
     return newAgreement;
   };
 
-  // Update existing agreement terms
+  // Update agreement terms
   const updateAgreement = (id, updatedFields) => {
     const updated = agreements.map((a) => {
       if (a.id.toLowerCase() === id.toLowerCase()) {
@@ -118,7 +117,6 @@ export const AgreementProvider = ({ children }) => {
     });
 
     persistAgreements(updated);
-    console.log(`[AgreementContext] Updated terms for agreement ${id}:`, updatedFields);
   };
 
   // Deposit Escrow Contract execution handler
@@ -140,7 +138,86 @@ export const AgreementProvider = ({ children }) => {
     });
 
     persistAgreements(updated);
-    console.log(`[AgreementContext] Escrow deposited for agreement ${id}:`, txData);
+  };
+
+  // Activate Lease State
+  const activateLease = (id) => {
+    const updated = agreements.map((a) => 
+      a.id.toLowerCase() === id.toLowerCase() ? { ...a, status: 'Lease Active', leaseActivatedAt: new Date().toISOString() } : a
+    );
+    persistAgreements(updated);
+  };
+
+  // End Lease State
+  const endLease = (id) => {
+    const updated = agreements.map((a) => 
+      a.id.toLowerCase() === id.toLowerCase() ? { ...a, status: 'Lease Ended', leaseEndedAt: new Date().toISOString() } : a
+    );
+    persistAgreements(updated);
+  };
+
+  // Submit Landlord Utility Settlement
+  const submitUtilitySettlement = (id, deductionsData) => {
+    const updated = agreements.map((a) => {
+      if (a.id.toLowerCase() === id.toLowerCase()) {
+        const deposit = a.depositAmount || 0;
+        const reserve = a.utilityReserve || 0;
+        const totalEscrow = deposit + reserve;
+
+        const electricity = parseFloat(deductionsData.electricity || 0);
+        const water = parseFloat(deductionsData.water || 0);
+        const maintenance = parseFloat(deductionsData.maintenance || 0);
+        const other = parseFloat(deductionsData.other || 0);
+        const totalDeduction = electricity + water + maintenance + other;
+
+        const finalRefundAmount = Math.max(0, totalEscrow - totalDeduction);
+
+        return {
+          ...a,
+          status: 'Utility Settlement',
+          utilityDeductions: { electricity, water, maintenance, other, notes: deductionsData.notes || '' },
+          totalDeduction,
+          finalRefundAmount,
+          settlementSubmittedAt: new Date().toISOString(),
+        };
+      }
+      return a;
+    });
+
+    persistAgreements(updated);
+  };
+
+  // Tenant Approve Refund
+  const approveRefund = (id) => {
+    const mockRefundHash = `9f71c42e88b1092a${Date.now().toString(16)}`;
+    const updated = agreements.map((a) => {
+      if (a.id.toLowerCase() === id.toLowerCase()) {
+        const deposit = a.depositAmount || 0;
+        const reserve = a.utilityReserve || 0;
+        const totalEscrow = deposit + reserve;
+        const refundVal = a.finalRefundAmount !== undefined ? a.finalRefundAmount : deposit;
+
+        return {
+          ...a,
+          status: 'Refund Completed',
+          finalRefundAmount: refundVal,
+          refundApprovedAt: new Date().toISOString(),
+          refundTxHash: mockRefundHash,
+          fundedAmount: 0, // Escrow un-locked upon refund completion
+        };
+      }
+      return a;
+    });
+
+    persistAgreements(updated);
+  };
+
+  // Tenant Raise Dispute
+  const raiseDispute = (id) => {
+    const updated = agreements.map((a) => 
+      a.id.toLowerCase() === id.toLowerCase() ? { ...a, status: 'Dispute Pending', disputedAt: new Date().toISOString() } : a
+    );
+    persistAgreements(updated);
   };
 
   // Get specific agreement by ID
@@ -171,6 +248,11 @@ export const AgreementProvider = ({ children }) => {
         createAgreement,
         updateAgreement,
         depositEscrow,
+        activateLease,
+        endLease,
+        submitUtilitySettlement,
+        approveRefund,
+        raiseDispute,
         getAgreementById,
         updateAgreementStatus,
         deleteAgreement,

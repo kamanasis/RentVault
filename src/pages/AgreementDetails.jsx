@@ -5,7 +5,10 @@ import { Card } from '../components/cards/Card';
 import { AgreementStatusBadge } from '../components/agreements/AgreementStatusBadge';
 import { AgreementSummary } from '../components/agreements/AgreementSummary';
 import { AgreementTimeline } from '../components/agreements/AgreementTimeline';
-import { AgreementActivityLog } from '../components/agreements/AgreementActivityLog';
+import { AgreementActivityTimeline } from '../components/lifecycle/AgreementActivityTimeline';
+import { LeaseStatusCard } from '../components/lifecycle/LeaseStatusCard';
+import { TenantReviewPanel } from '../components/lifecycle/TenantReviewPanel';
+import { RefundConfirmationCard } from '../components/lifecycle/RefundConfirmationCard';
 import { EditAgreementModal } from '../components/agreements/EditAgreementModal';
 import { FundingProgress } from '../components/escrow/FundingProgress';
 import { EscrowStatusCard } from '../components/escrow/EscrowStatusCard';
@@ -35,7 +38,7 @@ import {
   ExternalLink,
   Info,
   CheckCircle2,
-  LockKeyhole
+  Zap
 } from 'lucide-react';
 
 export const AgreementDetails = () => {
@@ -95,25 +98,27 @@ export const AgreementDetails = () => {
   const totalEscrow = depositAmount + utilityReserve;
   const fundedAmount = agreement.fundedAmount !== undefined 
     ? agreement.fundedAmount 
-    : (agreement.status === 'Deposit Locked' ? totalEscrow : 0);
+    : (agreement.status === 'Deposit Locked' || agreement.status === 'Lease Active' || agreement.status === 'Lease Ended' || agreement.status === 'Utility Settlement' ? totalEscrow : 0);
 
-  const isDepositLocked = agreement.status === 'Deposit Locked';
+  const isDepositLocked = agreement.status !== 'Awaiting Deposit';
+  const isRefundCompleted = agreement.status === 'Refund Completed';
+  const isSettlementMode = agreement.status === 'Utility Settlement';
 
   // Role permissions list items
   const landlordPermissions = [
     'Edit agreement metadata',
     'Share agreement link',
+    'Submit utility settlement',
     'Monitor escrow status',
     'View funding details',
-    'Access transaction history',
   ];
 
   const tenantPermissions = [
     'Deposit security XLM',
-    'View agreement timeline',
-    'Monitor refund estimate',
+    'Review utility deductions',
+    'Approve refund & release',
+    'Raise settlement dispute',
     'View funding details',
-    'Access transaction history',
   ];
 
   const guestPermissions = [
@@ -150,7 +155,7 @@ export const AgreementDetails = () => {
           <p className="text-body text-text-secondary mt-1">{agreement.propertyAddress}</p>
         </div>
 
-        {/* Primary Action Bar (Header Only - Zero Duplication) */}
+        {/* Primary Action Bar */}
         <div className="flex items-center gap-3">
           <SecondaryButton 
             icon={Share2} 
@@ -170,20 +175,31 @@ export const AgreementDetails = () => {
             </SecondaryButton>
           )}
 
-          {/* Primary Deposit / Escrow Action Button */}
-          <PrimaryButton 
-            icon={Lock} 
-            disabled={!roleInfo.isTenant || isDepositLocked}
-            onClick={() => navigate(`/agreement/${agreement.id}/deposit`)}
-          >
-            {isDepositLocked 
-              ? 'Escrow Already Funded' 
-              : roleInfo.isTenant 
-              ? 'Deposit Escrow' 
-              : roleInfo.isLandlord 
-              ? 'Waiting for Tenant' 
-              : 'Unauthorized Wallet'}
-          </PrimaryButton>
+          {/* Portal / Action Button */}
+          {agreement.status === 'Lease Ended' || agreement.status === 'Utility Settlement' ? (
+            <PrimaryButton 
+              icon={Zap} 
+              onClick={() => navigate(`/agreement/${agreement.id}/settlement`)}
+            >
+              Utility Settlement Portal
+            </PrimaryButton>
+          ) : (
+            <PrimaryButton 
+              icon={Lock} 
+              disabled={!roleInfo.isTenant || isDepositLocked}
+              onClick={() => navigate(`/agreement/${agreement.id}/deposit`)}
+            >
+              {isRefundCompleted 
+                ? 'Refund Completed'
+                : isDepositLocked 
+                ? 'Escrow Already Funded' 
+                : roleInfo.isTenant 
+                ? 'Deposit Escrow' 
+                : roleInfo.isLandlord 
+                ? 'Waiting for Tenant' 
+                : 'Unauthorized Wallet'}
+            </PrimaryButton>
+          )}
         </div>
       </div>
 
@@ -200,11 +216,24 @@ export const AgreementDetails = () => {
             <WalletMismatchNotice requiredRole="tenant" connectedAddress={address} />
           )}
 
-          {/* Phase 6 Escrow Status Card */}
-          <EscrowStatusCard status={agreement.status} />
+          {/* Phase 7 Lease Lifecycle Status Card */}
+          <LeaseStatusCard agreement={agreement} isLandlord={roleInfo.isLandlord} />
 
-          {/* Phase 6.8 Deposit Attribution Details Card (Appears after deposit) */}
-          {isDepositLocked && (
+          {/* Phase 7 Tenant Review Panel (Appears when Utility Settlement is active) */}
+          {isSettlementMode && (
+            <TenantReviewPanel agreement={agreement} />
+          )}
+
+          {/* Phase 7 Refund Completion Card */}
+          {isRefundCompleted && (
+            <RefundConfirmationCard agreement={agreement} />
+          )}
+
+          {/* Escrow Status Card */}
+          {!isRefundCompleted && <EscrowStatusCard status={agreement.status} />}
+
+          {/* Phase 6.8 Deposit Attribution Details Card */}
+          {isDepositLocked && !isRefundCompleted && (
             <EscrowFundingDetailsCard agreement={agreement} />
           )}
 
@@ -218,8 +247,8 @@ export const AgreementDetails = () => {
           {/* Agreement Lifecycle Timeline */}
           <AgreementTimeline currentStatus={agreement.status} />
 
-          {/* Phase 6.8 Agreement Activity Log */}
-          <AgreementActivityLog agreement={agreement} />
+          {/* Phase 7 10-Stage Complete Lifecycle Activity Log */}
+          <AgreementActivityTimeline agreement={agreement} />
 
           {/* Parties Card */}
           <Card className="space-y-4">
@@ -304,7 +333,7 @@ export const AgreementDetails = () => {
         <div className="space-y-6">
           <AgreementSummary agreement={agreement} />
 
-          {/* Informational Role-Based Summary Card (No Duplicate Action Buttons) */}
+          {/* Informational Role-Based Summary Card */}
           <Card className="space-y-4 border-border/80 bg-background/50">
             <div className="flex items-center justify-between pb-3 border-b border-border">
               <span className="text-caption font-semibold text-text-primary uppercase tracking-wider">
@@ -329,13 +358,15 @@ export const AgreementDetails = () => {
             {/* Compact Escrow State Summary */}
             <div className="p-3.5 bg-surface/60 rounded-2xl border border-border/60 space-y-1.5 text-xs">
               <div className="flex items-center justify-between font-semibold">
-                <span className="text-text-muted">Escrow State</span>
-                <span className={isDepositLocked ? 'text-success' : 'text-warning'}>
-                  {isDepositLocked ? 'Deposit Locked' : 'Awaiting Deposit'}
+                <span className="text-text-muted">Escrow Lifecycle</span>
+                <span className={isRefundCompleted ? 'text-success' : 'text-primary-glow'}>
+                  {agreement.status}
                 </span>
               </div>
               <p className="text-[11px] text-text-secondary leading-relaxed">
-                {isDepositLocked 
+                {isRefundCompleted 
+                  ? `Refund of ${agreement.finalRefundAmount || depositAmount} XLM fully executed on Stellar Testnet.`
+                  : isDepositLocked 
                   ? `Funded by tenant wallet (${totalEscrow} XLM locked on-chain)`
                   : `Requires ${totalEscrow} XLM escrow deposit by assigned tenant`}
               </p>
