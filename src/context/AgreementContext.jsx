@@ -36,6 +36,7 @@ const INITIAL_DEMO_AGREEMENTS = [
     status: 'Deposit Locked',
     createdAt: '2026-05-20T14:30:00.000Z',
     txHash: '8f92a10e2b4c129d39f4011029419082001',
+    depositConfirmedAt: '2026-05-20T14:35:00.000Z',
   },
 ];
 
@@ -101,6 +102,25 @@ export const AgreementProvider = ({ children }) => {
     return newAgreement;
   };
 
+  // Update existing agreement terms
+  const updateAgreement = (id, updatedFields) => {
+    const updated = agreements.map((a) => {
+      if (a.id.toLowerCase() === id.toLowerCase()) {
+        return {
+          ...a,
+          ...updatedFields,
+          depositAmount: updatedFields.depositAmount !== undefined ? parseFloat(updatedFields.depositAmount) : a.depositAmount,
+          utilityReserve: updatedFields.utilityReserve !== undefined ? parseFloat(updatedFields.utilityReserve) : a.utilityReserve,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return a;
+    });
+
+    persistAgreements(updated);
+    console.log(`[AgreementContext] Updated terms for agreement ${id}:`, updatedFields);
+  };
+
   // Deposit Escrow Contract execution handler
   const depositEscrow = (id, txData) => {
     const updated = agreements.map((a) => {
@@ -149,6 +169,7 @@ export const AgreementProvider = ({ children }) => {
         agreements,
         loading,
         createAgreement,
+        updateAgreement,
         depositEscrow,
         getAgreementById,
         updateAgreementStatus,

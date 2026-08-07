@@ -9,8 +9,14 @@ export const AgreementSummary = ({ agreement }) => {
   const deposit = agreement.depositAmount || 0;
   const reserve = agreement.utilityReserve || 0;
   const totalEscrow = deposit + reserve;
-  const fundedAmount = 0; // Phase 5 default
-  const remainingAmount = totalEscrow - fundedAmount;
+
+  // Single source of truth funding calculation synchronized with FundingProgress.jsx
+  const fundedAmount = agreement.fundedAmount !== undefined 
+    ? agreement.fundedAmount 
+    : (agreement.status === 'Deposit Locked' ? totalEscrow : 0);
+  
+  const remainingAmount = Math.max(0, totalEscrow - fundedAmount);
+  const isFullyFunded = fundedAmount >= totalEscrow && totalEscrow > 0;
 
   const leaseDurationStr = calculateLeaseDuration(agreement.leaseStart, agreement.leaseEnd);
 
@@ -42,24 +48,30 @@ export const AgreementSummary = ({ agreement }) => {
         </div>
       </div>
 
-      {/* Escrow Funding Progress Widget */}
+      {/* Synchronized Escrow Funding Progress Widget */}
       <div className="p-3.5 bg-background/80 rounded-2xl border border-border/80 space-y-2">
         <div className="flex justify-between items-center text-xs font-semibold">
           <span className="text-text-secondary">Escrow Funding Progress</span>
-          <span className="text-warning">{fundedAmount} / {totalEscrow} XLM</span>
+          <span className={isFullyFunded ? 'text-success' : 'text-warning'}>
+            {fundedAmount} / {totalEscrow} XLM
+          </span>
         </div>
 
         {/* Progress Bar */}
         <div className="w-full h-2 bg-surface rounded-full overflow-hidden border border-border/40">
           <div 
-            className="h-full bg-gradient-to-r from-warning to-primary rounded-full transition-all"
+            className={`h-full rounded-full transition-all duration-500 ${
+              isFullyFunded ? 'bg-gradient-to-r from-success to-emerald-400' : 'bg-gradient-to-r from-warning to-primary'
+            }`}
             style={{ width: `${totalEscrow > 0 ? (fundedAmount / totalEscrow) * 100 : 0}%` }}
           />
         </div>
 
         <div className="flex justify-between text-[11px] text-text-muted font-mono pt-0.5">
           <span>{totalEscrow} XLM Required</span>
-          <span className="text-text-primary font-semibold">{remainingAmount} XLM Remaining</span>
+          <span className={remainingAmount === 0 ? 'text-success font-semibold' : 'text-text-primary font-semibold'}>
+            {remainingAmount} XLM Remaining
+          </span>
         </div>
       </div>
 

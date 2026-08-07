@@ -5,8 +5,11 @@ import { Card } from '../components/cards/Card';
 import { AgreementStatusBadge } from '../components/agreements/AgreementStatusBadge';
 import { AgreementSummary } from '../components/agreements/AgreementSummary';
 import { AgreementTimeline } from '../components/agreements/AgreementTimeline';
+import { AgreementActivityLog } from '../components/agreements/AgreementActivityLog';
+import { EditAgreementModal } from '../components/agreements/EditAgreementModal';
 import { FundingProgress } from '../components/escrow/FundingProgress';
 import { EscrowStatusCard } from '../components/escrow/EscrowStatusCard';
+import { EscrowFundingDetailsCard } from '../components/escrow/EscrowFundingDetailsCard';
 import { RoleBadge } from '../components/roles/RoleBadge';
 import { AgreementRoleHeader } from '../components/roles/AgreementRoleHeader';
 import { WalletMismatchNotice } from '../components/roles/WalletMismatchNotice';
@@ -44,6 +47,7 @@ export const AgreementDetails = () => {
   const [copiedLandlord, setCopiedLandlord] = useState(false);
   const [copiedTenant, setCopiedTenant] = useState(false);
   const [copiedShareLink, setCopiedShareLink] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const copyToClipboard = (text, setCopiedState) => {
     if (!text) return;
@@ -87,9 +91,10 @@ export const AgreementDetails = () => {
   const depositAmount = agreement.depositAmount || 0;
   const utilityReserve = agreement.utilityReserve || 0;
   const totalEscrow = depositAmount + utilityReserve;
-  const fundedAmount = agreement.fundedAmount || (agreement.status === 'Deposit Locked' ? totalEscrow : 0);
+  const fundedAmount = agreement.fundedAmount !== undefined 
+    ? agreement.fundedAmount 
+    : (agreement.status === 'Deposit Locked' ? totalEscrow : 0);
 
-  // Helper text & deposit button state logic
   const isDepositLocked = agreement.status === 'Deposit Locked';
 
   return (
@@ -124,6 +129,16 @@ export const AgreementDetails = () => {
             {copiedShareLink ? 'Link Copied!' : 'Share Agreement'}
           </SecondaryButton>
 
+          {/* Landlord Edit Option */}
+          {roleInfo.isLandlord && (
+            <SecondaryButton 
+              icon={Edit3}
+              onClick={() => setIsEditModalOpen(true)}
+            >
+              Edit Terms
+            </SecondaryButton>
+          )}
+
           {/* Deposit Escrow Header Action Scoped to Tenant */}
           <PrimaryButton 
             icon={Lock} 
@@ -131,7 +146,7 @@ export const AgreementDetails = () => {
             onClick={() => navigate(`/agreement/${agreement.id}/deposit`)}
           >
             {isDepositLocked 
-              ? 'Escrow Locked' 
+              ? 'Escrow Already Funded' 
               : roleInfo.isTenant 
               ? 'Deposit Escrow' 
               : roleInfo.isLandlord 
@@ -154,10 +169,15 @@ export const AgreementDetails = () => {
             <WalletMismatchNotice requiredRole="tenant" connectedAddress={address} />
           )}
 
-          {/* Escrow Status Card */}
+          {/* Phase 6 Escrow Status Card */}
           <EscrowStatusCard status={agreement.status} />
 
-          {/* Funding Progress Widget */}
+          {/* Phase 6.8 Deposit Attribution Details Card (Appears after deposit) */}
+          {isDepositLocked && (
+            <EscrowFundingDetailsCard agreement={agreement} />
+          )}
+
+          {/* Phase 6 Funding Progress Widget */}
           <FundingProgress 
             requiredAmount={totalEscrow} 
             fundedAmount={fundedAmount} 
@@ -166,6 +186,9 @@ export const AgreementDetails = () => {
 
           {/* Agreement Lifecycle Timeline */}
           <AgreementTimeline currentStatus={agreement.status} />
+
+          {/* Phase 6.8 Agreement Activity Log */}
+          <AgreementActivityLog agreement={agreement} />
 
           {/* Parties Card */}
           <Card className="space-y-4">
@@ -235,18 +258,12 @@ export const AgreementDetails = () => {
               </div>
             </div>
 
-            {agreement.txHash && (
-              <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs font-mono">
-                <span className="text-text-muted font-sans">Soroban Deposit Transaction Hash:</span>
-                <a
-                  href={`https://testnet.steexp.com/tx/${agreement.txHash}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-primary-glow hover:underline inline-flex items-center gap-1 truncate max-w-[220px]"
-                >
-                  <span>{agreement.txHash}</span>
-                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
-                </a>
+            {agreement.notes && (
+              <div className="pt-3 border-t border-border/60">
+                <span className="text-caption text-text-muted block mb-1">Additional Terms & Notes</span>
+                <p className="text-caption text-text-secondary bg-surface/50 p-3 rounded-xl border border-border/40 leading-relaxed">
+                  {agreement.notes}
+                </p>
               </div>
             )}
           </Card>
@@ -266,7 +283,7 @@ export const AgreementDetails = () => {
               <SecondaryButton 
                 fullWidth 
                 icon={Edit3}
-                onClick={() => alert('Landlord Action: Editing agreement terms.')}
+                onClick={() => setIsEditModalOpen(true)}
               >
                 Edit Agreement Terms
               </SecondaryButton>
@@ -289,7 +306,7 @@ export const AgreementDetails = () => {
                 onClick={() => navigate(`/agreement/${agreement.id}/deposit`)}
               >
                 {isDepositLocked 
-                  ? 'Deposit Locked on-chain' 
+                  ? 'Escrow Already Funded' 
                   : roleInfo.isTenant 
                   ? 'Execute Soroban Deposit' 
                   : roleInfo.isLandlord 
@@ -301,15 +318,22 @@ export const AgreementDetails = () => {
                 <Info className="w-3.5 h-3.5 text-primary-glow flex-shrink-0" />
                 <span>
                   {roleInfo.isTenant && !isDepositLocked && 'Authenticated as Tenant. Ready to deposit XLM.'}
+                  {roleInfo.isTenant && isDepositLocked && 'This deposit was funded by your connected wallet and is currently locked in the Soroban escrow contract.'}
                   {roleInfo.isLandlord && !isDepositLocked && 'Only the tenant wallet assigned to this agreement can fund the escrow deposit.'}
                   {roleInfo.isUnauthorized && 'This wallet is not authorized to fund or edit this agreement.'}
-                  {isDepositLocked && 'Deposit is safely locked in Soroban contract vault.'}
                 </span>
               </p>
             </div>
           </Card>
         </div>
       </div>
+
+      {/* Edit Agreement Modal */}
+      <EditAgreementModal
+        agreement={agreement}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+      />
     </PageContainer>
   );
 };
