@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Clock, Circle, ShieldCheck, Lock, FileCheck, RefreshCw, ArrowRightLeft } from 'lucide-react';
+import { CheckCircle2, Clock, ShieldCheck, Lock, FileCheck, ArrowRightLeft } from 'lucide-react';
 import { Card } from '../cards/Card';
 
 export const AgreementTimeline = ({ currentStatus = 'Awaiting Deposit' }) => {
@@ -9,22 +9,17 @@ export const AgreementTimeline = ({ currentStatus = 'Awaiting Deposit' }) => {
     { id: 'awaiting', label: 'Awaiting Deposit', icon: Clock },
     { id: 'locked', label: 'Deposit Locked', icon: Lock },
     { id: 'active', label: 'Lease Active', icon: ShieldCheck },
-    { id: 'ended', label: 'Lease Ended', icon: CalendarIcon },
+    { id: 'ended', label: 'Lease Ended', icon: Clock },
     { id: 'settlement', label: 'Utility Settlement', icon: ArrowRightLeft },
     { id: 'completed', label: 'Refund Completed', icon: CheckCircle2 },
   ];
 
-  // Dummy Calendar icon fallback
-  function CalendarIcon(props) {
-    return <Clock {...props} />;
-  }
+  const isCompleted = currentStatus === 'Refund Completed';
 
   // Determine stage states based on currentStatus
   const getStageState = (index) => {
-    // For Phase 5 default 'Awaiting Deposit':
-    // index 0 (Created) = completed
-    // index 1 (Awaiting) = active
-    // index 2+ = upcoming
+    if (isCompleted) return 'completed';
+
     if (currentStatus === 'Awaiting Deposit') {
       if (index === 0) return 'completed';
       if (index === 1) return 'active';
@@ -43,14 +38,25 @@ export const AgreementTimeline = ({ currentStatus = 'Awaiting Deposit' }) => {
       return 'upcoming';
     }
 
-    if (currentStatus === 'Completed') {
-      return 'completed';
+    if (currentStatus === 'Lease Ended') {
+      if (index <= 3) return 'completed';
+      if (index === 4) return 'active';
+      return 'upcoming';
+    }
+
+    if (currentStatus === 'Utility Settlement') {
+      if (index <= 4) return 'completed';
+      if (index === 5) return 'active';
+      return 'upcoming';
     }
 
     if (index === 0) return 'completed';
     if (index === 1) return 'active';
     return 'upcoming';
   };
+
+  const activeStageIndex = isCompleted ? 6 : currentStatus === 'Utility Settlement' ? 5 : currentStatus === 'Lease Ended' ? 4 : currentStatus === 'Lease Active' ? 3 : currentStatus === 'Deposit Locked' ? 2 : 1;
+  const progressPercent = isCompleted ? 100 : (activeStageIndex / 6) * 100;
 
   return (
     <Card className="p-6 space-y-6 border-border/80">
@@ -59,8 +65,12 @@ export const AgreementTimeline = ({ currentStatus = 'Awaiting Deposit' }) => {
           <h3 className="text-h3 text-text-primary">Agreement Lifecycle Timeline</h3>
           <p className="text-caption text-text-secondary">On-chain Soroban escrow progression stage</p>
         </div>
-        <span className="text-xs font-mono font-semibold text-primary-glow bg-primary/10 border border-primary/20 px-3 py-1 rounded-full">
-          Stage 2 of 7
+        <span className={`text-xs font-mono font-semibold px-3 py-1 rounded-full ${
+          isCompleted 
+            ? 'text-success bg-success/15 border border-success/30' 
+            : 'text-primary-glow bg-primary/10 border border-primary/20'
+        }`}>
+          Stage {activeStageIndex + 1} of 7
         </span>
       </div>
 
@@ -70,9 +80,9 @@ export const AgreementTimeline = ({ currentStatus = 'Awaiting Deposit' }) => {
         <div className="absolute top-7 left-6 right-6 h-0.5 bg-border/60 z-0">
           <motion.div
             initial={{ width: '0%' }}
-            animate={{ width: '16.6%' }}
+            animate={{ width: `${progressPercent}%` }}
             transition={{ duration: 1, ease: 'easeOut' }}
-            className="h-full bg-gradient-to-r from-success to-primary"
+            className="h-full bg-gradient-to-r from-success via-emerald-400 to-primary"
           />
         </div>
 

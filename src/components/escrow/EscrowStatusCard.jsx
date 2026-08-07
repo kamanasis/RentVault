@@ -2,9 +2,33 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '../cards/Card';
 import { StatusBadge } from '../status/StatusBadge';
-import { Clock, Loader2, Lock, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Clock, Loader2, Lock, ShieldCheck, AlertCircle, CheckCircle2, LockKeyhole } from 'lucide-react';
 
 export const EscrowStatusCard = ({ status = 'Awaiting Deposit', errorMessage }) => {
+  if (status === 'Refund Completed') {
+    return (
+      <Card className="p-6 bg-success/10 border-success/40 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-success/20 border border-success/50 text-success flex items-center justify-center">
+              <LockKeyhole className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-h3 text-text-primary">Escrow Closed</h3>
+              <p className="text-caption text-text-secondary">Agreement Successfully Settled</p>
+            </div>
+          </div>
+          <StatusBadge variant="success" size="md">
+            Contract Finalized
+          </StatusBadge>
+        </div>
+        <p className="text-body text-text-secondary">
+          No further actions available. All security deposit funds have been released according to Soroban smart contract terms.
+        </p>
+      </Card>
+    );
+  }
+
   if (status === 'Locking Escrow') {
     return (
       <Card className="p-6 bg-primary/10 border-primary/40 space-y-4 text-center">
