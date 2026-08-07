@@ -4,9 +4,11 @@ import { PageContainer } from '../components/layout/PageContainer';
 import { Card } from '../components/cards/Card';
 import { AgreementStatusBadge } from '../components/agreements/AgreementStatusBadge';
 import { AgreementSummary } from '../components/agreements/AgreementSummary';
+import { AgreementTimeline } from '../components/agreements/AgreementTimeline';
 import { PrimaryButton } from '../components/buttons/PrimaryButton';
 import { SecondaryButton } from '../components/buttons/SecondaryButton';
 import { useAgreements } from '../context/AgreementContext';
+import { calculateLeaseDuration } from '../utils/duration';
 import { 
   Building, 
   Wallet, 
@@ -19,7 +21,8 @@ import {
   Edit3, 
   Lock, 
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  Info
 } from 'lucide-react';
 
 export const AgreementDetails = () => {
@@ -68,10 +71,7 @@ export const AgreementDetails = () => {
     );
   }
 
-  const truncateKey = (key) => {
-    if (!key) return 'N/A';
-    return `${key.slice(0, 8)}...${key.slice(-8)}`;
-  };
+  const leaseDurationText = calculateLeaseDuration(agreement.leaseStart, agreement.leaseEnd);
 
   return (
     <PageContainer className="max-w-5xl">
@@ -127,6 +127,9 @@ export const AgreementDetails = () => {
             </p>
           </Card>
 
+          {/* Phase 5.5 Agreement Lifecycle Timeline */}
+          <AgreementTimeline currentStatus={agreement.status} />
+
           {/* Parties Card */}
           <Card className="space-y-4">
             <h3 className="text-h3 text-text-primary border-b border-border pb-3 flex items-center gap-2">
@@ -166,13 +169,13 @@ export const AgreementDetails = () => {
             </div>
           </Card>
 
-          {/* Lease Information */}
+          {/* Lease Information Card with Real Duration Calculation */}
           <Card className="space-y-4">
             <h3 className="text-h3 text-text-primary border-b border-border pb-3 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-primary-glow" /> Lease Information
+              <Calendar className="w-5 h-5 text-primary-glow" /> Lease Information & Duration
             </h3>
 
-            <div className="grid grid-cols-2 gap-4 text-body">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-body">
               <div>
                 <span className="text-caption text-text-muted block">Lease Start Date</span>
                 <span className="font-semibold text-text-primary">{agreement.leaseStart}</span>
@@ -180,6 +183,10 @@ export const AgreementDetails = () => {
               <div>
                 <span className="text-caption text-text-muted block">Lease End Date</span>
                 <span className="font-semibold text-text-primary">{agreement.leaseEnd}</span>
+              </div>
+              <div>
+                <span className="text-caption text-text-muted block">Lease Duration</span>
+                <span className="font-extrabold text-primary-glow">{leaseDurationText}</span>
               </div>
             </div>
 
@@ -205,7 +212,7 @@ export const AgreementDetails = () => {
             <SecondaryButton 
               fullWidth 
               icon={Edit3}
-              onClick={() => alert('Phase 5 Placeholder: Agreement editing modal.')}
+              onClick={() => alert('Phase 5.5 Placeholder: Agreement editing modal.')}
             >
               Edit Agreement Terms
             </SecondaryButton>
@@ -216,13 +223,20 @@ export const AgreementDetails = () => {
             >
               {copiedShareLink ? 'Link Copied!' : 'Share Agreement'}
             </SecondaryButton>
-            <PrimaryButton 
-              fullWidth 
-              icon={Lock}
-              onClick={() => navigate(`/agreement/${agreement.id}/deposit`)}
-            >
-              Generate Deposit Link
-            </PrimaryButton>
+
+            <div className="space-y-1 pt-1">
+              <PrimaryButton 
+                fullWidth 
+                icon={Lock}
+                onClick={() => navigate(`/agreement/${agreement.id}/deposit`)}
+              >
+                Deposit Escrow
+              </PrimaryButton>
+              <p className="text-[11px] text-text-muted text-center flex items-center justify-center gap-1">
+                <Info className="w-3 h-3 text-primary-glow flex-shrink-0" />
+                <span>This action will connect to the Soroban escrow contract in Phase 6.</span>
+              </p>
+            </div>
           </Card>
         </div>
       </div>
