@@ -12,6 +12,10 @@ import { NetworkBadge } from '../components/wallet/NetworkBadge';
 import { StatusBadge } from '../components/status/StatusBadge';
 import { PrimaryButton } from '../components/buttons/PrimaryButton';
 import { SecondaryButton } from '../components/buttons/SecondaryButton';
+import { ExecutiveHeroSummary } from '../components/dashboard/ExecutiveHeroSummary';
+import { StellarActivityRibbon } from '../components/stellar/StellarActivityRibbon';
+import { OnboardingCard } from '../components/dashboard/OnboardingCard';
+import { DemoGuideModal } from '../components/demo/DemoGuideModal';
 import { useWallet } from '../context/WalletContext';
 import { useAgreements } from '../context/AgreementContext';
 import { 
@@ -24,7 +28,8 @@ import {
   Wallet,
   ArrowRight,
   Shield,
-  RefreshCw
+  RefreshCw,
+  Sparkles
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -34,6 +39,7 @@ export const Dashboard = () => {
   const { agreements } = useAgreements();
 
   const [workspaceFilter, setWorkspaceFilter] = useState('all'); // 'all' | 'landlord' | 'tenant'
+  const [isDemoGuideOpen, setIsDemoGuideOpen] = useState(false);
 
   const normalizedAddress = (address || '').toLowerCase().trim();
 
@@ -77,11 +83,14 @@ export const Dashboard = () => {
         <div className="flex items-center gap-3">
           {connected ? (
             <>
+              <SecondaryButton icon={Sparkles} onClick={() => setIsDemoGuideOpen(true)}>
+                Demo Guide
+              </SecondaryButton>
               <SecondaryButton icon={RefreshCw} onClick={openSwitchModal}>
                 Switch Wallet
               </SecondaryButton>
               <SecondaryButton onClick={disconnectWallet}>
-                Disconnect Session
+                Disconnect
               </SecondaryButton>
             </>
           ) : (
@@ -108,23 +117,93 @@ export const Dashboard = () => {
         </Card>
       ) : (
         <div className="space-y-8">
-          {/* Phase 4 Live XLM Balance Card */}
+          {/* Tier 1 (Highest Priority): Executive Hero Summary */}
+          <ExecutiveHeroSummary onOpenDemoGuide={() => setIsDemoGuideOpen(true)} />
+
+          {/* Tier 1: Phase 4 Live XLM Balance Card */}
           <BalanceCard />
 
-          {/* Phase 4.5 Recent Transactions Preview Section */}
-          <TransactionList limit={3} isPreview={true} />
+          {/* Tier 1: Role-Filtered Agreements Grid or Onboarding */}
+          {userAgreements.length === 0 ? (
+            <OnboardingCard />
+          ) : (
+            <Section className="py-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div>
+                  <h2 className="text-h2 text-text-primary mb-1">Your Role Agreements</h2>
+                  <p className="text-caption text-text-secondary">Filtered exclusively by your connected wallet identity.</p>
+                </div>
 
-          {/* Top Section: Wallet Overview & Session Status Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <WalletCard />
-            </div>
-            <div>
-              <WalletStatus />
-            </div>
-          </div>
+                {/* Dynamic Role Filter Tabs */}
+                <div className="flex items-center gap-2 bg-surface/60 p-1.5 rounded-2xl border border-border/60">
+                  <button
+                    onClick={() => setWorkspaceFilter('all')}
+                    className={`px-3.5 py-1.5 rounded-xl text-caption font-medium transition-all cursor-pointer ${
+                      workspaceFilter === 'all' ? 'bg-primary text-white font-semibold shadow-sm' : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                  >
+                    All ({userAgreements.length})
+                  </button>
+                  <button
+                    onClick={() => setWorkspaceFilter('landlord')}
+                    className={`px-3.5 py-1.5 rounded-xl text-caption font-medium transition-all cursor-pointer ${
+                      workspaceFilter === 'landlord' ? 'bg-primary text-white font-semibold shadow-sm' : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                  >
+                    As Landlord ({landlordAgreements.length})
+                  </button>
+                  <button
+                    onClick={() => setWorkspaceFilter('tenant')}
+                    className={`px-3.5 py-1.5 rounded-xl text-caption font-medium transition-all cursor-pointer ${
+                      workspaceFilter === 'tenant' ? 'bg-success text-white font-semibold shadow-sm' : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                  >
+                    As Tenant ({tenantAgreements.length})
+                  </button>
+                </div>
+              </div>
 
-          {/* Role Workspaces Grid */}
+              {activeAgreementsList.length === 0 ? (
+                <Card className="p-8 text-center border-dashed space-y-4">
+                  <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center text-text-muted mx-auto">
+                    <Building className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-h3 text-text-primary">
+                      {workspaceFilter === 'landlord' 
+                        ? 'No agreements created by your wallet' 
+                        : workspaceFilter === 'tenant' 
+                        ? 'No agreements assigned to your tenant wallet' 
+                        : 'No participating agreements for this wallet'}
+                    </h3>
+                    <p className="text-body text-text-secondary max-w-md mx-auto">
+                      {workspaceFilter === 'landlord' 
+                        ? 'Create your first digital rental agreement as a landlord.' 
+                        : workspaceFilter === 'tenant' 
+                        ? 'Ask your landlord to assign an agreement to your Stellar wallet address.' 
+                        : 'This wallet address is not currently associated with any active rental agreements.'}
+                    </p>
+                  </div>
+                  {workspaceFilter === 'landlord' && (
+                    <PrimaryButton icon={Plus} onClick={() => navigate('/agreements/new')}>
+                      Create Agreement Now
+                    </PrimaryButton>
+                  )}
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {activeAgreementsList.slice(0, 3).map((ag) => (
+                    <AgreementCard key={ag.id} agreement={ag} />
+                  ))}
+                </div>
+              )}
+            </Section>
+          )}
+
+          {/* Tier 2: Live Stellar Activity Ribbon */}
+          <StellarActivityRibbon />
+
+          {/* Tier 2: Quick Workspaces & Actions Grid */}
           <div>
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -264,80 +343,23 @@ export const Dashboard = () => {
             </div>
           </div>
 
-          {/* Role-Filtered Agreements Section */}
-          <Section className="py-2">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-              <div>
-                <h2 className="text-h2 text-text-primary mb-1">Your Role Agreements</h2>
-                <p className="text-caption text-text-secondary">Filtered exclusively by your connected wallet identity.</p>
-              </div>
-
-              {/* Dynamic Role Filter Tabs */}
-              <div className="flex items-center gap-2 bg-surface/60 p-1.5 rounded-2xl border border-border/60">
-                <button
-                  onClick={() => setWorkspaceFilter('all')}
-                  className={`px-3.5 py-1.5 rounded-xl text-caption font-medium transition-all cursor-pointer ${
-                    workspaceFilter === 'all' ? 'bg-primary text-white font-semibold shadow-sm' : 'text-text-secondary hover:text-text-primary'
-                  }`}
-                >
-                  All ({userAgreements.length})
-                </button>
-                <button
-                  onClick={() => setWorkspaceFilter('landlord')}
-                  className={`px-3.5 py-1.5 rounded-xl text-caption font-medium transition-all cursor-pointer ${
-                    workspaceFilter === 'landlord' ? 'bg-primary text-white font-semibold shadow-sm' : 'text-text-secondary hover:text-text-primary'
-                  }`}
-                >
-                  As Landlord ({landlordAgreements.length})
-                </button>
-                <button
-                  onClick={() => setWorkspaceFilter('tenant')}
-                  className={`px-3.5 py-1.5 rounded-xl text-caption font-medium transition-all cursor-pointer ${
-                    workspaceFilter === 'tenant' ? 'bg-success text-white font-semibold shadow-sm' : 'text-text-secondary hover:text-text-primary'
-                  }`}
-                >
-                  As Tenant ({tenantAgreements.length})
-                </button>
-              </div>
+          {/* Tier 2: Recent Transactions & Escrow Status */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <WalletCard />
             </div>
+            <div>
+              <WalletStatus />
+            </div>
+          </div>
 
-            {activeAgreementsList.length === 0 ? (
-              <Card className="p-8 text-center border-dashed space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center text-text-muted mx-auto">
-                  <Building className="w-6 h-6" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-h3 text-text-primary">
-                    {workspaceFilter === 'landlord' 
-                      ? 'No agreements created by your wallet' 
-                      : workspaceFilter === 'tenant' 
-                      ? 'No agreements assigned to your tenant wallet' 
-                      : 'No participating agreements for this wallet'}
-                  </h3>
-                  <p className="text-body text-text-secondary max-w-md mx-auto">
-                    {workspaceFilter === 'landlord' 
-                      ? 'Create your first digital rental agreement as a landlord.' 
-                      : workspaceFilter === 'tenant' 
-                      ? 'Ask your landlord to assign an agreement to your Stellar wallet address.' 
-                      : 'This wallet address is not currently associated with any active rental agreements.'}
-                  </p>
-                </div>
-                {workspaceFilter === 'landlord' && (
-                  <PrimaryButton icon={Plus} onClick={() => navigate('/agreements/new')}>
-                    Create Agreement Now
-                  </PrimaryButton>
-                )}
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {activeAgreementsList.slice(0, 3).map((ag) => (
-                  <AgreementCard key={ag.id} agreement={ag} />
-                ))}
-              </div>
-            )}
-          </Section>
+          {/* Tier 2: Horizon API Recent Transactions */}
+          <TransactionList limit={3} isPreview={true} />
         </div>
       )}
+
+      {/* Stella Demo Guide Modal */}
+      <DemoGuideModal isOpen={isDemoGuideOpen} onClose={() => setIsDemoGuideOpen(false)} />
     </PageContainer>
   );
 };

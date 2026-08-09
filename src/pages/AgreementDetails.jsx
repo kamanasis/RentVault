@@ -16,12 +16,15 @@ import { EscrowFundingDetailsCard } from '../components/escrow/EscrowFundingDeta
 import { RoleBadge } from '../components/roles/RoleBadge';
 import { AgreementRoleHeader } from '../components/roles/AgreementRoleHeader';
 import { WalletMismatchNotice } from '../components/roles/WalletMismatchNotice';
+import { TrustBadgeGroup } from '../components/stellar/TrustBadgeGroup';
+import { Accordion } from '../components/ui/Accordion';
 import { PrimaryButton } from '../components/buttons/PrimaryButton';
 import { SecondaryButton } from '../components/buttons/SecondaryButton';
 import { useAgreements } from '../context/AgreementContext';
 import { useWallet } from '../context/WalletContext';
 import { evaluateAgreementRole } from '../utils/role';
 import { calculateLeaseDuration } from '../utils/duration';
+import { getSorobanContractId } from '../services/soroban';
 import { 
   Building, 
   Wallet, 
@@ -41,7 +44,8 @@ import {
   Zap,
   Archive,
   Download,
-  FileText
+  FileText,
+  Cpu
 } from 'lucide-react';
 
 export const AgreementDetails = () => {
@@ -111,6 +115,7 @@ export const AgreementDetails = () => {
   const isDepositLocked = agreement.status !== 'Awaiting Deposit';
   const isRefundCompleted = agreement.status === 'Refund Completed';
   const isSettlementMode = agreement.status === 'Utility Settlement';
+  const contractId = getSorobanContractId();
 
   // Role permissions list items
   const landlordPermissions = isRefundCompleted ? [
@@ -150,9 +155,9 @@ export const AgreementDetails = () => {
     : guestPermissions;
 
   return (
-    <PageContainer className="max-w-5xl">
-      {/* Top Navigation Row & Header Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-border">
+    <PageContainer className="max-w-5xl space-y-6">
+      {/* Top Navigation Row & Context-Aware Header Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border">
         <div>
           <button
             onClick={() => navigate('/agreements')}
@@ -171,75 +176,75 @@ export const AgreementDetails = () => {
           <p className="text-body text-text-secondary mt-1">{agreement.propertyAddress}</p>
         </div>
 
-        {/* Header Actions (Fix 5: Agreement Archived when completed) */}
-        <div className="flex items-center gap-3">
-          <SecondaryButton 
-            icon={Share2} 
-            onClick={handleShareAgreement}
-            ariaLabel="Share agreement link"
-          >
-            {copiedShareLink ? 'Link Copied!' : 'Share Agreement'}
-          </SecondaryButton>
-
-          {/* Landlord Edit vs Archived Option (Fix 5) */}
-          {isRefundCompleted ? (
-            <SecondaryButton 
-              icon={Archive}
-              disabled
-              className="opacity-70 cursor-not-allowed"
-            >
-              Agreement Archived
-            </SecondaryButton>
-          ) : roleInfo.isLandlord && (
-            <SecondaryButton 
-              icon={Edit3}
-              onClick={() => setIsEditModalOpen(true)}
-            >
-              Edit Terms
-            </SecondaryButton>
+        {/* Context-Aware Action Bar */}
+        <div className="flex flex-wrap items-center gap-3">
+          {agreement.status === 'Awaiting Deposit' && (
+            <>
+              <SecondaryButton icon={Share2} onClick={handleShareAgreement}>
+                {copiedShareLink ? 'Link Copied!' : 'Share Agreement'}
+              </SecondaryButton>
+              {roleInfo.isLandlord && (
+                <SecondaryButton icon={Edit3} onClick={() => setIsEditModalOpen(true)}>
+                  Edit Terms
+                </SecondaryButton>
+              )}
+              {roleInfo.isTenant && (
+                <PrimaryButton icon={Lock} onClick={() => navigate(`/agreements/${agreement.id}/deposit`)}>
+                  Deposit Escrow
+                </PrimaryButton>
+              )}
+            </>
           )}
 
-          {/* Portal / Action Button */}
-          {isRefundCompleted ? (
-            <PrimaryButton 
-              icon={CheckCircle2} 
-              disabled
-              className="bg-success/80 border-success cursor-not-allowed"
-            >
-              Refund Completed
-            </PrimaryButton>
-          ) : agreement.status === 'Lease Ended' || agreement.status === 'Utility Settlement' ? (
-            <PrimaryButton 
-              icon={Zap} 
-              onClick={() => navigate(`/agreement/${agreement.id}/settlement`)}
-            >
+          {agreement.status === 'Deposit Locked' && (
+            <>
+              <SecondaryButton icon={Share2} onClick={handleShareAgreement}>
+                {copiedShareLink ? 'Link Copied!' : 'Share Link'}
+              </SecondaryButton>
+              <PrimaryButton icon={ShieldCheck} onClick={() => navigate(`/agreements/${agreement.id}/timeline`)}>
+                Monitor Timeline
+              </PrimaryButton>
+            </>
+          )}
+
+          {agreement.status === 'Lease Active' && (
+            <>
+              <SecondaryButton icon={Share2} onClick={handleShareAgreement}>
+                {copiedShareLink ? 'Link Copied!' : 'Share Link'}
+              </SecondaryButton>
+              <PrimaryButton icon={Calendar} onClick={() => navigate(`/agreements/${agreement.id}/timeline`)}>
+                View Active Timeline
+              </PrimaryButton>
+            </>
+          )}
+
+          {(agreement.status === 'Lease Ended' || agreement.status === 'Utility Settlement') && (
+            <PrimaryButton icon={Zap} onClick={() => navigate(`/agreements/${agreement.id}/settlement`)}>
               Utility Settlement Portal
             </PrimaryButton>
-          ) : (
-            <PrimaryButton 
-              icon={Lock} 
-              disabled={!roleInfo.isTenant || isDepositLocked}
-              onClick={() => navigate(`/agreement/${agreement.id}/deposit`)}
-            >
-              {isDepositLocked 
-                ? 'Escrow Already Funded' 
-                : roleInfo.isTenant 
-                ? 'Deposit Escrow' 
-                : roleInfo.isLandlord 
-                ? 'Waiting for Tenant' 
-                : 'Unauthorized Wallet'}
-            </PrimaryButton>
+          )}
+
+          {isRefundCompleted && (
+            <>
+              <SecondaryButton icon={Download} onClick={handleDownloadReceipt}>
+                {downloaded ? 'Receipt Downloaded!' : 'Download Receipt'}
+              </SecondaryButton>
+              <PrimaryButton icon={CheckCircle2} onClick={() => navigate(`/agreements/${agreement.id}/completed`)}>
+                View Receipt
+              </PrimaryButton>
+            </>
           )}
         </div>
       </div>
 
+      {/* Visual Trust Badges Strip */}
+      <TrustBadgeGroup />
+
       {/* Role Header Banner */}
-      <div className="mb-6">
-        <AgreementRoleHeader roleInfo={roleInfo} connectedAddress={address} />
-      </div>
+      <AgreementRoleHeader roleInfo={roleInfo} connectedAddress={address} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left 2 Columns: Main Details & Timeline */}
+        {/* Left 2 Columns: Always Visible Sections & Expandable Accordions */}
         <div className="lg:col-span-2 space-y-6">
           {/* Wallet Mismatch Warning if Unauthorized */}
           {roleInfo.isUnauthorized && (
@@ -259,15 +264,9 @@ export const AgreementDetails = () => {
             <TenantReviewPanel agreement={agreement} />
           )}
 
-          {/* Escrow Status Card */}
+          {/* Always Visible: Escrow Status & Funding Progress */}
           <EscrowStatusCard status={agreement.status} />
 
-          {/* Phase 6.8 / 7.1 Settlement Receipt Card (Fix 7) */}
-          {isDepositLocked && (
-            <EscrowFundingDetailsCard agreement={agreement} />
-          )}
-
-          {/* Phase 6 Funding Progress Widget (Fix 2) */}
           <FundingProgress 
             requiredAmount={totalEscrow} 
             fundedAmount={fundedAmount} 
@@ -276,18 +275,17 @@ export const AgreementDetails = () => {
             finalRefundAmount={agreement.finalRefundAmount}
           />
 
-          {/* Agreement Lifecycle Timeline (Fix 3) */}
+          {/* Always Visible: Agreement Lifecycle Timeline */}
           <AgreementTimeline currentStatus={agreement.status} />
 
-          {/* Phase 7 10-Stage Complete Lifecycle Activity Log */}
-          <AgreementActivityTimeline agreement={agreement} />
-
-          {/* Parties Card */}
-          <Card className="space-y-4">
-            <h3 className="text-h3 text-text-primary border-b border-border pb-3 flex items-center gap-2">
-              <Wallet className="w-5 h-5 text-primary-glow" /> Agreement Parties & Wallets
-            </h3>
-
+          {/* Expandable Accordion 1: Parties & Wallet Verification */}
+          <Accordion
+            title="Agreement Parties & Wallets"
+            subtitle="Cryptographic public keys for landlord and tenant"
+            icon={Wallet}
+            badgeText="Role Verified"
+            defaultOpen={false}
+          >
             <div className="space-y-3 font-mono text-caption">
               {/* Landlord Wallet */}
               <div className={`p-3.5 rounded-2xl border space-y-1 ${
@@ -327,41 +325,72 @@ export const AgreementDetails = () => {
                 <div className="text-text-primary truncate font-semibold">{agreement.tenantWallet}</div>
               </div>
             </div>
-          </Card>
+          </Accordion>
 
-          {/* Lease Information Card */}
-          <Card className="space-y-4">
-            <h3 className="text-h3 text-text-primary border-b border-border pb-3 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-primary-glow" /> Lease Information & Duration
-            </h3>
+          {/* Expandable Accordion 2: Escrow Funding Parameters & Settlement Receipt */}
+          {isDepositLocked && (
+            <Accordion
+              title="Escrow Funding Details & Parameters"
+              subtitle="Soroban contract lock execution and settlement history"
+              icon={ShieldCheck}
+              badgeText="Escrow Locked"
+              defaultOpen={false}
+            >
+              <EscrowFundingDetailsCard agreement={agreement} />
+            </Accordion>
+          )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-body">
-              <div>
-                <span className="text-caption text-text-muted block">Lease Start Date</span>
-                <span className="font-semibold text-text-primary">{agreement.leaseStart}</span>
+          {/* Expandable Accordion 3: Complete 10-Stage Activity Feed */}
+          <Accordion
+            title="Complete 10-Stage Activity Log"
+            subtitle="Auditable timeline event history"
+            icon={Clock}
+            badgeText="Auditable"
+            defaultOpen={false}
+          >
+            <AgreementActivityTimeline agreement={agreement} />
+          </Accordion>
+
+          {/* Expandable Accordion 4: Technical Blockchain Metadata & Soroban Contract Info */}
+          <Accordion
+            title="Technical Blockchain Metadata & Proofs"
+            subtitle="Soroban Contract ID, network consensus, and transaction hashes"
+            icon={Cpu}
+            badgeText="On-Chain"
+            defaultOpen={false}
+          >
+            <div className="space-y-3 font-mono text-caption">
+              <div className="p-3 bg-background/80 rounded-2xl border border-border/80 flex justify-between items-center">
+                <span className="text-text-muted">Soroban Contract ID:</span>
+                <span className="text-primary-glow font-bold truncate max-w-[240px]">{contractId}</span>
               </div>
-              <div>
-                <span className="text-caption text-text-muted block">Lease End Date</span>
-                <span className="font-semibold text-text-primary">{agreement.leaseEnd}</span>
+
+              <div className="p-3 bg-background/80 rounded-2xl border border-border/80 flex justify-between items-center">
+                <span className="text-text-muted">Stellar Network:</span>
+                <span className="text-success font-bold">Stellar Testnet (Protocol 20)</span>
               </div>
-              <div>
-                <span className="text-caption text-text-muted block">Lease Duration</span>
-                <span className="font-extrabold text-primary-glow">{leaseDurationText}</span>
+
+              <div className="p-3 bg-background/80 rounded-2xl border border-border/80 flex justify-between items-center">
+                <span className="text-text-muted">Smart Contract Engine:</span>
+                <span className="text-text-primary font-bold">Soroban WASM Escrow Contract</span>
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <a
+                  href={`https://testnet.steexp.com/contract/${contractId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-primary-glow hover:underline text-xs font-sans"
+                >
+                  <span>View Contract on Stellar Expert</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
               </div>
             </div>
-
-            {agreement.notes && (
-              <div className="pt-3 border-t border-border/60">
-                <span className="text-caption text-text-muted block mb-1">Additional Terms & Notes</span>
-                <p className="text-caption text-text-secondary bg-surface/50 p-3 rounded-xl border border-border/40 leading-relaxed">
-                  {agreement.notes}
-                </p>
-              </div>
-            )}
-          </Card>
+          </Accordion>
         </div>
 
-        {/* Right Sidebar: Financial Summary & Archived Role Controls (Fix 4) */}
+        {/* Right Sidebar: Financial Summary & Role Controls */}
         <div className="space-y-6">
           <AgreementSummary agreement={agreement} />
 
@@ -389,10 +418,10 @@ export const AgreementDetails = () => {
               </ul>
             </div>
 
-            {/* Fix 4 Action Buttons for Completed Agreements */}
+            {/* Completed Action Buttons */}
             {isRefundCompleted && (
               <div className="space-y-2 pt-2 border-t border-border/60">
-                <SecondaryButton fullWidth icon={FileText} onClick={() => navigate(`/agreement/${agreement.id}/settlement`)}>
+                <SecondaryButton fullWidth icon={FileText} onClick={() => navigate(`/agreements/${agreement.id}/settlement`)}>
                   View Settlement Receipt
                 </SecondaryButton>
                 <SecondaryButton fullWidth icon={Clock} onClick={() => navigate('/transactions')}>
