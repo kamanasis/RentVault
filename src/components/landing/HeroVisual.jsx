@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Lock, CheckCircle2, Coins, Cpu, Key, AlertCircle } from 'lucide-react';
+import { Shield, Lock, CheckCircle2, Coins, Cpu, Key } from 'lucide-react';
 import { useWallet } from '../../context/WalletContext';
 import { useAgreements } from '../../context/AgreementContext';
 
@@ -19,33 +19,35 @@ export const HeroVisual = () => {
       })
     : [];
 
-  // Active escrows filter: Deposit Locked | Lease Active | Lease Ended | Utility Settlement | Approval Pending
-  const activeEscrows = (connected ? userAgreements : agreements).filter((a) => {
-    return (
-      a.status === 'Deposit Locked' ||
-      a.status === 'Lease Active' ||
-      a.status === 'Lease Ended' ||
-      a.status === 'Utility Settlement' ||
-      a.status === 'Approval Pending'
-    );
-  });
+  // Active escrows filter strictly derived for connected wallet
+  const activeEscrows = connected
+    ? userAgreements.filter((a) => {
+        return (
+          a.status === 'Deposit Locked' ||
+          a.status === 'Lease Active' ||
+          a.status === 'Lease Ended' ||
+          a.status === 'Utility Settlement' ||
+          a.status === 'Approval Pending'
+        );
+      })
+    : [];
 
   // Dynamic live locked XLM balance
-  const totalLockedXLM = activeEscrows.reduce((sum, a) => {
-    const deposit = parseFloat(a.depositAmount || 0);
-    const reserve = parseFloat(a.utilityReserve || 0);
-    return sum + deposit + reserve;
-  }, 0);
+  const totalLockedXLM = connected
+    ? activeEscrows.reduce((sum, a) => {
+        const deposit = parseFloat(a.depositAmount || 0);
+        const reserve = parseFloat(a.utilityReserve || 0);
+        return sum + deposit + reserve;
+      }, 0)
+    : 0;
 
-  const activeCount = activeEscrows.length;
+  const activeCount = connected ? activeEscrows.length : 0;
 
   // Primary active agreement status for Center Card
-  const primaryActiveAgreement = activeEscrows[0] || (connected ? userAgreements[0] : null);
+  const primaryActiveAgreement = activeEscrows[0] || userAgreements[0];
   const currentStatusText = primaryActiveAgreement
     ? primaryActiveAgreement.status
-    : connected
-    ? 'No Active Escrow'
-    : 'Wallet Not Connected';
+    : 'No Active Escrow';
 
   return (
     <div className="relative w-full max-w-lg mx-auto aspect-square flex items-center justify-center p-4">
@@ -90,11 +92,13 @@ export const HeroVisual = () => {
           <span>RentVault Escrow</span>
         </div>
         <span className="text-[10px] text-text-muted font-mono mt-0.5 tracking-wider truncate max-w-[130px]">
-          {connected ? truncateAddress(address) : 'Wallet Disconnected'}
+          {connected ? truncateAddress(address) : 'Wallet Not Connected'}
         </span>
-        <span className="text-[9px] font-medium text-primary-glow mt-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">
-          {currentStatusText}
-        </span>
+        {connected && (
+          <span className="text-[9px] font-medium text-primary-glow mt-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">
+            {currentStatusText}
+          </span>
+        )}
       </motion.div>
 
       {/* Dynamic Floating Escrow Balance Card (Shared State with AgreementContext) */}
@@ -108,25 +112,14 @@ export const HeroVisual = () => {
         </div>
         <div>
           <div className="text-[10px] text-text-muted uppercase tracking-wider font-medium">Escrow Balance</div>
-          {connected ? (
-            <div>
-              <div className="text-xs font-bold text-text-primary">{totalLockedXLM.toLocaleString('en-US')} XLM Locked</div>
-              <div className="text-[9px] text-text-muted">
-                {activeCount > 0 
-                  ? `${activeCount} active escrow agreement${activeCount > 1 ? 's' : ''}` 
-                  : 'No active escrow agreements'}
-              </div>
+          <div>
+            <div className="text-xs font-bold text-text-primary">{totalLockedXLM.toLocaleString('en-US')} XLM Locked</div>
+            <div className="text-[9px] text-text-muted">
+              {activeCount > 0 
+                ? `${activeCount} active escrow agreement${activeCount > 1 ? 's' : ''}` 
+                : 'No active escrow agreements'}
             </div>
-          ) : (
-            <div>
-              <div className="text-xs font-bold text-text-primary">{totalLockedXLM.toLocaleString('en-US')} XLM Locked</div>
-              <div className="text-[9px] text-text-muted">
-                {activeCount > 0 
-                  ? `${activeCount} active network escrow${activeCount > 1 ? 's' : ''}` 
-                  : 'Connect wallet to view escrows'}
-              </div>
-            </div>
-          )}
+          </div>
         </div>
       </motion.div>
 
