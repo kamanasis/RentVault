@@ -16,7 +16,7 @@ export const AgreementTimeline = ({ currentStatus = 'Awaiting Deposit' }) => {
 
   const isCompleted = currentStatus === 'Refund Completed';
 
-  // Determine stage active index
+  // Determine stage active index (0 to 6)
   const activeStageIndex = isCompleted
     ? 6
     : currentStatus === 'Utility Settlement'
@@ -31,70 +31,82 @@ export const AgreementTimeline = ({ currentStatus = 'Awaiting Deposit' }) => {
     ? 1
     : 0;
 
+  // Percentage width of active progress line inside the track (0% to 100%)
   const progressPercent = isCompleted ? 100 : (activeStageIndex / 6) * 100;
 
   return (
-    <Card className="p-6 space-y-6 border-border/80">
-      <div className="flex items-center justify-between pb-3 border-b border-border/60">
+    <Card className="p-6 md:p-7 space-y-6 border-border/80 shadow-stellar-glow">
+      {/* Timeline Header */}
+      <div className="flex items-center justify-between pb-4 border-b border-border/60">
         <div>
           <h3 className="text-h3 text-text-primary">Agreement Lifecycle Timeline</h3>
           <p className="text-caption text-text-secondary">On-chain Soroban escrow progression stage</p>
         </div>
-        <span className={`text-xs font-mono font-semibold px-3 py-1 rounded-full ${
+        <span className={`text-xs font-mono font-semibold px-3.5 py-1 rounded-full border ${
           isCompleted 
-            ? 'text-success bg-success/15 border border-success/30' 
-            : 'text-primary-glow bg-primary/10 border border-primary/20'
+            ? 'text-success bg-success/15 border-success/30' 
+            : 'text-primary-glow bg-primary/10 border-primary/20'
         }`}>
           Stage {activeStageIndex + 1} of 7
         </span>
       </div>
 
-      {/* Timeline Nodes */}
-      <div className="relative pt-2 pb-4 overflow-x-auto scrollbar-none">
-        {/* Connecting Progress Line */}
-        <div className="absolute top-7 left-6 right-6 h-0.5 bg-border/60 z-0">
-          <motion.div
-            initial={{ width: '0%' }}
-            animate={{ width: `${progressPercent}%` }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-            className="h-full bg-success"
-          />
-        </div>
+      {/* Timeline Component Container */}
+      <div className="relative pt-2 pb-2 overflow-x-auto scrollbar-none">
+        <div className="relative min-w-[700px] md:min-w-0 py-2">
+          
+          {/* Layer 1: Background Track Line (Behind Nodes) */}
+          <div className="absolute top-[22px] md:top-[24px] left-[7.14%] right-[7.14%] h-1 bg-border/60 rounded-full z-0">
+            {/* Layer 2: Green Progress Line */}
+            <motion.div
+              initial={{ width: '0%' }}
+              animate={{ width: `${progressPercent}%` }}
+              transition={{ duration: 0.8, ease: 'easeInOut' }}
+              className="h-full bg-success rounded-full shadow-[0_0_10px_rgba(34,197,94,0.5)]"
+            />
+          </div>
 
-        <div className="relative z-10 flex items-center justify-between min-w-[640px] px-2">
-          {stages.map((stage, idx) => {
-            const isReached = idx <= activeStageIndex;
-            const Icon = stage.icon;
+          {/* Layer 3: 7 Stage Equal Columns Grid */}
+          <div className="relative z-10 grid grid-cols-7 w-full">
+            {stages.map((stage, idx) => {
+              const isReached = idx <= activeStageIndex;
+              const isCurrent = idx === activeStageIndex;
+              const Icon = stage.icon;
 
-            return (
-              <div key={stage.id} className="flex flex-col items-center text-center space-y-2 max-w-[90px]">
-                {/* Node Circle */}
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: idx * 0.08 }}
-                  className={`w-10 h-10 rounded-2xl flex items-center justify-center border transition-all ${
-                    isReached
-                      ? 'bg-success/20 border-success/60 text-success shadow-sm shadow-success/20'
-                      : 'bg-surface border-border/80 text-text-muted'
-                  }`}
-                >
-                  {isReached ? (
-                    <CheckCircle2 className="w-5 h-5 text-success" />
-                  ) : (
-                    <Icon className="w-4 h-4 text-text-muted" />
-                  )}
-                </motion.div>
+              return (
+                <div key={stage.id} className="flex flex-col items-center text-center px-1">
+                  {/* Node Circle (Layered above progress line with solid background) */}
+                  <motion.div
+                    whileHover={{ scale: 1.08 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                    className={`
+                      w-11 h-11 md:w-12 md:h-12 rounded-full flex items-center justify-center border-2 transition-all duration-300 bg-card select-none cursor-pointer
+                      ${isReached
+                        ? 'border-success text-success shadow-[0_0_15px_rgba(34,197,94,0.35)]'
+                        : 'border-border/80 text-text-muted hover:border-border'
+                      }
+                      ${isCurrent ? 'ring-4 ring-success/20' : ''}
+                    `}
+                  >
+                    {isReached ? (
+                      <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6 text-success" />
+                    ) : (
+                      <Icon className="w-4 h-4 md:w-5 md:h-5 text-text-muted opacity-60" />
+                    )}
+                  </motion.div>
 
-                {/* Stage Title */}
-                <span className={`text-[11px] font-medium leading-tight ${
-                  isReached ? 'text-success font-semibold' : 'text-text-muted'
-                }`}>
-                  {stage.label}
-                </span>
-              </div>
-            );
-          })}
+                  {/* Stage Label Typography */}
+                  <span className={`
+                    text-[12px] md:text-[13px] font-semibold leading-tight max-w-[100px] mt-3 transition-colors duration-200
+                    ${isReached ? 'text-success' : 'text-text-muted'}
+                  `}>
+                    {stage.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
         </div>
       </div>
     </Card>
