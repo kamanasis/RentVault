@@ -16,46 +16,21 @@ export const AgreementTimeline = ({ currentStatus = 'Awaiting Deposit' }) => {
 
   const isCompleted = currentStatus === 'Refund Completed';
 
-  // Determine stage states based on currentStatus
-  const getStageState = (index) => {
-    if (isCompleted) return 'completed';
+  // Determine stage active index
+  const activeStageIndex = isCompleted
+    ? 6
+    : currentStatus === 'Utility Settlement'
+    ? 5
+    : currentStatus === 'Lease Ended'
+    ? 4
+    : currentStatus === 'Lease Active'
+    ? 3
+    : currentStatus === 'Deposit Locked'
+    ? 2
+    : currentStatus === 'Awaiting Deposit'
+    ? 1
+    : 0;
 
-    if (currentStatus === 'Awaiting Deposit') {
-      if (index === 0) return 'completed';
-      if (index === 1) return 'active';
-      return 'upcoming';
-    }
-
-    if (currentStatus === 'Deposit Locked') {
-      if (index <= 1) return 'completed';
-      if (index === 2) return 'active';
-      return 'upcoming';
-    }
-
-    if (currentStatus === 'Lease Active') {
-      if (index <= 2) return 'completed';
-      if (index === 3) return 'active';
-      return 'upcoming';
-    }
-
-    if (currentStatus === 'Lease Ended') {
-      if (index <= 3) return 'completed';
-      if (index === 4) return 'active';
-      return 'upcoming';
-    }
-
-    if (currentStatus === 'Utility Settlement') {
-      if (index <= 4) return 'completed';
-      if (index === 5) return 'active';
-      return 'upcoming';
-    }
-
-    if (index === 0) return 'completed';
-    if (index === 1) return 'active';
-    return 'upcoming';
-  };
-
-  const activeStageIndex = isCompleted ? 6 : currentStatus === 'Utility Settlement' ? 5 : currentStatus === 'Lease Ended' ? 4 : currentStatus === 'Lease Active' ? 3 : currentStatus === 'Deposit Locked' ? 2 : 1;
   const progressPercent = isCompleted ? 100 : (activeStageIndex / 6) * 100;
 
   return (
@@ -81,14 +56,14 @@ export const AgreementTimeline = ({ currentStatus = 'Awaiting Deposit' }) => {
           <motion.div
             initial={{ width: '0%' }}
             animate={{ width: `${progressPercent}%` }}
-            transition={{ duration: 1, ease: 'easeOut' }}
-            className="h-full bg-gradient-to-r from-success via-emerald-400 to-primary"
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+            className="h-full bg-success"
           />
         </div>
 
         <div className="relative z-10 flex items-center justify-between min-w-[640px] px-2">
           {stages.map((stage, idx) => {
-            const state = getStageState(idx);
+            const isReached = idx <= activeStageIndex;
             const Icon = stage.icon;
 
             return (
@@ -99,27 +74,21 @@ export const AgreementTimeline = ({ currentStatus = 'Awaiting Deposit' }) => {
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: idx * 0.08 }}
                   className={`w-10 h-10 rounded-2xl flex items-center justify-center border transition-all ${
-                    state === 'completed'
-                      ? 'bg-success/20 border-success/60 text-success shadow-sm'
-                      : state === 'active'
-                      ? 'bg-primary/20 border-primary shadow-stellar-glow text-primary-glow ring-4 ring-primary/15'
+                    isReached
+                      ? 'bg-success/20 border-success/60 text-success shadow-sm shadow-success/20'
                       : 'bg-surface border-border/80 text-text-muted'
                   }`}
                 >
-                  {state === 'completed' ? (
+                  {isReached ? (
                     <CheckCircle2 className="w-5 h-5 text-success" />
                   ) : (
-                    <Icon className={`w-4 h-4 ${state === 'active' ? 'animate-pulse' : ''}`} />
+                    <Icon className="w-4 h-4 text-text-muted" />
                   )}
                 </motion.div>
 
                 {/* Stage Title */}
                 <span className={`text-[11px] font-medium leading-tight ${
-                  state === 'completed' 
-                    ? 'text-success font-semibold' 
-                    : state === 'active' 
-                    ? 'text-primary-glow font-bold' 
-                    : 'text-text-muted'
+                  isReached ? 'text-success font-semibold' : 'text-text-muted'
                 }`}>
                   {stage.label}
                 </span>
