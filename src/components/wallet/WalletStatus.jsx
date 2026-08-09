@@ -13,29 +13,34 @@ export const WalletStatus = () => {
 
   const normalizedAddress = (address || '').toLowerCase().trim();
 
-  // Filter agreements relevant to connected wallet (Landlord or Tenant)
-  const roleAgreements = agreements.filter((a) => {
+  // Strict identity filtering: agreements participating as Landlord or Tenant
+  const userAgreements = agreements.filter((a) => {
     const landlord = (a.landlordWallet || '').toLowerCase().trim();
     const tenant = (a.tenantWallet || '').toLowerCase().trim();
     return landlord === normalizedAddress || tenant === normalizedAddress;
   });
 
-  // If no exact address match (e.g. initial demo keys before connecting freighter), fallback to all agreements
-  const activeSet = roleAgreements.length > 0 ? roleAgreements : agreements;
+  // Active escrows strictly in funded/locked states:
+  // Deposit Locked | Lease Active | Lease Ended | Utility Settlement | Approval Pending
+  const activeEscrows = userAgreements.filter((a) => {
+    return (
+      a.status === 'Deposit Locked' ||
+      a.status === 'Lease Active' ||
+      a.status === 'Lease Ended' ||
+      a.status === 'Utility Settlement' ||
+      a.status === 'Approval Pending'
+    );
+  });
 
-  // Active escrows: Deposit Locked, Lease Active, Lease Ended, Utility Settlement
-  const activeEscrows = activeSet.filter(
-    (a) => a.status === 'Deposit Locked' || a.status === 'Lease Active' || a.status === 'Lease Ended' || a.status === 'Utility Settlement'
-  );
+  // Completed settlements
+  const completedAgreements = userAgreements.filter((a) => a.status === 'Refund Completed');
 
-  // Completed settlements: Refund Completed
-  const completedAgreements = activeSet.filter((a) => a.status === 'Refund Completed');
-
-  // Sum live locked balance across active escrows
-  const liveEscrowBalance = activeEscrows.reduce(
-    (sum, a) => sum + (parseFloat(a.depositAmount || 0) + parseFloat(a.utilityReserve || 0)),
-    0
-  );
+  // Sum live escrow balance across active escrows (depositAmount + utilityReserve)
+  const liveEscrowBalance = activeEscrows.reduce((sum, a) => {
+    const deposit = parseFloat(a.depositAmount || 0);
+    const reserve = parseFloat(a.utilityReserve || 0);
+    return sum + deposit + reserve;
+  }, 0);
 
   const hasActiveEscrow = activeEscrows.length > 0;
   const completedCount = completedAgreements.length;
@@ -43,7 +48,7 @@ export const WalletStatus = () => {
   // Find last refund amount from completed agreements
   const lastRefundAgreement = completedAgreements.length > 0 ? completedAgreements[completedAgreements.length - 1] : null;
   const lastRefundAmount = lastRefundAgreement 
-    ? (lastRefundAgreement.finalRefundAmount !== undefined ? lastRefundAgreement.finalRefundAmount : (lastRefundAgreement.depositAmount || 0))
+    ? (lastRefundAgreement.finalRefundAmount !== undefined ? parseFloat(lastRefundAgreement.finalRefundAmount) : parseFloat(lastRefundAgreement.depositAmount || 0))
     : 0;
 
   return (

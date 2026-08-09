@@ -4,7 +4,6 @@ import { Card } from '../cards/Card';
 import { RoleBadge } from '../roles/RoleBadge';
 import { useWallet } from '../../context/WalletContext';
 import { useAgreements } from '../../context/AgreementContext';
-import { evaluateAgreementRole } from '../../utils/role';
 import { ShieldCheck, Coins, Building, ArrowUpRight, CheckCircle2, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -15,7 +14,7 @@ export const ExecutiveHeroSummary = ({ onOpenDemoGuide }) => {
 
   const normalizedAddress = (address || '').toLowerCase().trim();
 
-  // Role-filtered agreement sets
+  // Role-filtered agreement sets for connected wallet
   const userAgreements = agreements.filter((a) => {
     const landlord = (a.landlordWallet || '').toLowerCase().trim();
     const tenant = (a.tenantWallet || '').toLowerCase().trim();
@@ -33,18 +32,25 @@ export const ExecutiveHeroSummary = ({ onOpenDemoGuide }) => {
   // Primary evaluated role for user
   const primaryRole = landlordCount >= tenantCount ? 'landlord' : 'tenant';
 
-  // Calculate live escrow protected XLM
-  const totalProtectedXLM = userAgreements.reduce((sum, ag) => {
-    if (ag.status === 'Deposit Locked' || ag.status === 'Lease Active' || ag.status === 'Lease Ended' || ag.status === 'Utility Settlement') {
-      return sum + (ag.depositAmount || 0) + (ag.utilityReserve || 0);
-    }
-    return sum;
+  // Active escrows strictly in funded/locked states:
+  // Deposit Locked | Lease Active | Lease Ended | Utility Settlement | Approval Pending
+  const activeEscrows = userAgreements.filter((a) => {
+    return (
+      a.status === 'Deposit Locked' ||
+      a.status === 'Lease Active' ||
+      a.status === 'Lease Ended' ||
+      a.status === 'Utility Settlement' ||
+      a.status === 'Approval Pending'
+    );
+  });
+
+  // Calculate live escrow protected XLM (depositAmount + utilityReserve)
+  const totalProtectedXLM = activeEscrows.reduce((sum, ag) => {
+    return sum + (parseFloat(ag.depositAmount || 0) + parseFloat(ag.utilityReserve || 0));
   }, 0);
 
   // Active agreements count
-  const activeCount = userAgreements.filter(
-    (a) => a.status === 'Deposit Locked' || a.status === 'Lease Active' || a.status === 'Lease Ended' || a.status === 'Utility Settlement'
-  ).length;
+  const activeCount = activeEscrows.length;
 
   // Pending actions count
   const pendingActionsCount = userAgreements.filter(
@@ -53,7 +59,7 @@ export const ExecutiveHeroSummary = ({ onOpenDemoGuide }) => {
 
   // Last settlement refund
   const completedSettlement = userAgreements.find((a) => a.status === 'Refund Completed');
-  const lastRefundXLM = completedSettlement ? (completedSettlement.finalRefundAmount || completedSettlement.depositAmount) : 0;
+  const lastRefundXLM = completedSettlement ? (completedSettlement.finalRefundAmount !== undefined ? completedSettlement.finalRefundAmount : completedSettlement.depositAmount) : 0;
 
   const truncateKey = (key) => {
     if (!key) return 'G...';
