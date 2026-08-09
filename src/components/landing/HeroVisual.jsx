@@ -2,9 +2,42 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Lock, CheckCircle2, Coins, Cpu, Key } from 'lucide-react';
 import { useWallet } from '../../context/WalletContext';
+import { useAgreements } from '../../context/AgreementContext';
 
 export const HeroVisual = () => {
   const { connected, address, truncateAddress } = useWallet();
+  const { agreements } = useAgreements();
+
+  const normalizedAddress = (address || '').toLowerCase().trim();
+
+  // User participating agreements when wallet connected
+  const userAgreements = connected
+    ? agreements.filter((a) => {
+        const landlord = (a.landlordWallet || '').toLowerCase().trim();
+        const tenant = (a.tenantWallet || '').toLowerCase().trim();
+        return landlord === normalizedAddress || tenant === normalizedAddress;
+      })
+    : [];
+
+  // Active escrows filter: Deposit Locked | Lease Active | Lease Ended | Utility Settlement | Approval Pending
+  const activeEscrows = (connected ? userAgreements : agreements).filter((a) => {
+    return (
+      a.status === 'Deposit Locked' ||
+      a.status === 'Lease Active' ||
+      a.status === 'Lease Ended' ||
+      a.status === 'Utility Settlement' ||
+      a.status === 'Approval Pending'
+    );
+  });
+
+  // Calculate dynamic live locked XLM balance
+  const totalLockedXLM = activeEscrows.reduce((sum, a) => {
+    const deposit = parseFloat(a.depositAmount || 0);
+    const reserve = parseFloat(a.utilityReserve || 0);
+    return sum + deposit + reserve;
+  }, 0);
+
+  const activeCount = activeEscrows.length;
 
   return (
     <div className="relative w-full max-w-lg mx-auto aspect-square flex items-center justify-center p-4">
@@ -44,11 +77,11 @@ export const HeroVisual = () => {
           <span>RentVault Escrow</span>
         </div>
         <span className="text-[10px] text-text-muted font-mono mt-0.5 tracking-wider">
-          {connected ? truncateAddress(address) : 'CB7X...XLM9'}
+          {connected ? truncateAddress(address) : 'Soroban Vault'}
         </span>
       </motion.div>
 
-      {/* Dynamic Floating Escrow Balance Card */}
+      {/* Dynamic Floating Escrow Balance Card (Synchronized with AgreementContext) */}
       <motion.div 
         animate={{ y: [-3, 3, -3] }}
         transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
@@ -61,13 +94,21 @@ export const HeroVisual = () => {
           <div className="text-[10px] text-text-muted uppercase tracking-wider font-medium">Escrow Balance</div>
           {connected ? (
             <div>
-              <div className="text-xs font-bold text-text-primary">0 XLM Locked</div>
-              <div className="text-[9px] text-text-muted">No active escrow agreements</div>
+              <div className="text-xs font-bold text-text-primary">{totalLockedXLM.toLocaleString('en-US')} XLM Locked</div>
+              <div className="text-[9px] text-text-muted">
+                {activeCount > 0 
+                  ? `${activeCount} active escrow agreement${activeCount > 1 ? 's' : ''}` 
+                  : 'No active escrow agreements'}
+              </div>
             </div>
           ) : (
             <div>
-              <div className="text-xs font-bold text-text-primary">0 XLM</div>
-              <div className="text-[9px] text-text-muted">Connect wallet to view escrows</div>
+              <div className="text-xs font-bold text-text-primary">{totalLockedXLM.toLocaleString('en-US')} XLM Locked</div>
+              <div className="text-[9px] text-text-muted">
+                {activeCount > 0 
+                  ? `${activeCount} active network escrow${activeCount > 1 ? 's' : ''}` 
+                  : 'Connect wallet to view escrows'}
+              </div>
             </div>
           )}
         </div>
