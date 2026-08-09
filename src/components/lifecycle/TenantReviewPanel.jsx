@@ -1,21 +1,57 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '../cards/Card';
 import { PrimaryButton } from '../buttons/PrimaryButton';
 import { SecondaryButton } from '../buttons/SecondaryButton';
 import { AutoReleaseTimer } from './AutoReleaseTimer';
 import { RefundBreakdown } from './RefundBreakdown';
+import { TransactionProgress } from '../wallet/TransactionProgress';
 import { useAgreements } from '../../context/AgreementContext';
+import { useWallet } from '../../context/WalletContext';
+import { releaseEscrowContract } from '../../services/soroban';
 import { CheckCircle2, AlertTriangle, UserCheck, ShieldCheck } from 'lucide-react';
 
 export const TenantReviewPanel = ({ agreement }) => {
   const { approveRefund, raiseDispute } = useAgreements();
+  const { address, refreshBalance } = useWallet();
+
+  const [txStage, setTxStage] = useState('idle'); // 'idle' | 'preparing' | 'signing' | 'submitting' | 'confirming' | 'success' | 'failed'
+  const [errorMessage, setErrorMessage] = useState('');
+  const [txResult, setTxResult] = useState(null);
 
   if (!agreement) return null;
 
   const isDisputed = agreement.status === 'Dispute Pending';
 
-  const handleApprove = () => {
-    approveRefund(agreement.id);
+  const handleApprove = async () => {
+    setTxStage('preparing');
+    setErrorMessage('');
+
+    try {
+      const res = await releaseEscrowContract(
+        {
+          agreementId: agreement.id,
+          tenantAddress: agreement.tenantWallet,
+          landlordAddress: agreement.landlordWallet,
+          refundAmount: agreement.finalRefundAmount || agreement.depositAmount,
+        },
+        (stage) => setTxStage(stage)
+      );
+
+      console.log('[TenantReviewPanel] Refund release transaction confirmed:', res);
+      setTxResult(res);
+
+      // Trigger agreement state update
+      approveRefund(agreement.id);
+
+      // Auto-refresh wallet balance
+      await refreshBalance();
+
+      setTxStage('success');
+    } catch (err) {
+      console.error('[TenantReviewPanel Error]:', err);
+      setErrorMessage(err?.message || 'Failed to submit Soroban release transaction.');
+      setTxStage('failed');
+    }
   };
 
   const handleDispute = () => {
@@ -72,6 +108,15 @@ export const TenantReviewPanel = ({ agreement }) => {
           </div>
         )}
       </Card>
+
+      {/* Transaction Progress Modal */}
+      <TransactionProgress
+        stage={txStage}
+        errorMessage={errorMessage}
+        txResult={txResult}
+        onRetry={handleApprove}
+        onClose={() => setTxStage('idle')}
+      />
     </div>
   );
 };

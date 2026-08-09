@@ -8,6 +8,7 @@ import { WalletMismatchNotice } from '../components/roles/WalletMismatchNotice';
 import { FundingProgress } from '../components/escrow/FundingProgress';
 import { EscrowStatusCard } from '../components/escrow/EscrowStatusCard';
 import { EscrowTransactionCard } from '../components/escrow/EscrowTransactionCard';
+import { TransactionProgress } from '../components/wallet/TransactionProgress';
 import { PrimaryButton } from '../components/buttons/PrimaryButton';
 import { SecondaryButton } from '../components/buttons/SecondaryButton';
 import { WalletButton } from '../components/wallet/WalletButton';
@@ -32,6 +33,7 @@ export const Deposit = () => {
   const agreement = getAgreementById(id);
 
   const [depositState, setDepositState] = useState('idle'); // 'idle' | 'locking' | 'success' | 'failure'
+  const [txStage, setTxStage] = useState('idle'); // 'preparing' | 'signing' | 'submitting' | 'confirming' | 'success' | 'failed'
   const [txResult, setTxResult] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -68,34 +70,41 @@ export const Deposit = () => {
     if (!connected || !address) {
       setErrorMessage('Please connect your Freighter wallet to execute escrow deposit.');
       setDepositState('failure');
+      setTxStage('failed');
       return;
     }
 
     if (!roleInfo.isTenant) {
       setErrorMessage('Tenant authorization error. Connected wallet is not the assigned tenant key for this agreement.');
       setDepositState('failure');
+      setTxStage('failed');
       return;
     }
 
-    // Priority 8: Client-side balance validation including fee reserve
+    // Balance validation including fee reserve
     const feeReserve = 1.0;
     if (rawBalance <= 0 || totalRequired > (rawBalance - feeReserve)) {
       setErrorMessage(`Insufficient XLM balance. Available: ${xlmBalance} XLM (Stellar fee reserve required).`);
       setDepositState('failure');
+      setTxStage('failed');
       return;
     }
 
     setDepositState('locking');
+    setTxStage('preparing');
     setErrorMessage('');
 
     try {
-      const res = await depositEscrowContract({
-        agreementId: agreement.id,
-        tenantAddress: address,
-        landlordAddress: agreement.landlordWallet,
-        depositAmount: depositAmount,
-        utilityReserve: utilityReserve,
-      });
+      const res = await depositEscrowContract(
+        {
+          agreementId: agreement.id,
+          tenantAddress: address,
+          landlordAddress: agreement.landlordWallet,
+          depositAmount,
+          utilityReserve,
+        },
+        (stage) => setTxStage(stage)
+      );
 
       console.log('[Deposit Page] Escrow transaction result:', res);
       setTxResult(res);
@@ -107,10 +116,12 @@ export const Deposit = () => {
       await refreshBalance();
 
       setDepositState('success');
+      setTxStage('success');
     } catch (err) {
       console.error('[Deposit Page Error]:', err);
       setErrorMessage(err?.message || 'Failed to submit Soroban escrow contract deposit transaction.');
       setDepositState('failure');
+      setTxStage('failed');
     }
   };
 
@@ -251,6 +262,15 @@ export const Deposit = () => {
           </Card>
         </div>
       )}
+
+      {/* Transaction Status Modal */}
+      <TransactionProgress
+        stage={txStage}
+        errorMessage={errorMessage}
+        txResult={txResult}
+        onRetry={handleExecuteDeposit}
+        onClose={() => setTxStage('idle')}
+      />
     </PageContainer>
   );
 };
