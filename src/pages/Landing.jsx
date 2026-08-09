@@ -1,8 +1,6 @@
 import React from 'react';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Section } from '../components/layout/Section';
-import { PrimaryButton } from '../components/buttons/PrimaryButton';
-import { SecondaryButton } from '../components/buttons/SecondaryButton';
 import { StatusBadge } from '../components/status/StatusBadge';
 import { WalletButton } from '../components/wallet/WalletButton';
 import { HeroVisual } from '../components/landing/HeroVisual';
@@ -11,12 +9,8 @@ import { ProblemStatement } from '../components/landing/ProblemStatement';
 import { HowItWorks } from '../components/landing/HowItWorks';
 import { FeatureGrid } from '../components/landing/FeatureGrid';
 import { StellarSection } from '../components/landing/StellarSection';
-import { Play } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 export const Landing = () => {
-  const navigate = useNavigate();
-
   return (
     <PageContainer>
       {/* 1. Two-Column Hero Section */}
@@ -46,21 +40,13 @@ export const Landing = () => {
               RentVault is a <strong className="text-text-primary font-semibold">decentralized escrow</strong> platform built on the <strong className="text-text-primary font-semibold">Stellar Testnet</strong> using <strong className="text-text-primary font-semibold">Soroban smart contracts</strong> to lock security deposits and execute <strong className="text-text-primary font-semibold">automatic deposit release</strong> upon lease completion.
             </p>
 
-            {/* Primary & Secondary CTAs */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
+            {/* Wallet Primary Action Control */}
+            <div className="flex items-center gap-4 pt-2">
               <WalletButton pulse />
-
-              <SecondaryButton 
-                icon={Play}
-                onClick={() => navigate('/dashboard')}
-                ariaLabel="Watch 3-minute demo video of RentVault"
-              >
-                Watch 3-min Demo
-              </SecondaryButton>
             </div>
           </div>
 
-          {/* Right Column Isometric Visual Illustration */}
+          {/* Right Column Visual Illustration */}
           <div className="lg:col-span-5 flex justify-center">
             <HeroVisual />
           </div>

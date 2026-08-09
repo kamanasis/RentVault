@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Lock, CheckCircle2, Coins, Cpu, Key } from 'lucide-react';
+import { Shield, Lock, CheckCircle2, Coins, Cpu, Key, AlertCircle } from 'lucide-react';
 import { useWallet } from '../../context/WalletContext';
 import { useAgreements } from '../../context/AgreementContext';
 
@@ -10,7 +10,7 @@ export const HeroVisual = () => {
 
   const normalizedAddress = (address || '').toLowerCase().trim();
 
-  // User participating agreements when wallet connected
+  // User participating agreements when wallet is connected
   const userAgreements = connected
     ? agreements.filter((a) => {
         const landlord = (a.landlordWallet || '').toLowerCase().trim();
@@ -30,7 +30,7 @@ export const HeroVisual = () => {
     );
   });
 
-  // Calculate dynamic live locked XLM balance
+  // Dynamic live locked XLM balance
   const totalLockedXLM = activeEscrows.reduce((sum, a) => {
     const deposit = parseFloat(a.depositAmount || 0);
     const reserve = parseFloat(a.utilityReserve || 0);
@@ -39,9 +39,17 @@ export const HeroVisual = () => {
 
   const activeCount = activeEscrows.length;
 
+  // Primary active agreement status for Center Card
+  const primaryActiveAgreement = activeEscrows[0] || (connected ? userAgreements[0] : null);
+  const currentStatusText = primaryActiveAgreement
+    ? primaryActiveAgreement.status
+    : connected
+    ? 'No Active Escrow'
+    : 'Wallet Not Connected';
+
   return (
     <div className="relative w-full max-w-lg mx-auto aspect-square flex items-center justify-center p-4">
-      {/* Background Radial Ambient Glow - Soft & Subtle */}
+      {/* Background Radial Ambient Glow */}
       <div className="absolute inset-0 bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
       
       {/* Outer Rotating Soroban Ring - Slower 45s Rotation */}
@@ -53,8 +61,13 @@ export const HeroVisual = () => {
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-card/90 backdrop-blur-md border border-primary/40 text-primary-glow px-3 py-1 rounded-full text-[11px] font-mono flex items-center gap-1.5 shadow-stellar">
           <Cpu className="w-3.5 h-3.5 text-primary" /> Soroban Escrow Contract
         </div>
-        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-card/90 backdrop-blur-md border border-success/40 text-success px-3 py-1 rounded-full text-[11px] font-mono flex items-center gap-1.5 shadow-stellar">
-          <CheckCircle2 className="w-3.5 h-3.5 text-success" /> Stellar Testnet Active
+        <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 bg-card/90 backdrop-blur-md border px-3 py-1 rounded-full text-[11px] font-mono flex items-center gap-1.5 shadow-stellar ${
+          connected && activeCount > 0 
+            ? 'border-success/40 text-success' 
+            : 'border-primary/30 text-text-secondary'
+        }`}>
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          <span>{connected && activeCount > 0 ? 'Escrow Session Active' : 'Stellar Testnet Active'}</span>
         </div>
       </motion.div>
 
@@ -69,19 +82,22 @@ export const HeroVisual = () => {
         transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
         className="relative z-10 w-44 h-44 rounded-3xl bg-gradient-to-b from-card via-card to-surface border border-primary/40 p-6 flex flex-col items-center justify-center text-center shadow-stellar-glow group cursor-pointer"
       >
-        <div className="w-16 h-16 rounded-2xl bg-surface border border-primary/30 flex items-center justify-center text-primary-glow mb-3 group-hover:scale-105 group-hover:border-primary/60 transition-all duration-300">
-          <Shield className="w-9 h-9 text-primary" />
+        <div className="w-14 h-14 rounded-2xl bg-surface border border-primary/30 flex items-center justify-center text-primary-glow mb-2 group-hover:scale-105 group-hover:border-primary/60 transition-all duration-300">
+          <Shield className="w-8 h-8 text-primary" />
         </div>
         <div className="flex items-center gap-1.5 text-xs font-bold text-text-primary">
           <Lock className="w-3.5 h-3.5 text-success" />
           <span>RentVault Escrow</span>
         </div>
-        <span className="text-[10px] text-text-muted font-mono mt-0.5 tracking-wider">
-          {connected ? truncateAddress(address) : 'Soroban Vault'}
+        <span className="text-[10px] text-text-muted font-mono mt-0.5 tracking-wider truncate max-w-[130px]">
+          {connected ? truncateAddress(address) : 'Wallet Disconnected'}
+        </span>
+        <span className="text-[9px] font-medium text-primary-glow mt-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">
+          {currentStatusText}
         </span>
       </motion.div>
 
-      {/* Dynamic Floating Escrow Balance Card (Synchronized with AgreementContext) */}
+      {/* Dynamic Floating Escrow Balance Card (Shared State with AgreementContext) */}
       <motion.div 
         animate={{ y: [-3, 3, -3] }}
         transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
