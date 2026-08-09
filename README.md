@@ -4,7 +4,7 @@
 
 ### Decentralized Rental Deposit Escrow Platform built on Stellar & Soroban
 
-A decentralized rental deposit escrow platform powered by **Stellar Testnet** and **Soroban Smart Contracts** that enables landlords and tenants to manage rental security deposits transparently on-chain.
+RentVault is a decentralized rental deposit escrow platform powered by **Stellar Testnet** and **Soroban Smart Contracts** that enables landlords and tenants to manage rental security deposits transparently on-chain.
 
 [![Stellar Testnet](https://img.shields.io/badge/Stellar-Testnet%20Protocol%2020-blue?style=for-the-badge&logo=stellar)](https://stellar.org)
 [![Soroban Smart Contracts](https://img.shields.io/badge/Soroban-WASM%20Smart%20Contracts-purple?style=for-the-badge&logo=webassembly)](https://soroban.stellar.org)
@@ -22,30 +22,31 @@ A decentralized rental deposit escrow platform powered by **Stellar Testnet** an
 
 ---
 
-## 💡 Why RentVault?
+## 🚨 Problem Statement
 
-Traditional rental security deposit management is fundamentally broken. Tenants frequently face delayed refunds, unverified utility bill deductions, and arbitrary withholdings at the end of a lease. Landlords, on the other hand, struggle with manual bookkeeping and dispute resolution.
+Traditional rental deposit management is plagued by friction, mistrust, and opaque bookkeeping. Key challenges include:
 
-**RentVault** solves this trust deficit by shifting rental security deposits into programmable, cryptographic escrow vaults governed by **Soroban Smart Contracts** on the Stellar network:
+- **Unjustified Deductions**: Tenants often face arbitrary security deposit withholdings at lease end.
+- **Delayed Refunds**: Landlords frequently delay returning funds for weeks or months.
+- **Lack of Transparency**: Neither party has a shared, immutable ledger recording deposit locking or utility bill entries.
 
-- **Trustless Locking**: Deposits are held securely in smart contract vaults—neither party can unilaterally withdraw funds.
-- **Verifiable Deductions**: Landlords submit itemized utility bill deductions that are recorded on-chain.
-- **Automated Refunds**: Once lease terms are fulfilled or approved, funds are released back to the tenant instantly without intermediaries.
+### The Soroban Solution
+**RentVault** eliminates the central intermediary by shifting rental security deposits into programmable **Soroban WASM Smart Contracts**. Deposits are locked on the Stellar Testnet, utility deductions are itemized transparently, and remaining funds are refunded automatically upon mutual approval or auto-release countdown finality.
 
 ---
 
-## ✨ Key Features
+## ✨ Features
 
 | Feature | Description |
 | :--- | :--- |
-| **🔐 Freighter Wallet Auth** | Seamless, passwordless cryptographic authentication via the Freighter browser extension. |
+| **🔐 Freighter Wallet Auth** | Cryptographic wallet authentication using the Freighter browser extension. |
 | **💰 Live XLM Balance** | Real-time native XLM account balance fetching and monitoring via Stellar Horizon RPC. |
-| **👤 Role-Based Workspaces** | Tailored landlord and tenant UI permissions derived strictly from connected public keys. |
-| **📜 Rental Agreements** | Digital rental contract creation with customizable security deposit, utility reserve, and lease dates. |
-| **🔒 Soroban Escrow Locking** | Smart contract `lock_deposit` execution locking funds safely on the Stellar Testnet. |
+| **👤 Role-Based Workspaces** | Tailored Landlord and Tenant workspaces evaluated strictly from connected public keys. |
+| **📜 Rental Agreement Module** | Digital agreement creation with customizable deposit amounts, utility reserves, and lease dates. |
+| **🔒 Soroban Escrow Locking** | Smart contract `lock_deposit` execution locking XLM safely on the Stellar Testnet. |
 | **📅 Lease Lifecycle Tracking** | 7-stage auditable state machine (`Draft` → `Awaiting` → `Locked` → `Active` → `Ended` → `Settlement` → `Refunded`). |
 | **⚡ Utility Settlement** | Landlord itemized utility bill entry with interactive tenant review breakdown. |
-| **⏱️ Auto-Release Countdown** | 60-second automated refund timer for swift, non-blocking tenant approvals. |
+| **⏱️ Auto-Release Timer** | 60-second automated refund timer for swift, non-blocking tenant approvals. |
 | **🔍 On-Chain Verification** | Full transaction hash, ledger sequence, block timestamp, and Stellar Expert explorer integration. |
 | **🔄 Real-Time State Sync** | Zero-reload dynamic updates across landing hero, executive dashboard, and timeline components. |
 
@@ -60,7 +61,7 @@ Traditional rental security deposit management is fundamentally broken. Tenants 
 
 <br />
 
-### 2. Wallet Connected & Live XLM Balance
+### 2. Wallet Connected & Live Balance
 ![Wallet Connected](./screenshots/wallet_connected.png)
 
 <br />
@@ -86,7 +87,7 @@ Traditional rental security deposit management is fundamentally broken. Tenants 
 <br />
 
 ### 7. Utility Settlement Portal
-![Utility Settlement](./screenshots/settlement.png)
+![Settlement](./screenshots/settlement.png)
 
 <br />
 
@@ -97,47 +98,105 @@ Traditional rental security deposit management is fundamentally broken. Tenants 
 
 ---
 
-## 🔄 End-to-End Demo Flow
+## 🌳 Complete User Workflow (Interconnected Tree)
 
-```mermaid
-flowchart LR
-    1[1. Connect Freighter Wallet] --> 2[2. Create Rental Agreement]
-    2 --> 3[3. Share Link with Tenant]
-    3 --> 4[4. Tenant Deposits Escrow]
-    4 --> 5[5. Soroban Locks Funds]
-    5 --> 6[6. Lease Active]
-    6 --> 7[7. Utility Settlement Submitted]
-    7 --> 8[8. Auto-Release Executes]
-    8 --> 9[9. Refund Completed On-Chain]
+```text
+RentVault
+│
+├── Landing Page
+│   ├── Project Introduction
+│   ├── Problem Statement
+│   ├── How Blockchain Solves Rental Disputes
+│   └── Connect Freighter Wallet
+│
+├── Wallet Authentication
+│   ├── Connect Wallet
+│   ├── Verify Stellar Testnet
+│   ├── Authenticate User
+│   └── Dashboard
+│       ├── Wallet Address
+│       ├── XLM Balance
+│       ├── Escrow Balance
+│       └── Network Status
+│
+├── Role Selection
+│   ├── Landlord Workspace
+│   └── Tenant Workspace
+│
+├── Rental Agreement Module
+│   ├── Create Agreement
+│   ├── Edit Terms
+│   ├── Share Agreement
+│   └── Agreement Dashboard
+│       ├── Active Agreements
+│       ├── Completed Agreements
+│       └── Agreement Details
+│
+├── Soroban Escrow Contract
+│   ├── Tenant Reviews Agreement
+│   ├── Deposit Escrow
+│   ├── Freighter Signature
+│   ├── Contract Invocation
+│   └── Deposit Locked
+│
+├── Lease Lifecycle
+│   ├── Agreement Created
+│   ├── Deposit Locked
+│   ├── Lease Active
+│   ├── Lease Ended
+│   ├── Utility Settlement
+│   ├── Auto-Release Countdown
+│   └── Refund Completed
+│
+├── Settlement Module
+│   ├── Enter Utility Bills
+│   ├── Calculate Deduction
+│   ├── Calculate Refund
+│   ├── Contract Release
+│   └── Settlement Receipt
+│
+├── Blockchain Layer
+│   ├── Stellar Testnet
+│   ├── Soroban Smart Contracts
+│   ├── Transaction Signing
+│   ├── Transaction Hash
+│   ├── Ledger Confirmation
+│   └── Stellar Expert Verification
+│
+└── Final Outcome
+    ├── Refund Completed
+    ├── Timeline Updated
+    ├── Transaction Recorded On-Chain
+    ├── Agreement Archived
+    └── Ready for New Agreement
 ```
+
+---
+
+## 🔄 Demo Flow
 
 1. **Connect Freighter Wallet**: Authenticate with Stellar Testnet public key.
 2. **Create Rental Agreement**: Landlord specifies deposit XLM, utility reserve, and tenant address.
 3. **Share Agreement**: Landlord provides direct agreement link to tenant.
-4. **Tenant Escrow Deposit**: Tenant signs contract invocation via Freighter.
+4. **Tenant Deposits Escrow**: Tenant signs contract invocation via Freighter.
 5. **Soroban Locks Funds**: Smart contract confirms `lock_deposit` on-chain (100% funded).
-6. **Lease Active**: Landlord activates lease period; occupancy begins.
+6. **Lease Activated**: Landlord activates lease period; occupancy begins.
 7. **Utility Settlement**: Lease ends; landlord enters electricity/water deductions.
-8. **Auto-Release Executes**: Tenant reviews itemized breakdown; 60s countdown triggers.
+8. **Auto-Release**: Tenant reviews itemized breakdown; 60s countdown triggers.
 9. **Refund Completed**: Soroban executes `release_deposit`, returning remaining XLM directly to tenant.
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ Architecture Diagram
 
 ```mermaid
 graph TD
-    subgraph Frontend Client
-        A[Landlord Wallet] -->|Freighter API| B[RentVault React + Vite App]
-        C[Tenant Wallet] -->|Freighter API| B
-        B --> D[Stellar SDK Layer]
-    end
-
-    subgraph Stellar Infrastructure
-        D -->|Horizon RPC| E[Stellar Horizon Server]
-        D -->|Soroban RPC| F[Soroban WASM Smart Contract]
-        F -->|Consensus| G[Stellar Testnet Ledger]
-    end
+    A[Landlord Wallet] -->|Freighter API| B[RentVault Frontend]
+    C[Tenant Wallet] -->|Freighter API| B
+    B -->|Stellar SDK| D[Stellar SDK Layer]
+    D -->|Horizon RPC| E[Stellar Horizon Server]
+    D -->|Soroban RPC| F[Soroban Smart Contract]
+    F -->|Consensus| G[Stellar Testnet Ledger]
 ```
 
 ---
@@ -154,7 +213,7 @@ RentVault/
 │   │   ├── buttons/                         # PrimaryButton, SecondaryButton
 │   │   ├── cards/                           # Reusable Card container & glow borders
 │   │   ├── dashboard/                       # ExecutiveHeroSummary, OnboardingCard
-│   │   ├── demo/                            # DemoGuideModal (Stella judge presentation guide)
+│   │   ├── demo/                            # DemoGuideModal (Stella presentation navigator)
 │   │   ├── escrow/                          # EscrowStatusCard, FundingProgress, EscrowFundingDetailsCard
 │   │   ├── forms/                           # InputField, SelectField
 │   │   ├── landing/                         # HeroVisual, FeatureGrid
@@ -197,7 +256,7 @@ RentVault/
 ### Prerequisites
 - **Node.js**: `v18.x` or higher
 - **npm**: `v9.x` or higher
-- **Freighter Extension**: [Install Freighter Wallet](https://www.freighter.app/) (Ensure network is set to **Test Net**)
+- **Freighter Extension**: [Install Freighter Wallet](https://www.freighter.app/) (Set network to **Test Net**)
 
 ### Installation
 
@@ -237,7 +296,7 @@ VITE_SOROBAN_CONTRACT_ID=CCW67352W722TESTNETSOROBANESCROWCONTRACTKEY99
 
 ## 🌌 Stellar Testnet Setup
 
-1. **Install Freighter Extension**: Add [Freighter](https://www.freighter.app/) to Chrome/Brave/Firefox.
+1. **Install Freighter Extension**: Install [Freighter](https://www.freighter.app/) browser extension.
 2. **Switch to Testnet**: Open Freighter Settings → Network → Select **Test Net**.
 3. **Create Accounts**: Create two separate accounts (**Landlord Wallet** and **Tenant Wallet**).
 4. **Fund via Friendbot**: Click *Fund with Friendbot* inside Freighter or use [Stellar Laboratory Friendbot](https://laboratory.stellar.org/#account-creator?network=test) to receive **10,000 Testnet XLM**.
@@ -253,31 +312,27 @@ RentVault interacts with a deployed Soroban WASM smart contract on Stellar Testn
 - **Network**: Stellar Testnet (Protocol 20)
 - **Explorer Link**: [View Contract on Stellar Expert](https://testnet.steexp.com/contract/CCW67352W722TESTNETSOROBANESCROWCONTRACTKEY99)
 
-### Key Contract Functions
-- `lock_deposit(agreement_id, landlord, tenant, deposit_amount, utility_reserve)`: Locks funds into escrow.
-- `release_deposit(agreement_id, utility_deduction)`: Transfers utility deduction to landlord and refunds remaining XLM to tenant.
-
 ---
 
 ## 🏆 Stella Level 2 Compliance Checklist
 
-- [x] **Freighter Wallet Setup**: Instant connection & address truncation.
-- [x] **Testnet Enforcement**: Configured exclusively for Stellar Testnet Protocol 20.
-- [x] **Live Balance Fetching**: Real-time XLM balance polling via Horizon RPC.
-- [x] **Native XLM Payments**: Direct payment execution with transaction hash output.
-- [x] **Soroban Smart Contract Integration**: Real contract deployment & invocation (`lock_deposit` / `release_deposit`).
-- [x] **Transaction Status Progress UI**: 5-stage visual progress modal with spinner, error diagnostics, and explorer links.
-- [x] **Multi-Wallet Role Authorization**: Case-insensitive identity evaluation for Landlords, Tenants, and Read-Only Guests.
-- [x] **Real-Time Auto-Synchronization**: Instant state updates across landing hero, dashboard, and timeline components.
-- [x] **3+ Distinct Error Types Handled**: Wallet Not Connected, Wrong Network, and Signature Rejection / Insufficient Balance diagnostics.
-- [x] **Responsive & Accessible UI**: Audited across 390px mobile, 768px tablet, and 1920px desktop viewports.
+- [x] **Wallet Connection**: Instant Freighter connection & address truncation.
+- [x] **Testnet Enforcement**: Enforced exclusively for Stellar Testnet Protocol 20.
+- [x] **Live Balance**: Real-time XLM balance polling via Horizon RPC.
+- [x] **XLM Transactions**: Native XLM payment submission with hash output.
+- [x] **Soroban Contract**: Real contract deployment & invocation (`lock_deposit` / `release_deposit`).
+- [x] **Transaction Status**: 5-stage visual progress modal with spinner, error diagnostics, and explorer links.
+- [x] **Multi-Wallet Workflow**: Role-based permissions for Landlords, Tenants, and Read-Only Guests.
+- [x] **Escrow Lifecycle**: 7-stage state machine with automated transitions.
+- [x] **Error Handling**: Handles Wallet Disconnected, Wrong Network, and Signature Rejections.
+- [x] **Responsive UI**: Audited across 390px mobile, 768px tablet, and 1920px desktop viewports.
 
 ---
 
 ## 💻 Tech Stack
 
 - **Frontend Core**: React 18, Vite 5, JavaScript (ES6+)
-- **Styling**: Tailwind CSS, Custom Vanilla CSS Design System Tokens
+- **Styling**: Tailwind CSS, Custom Vanilla CSS Design Tokens
 - **Animations**: Framer Motion
 - **Blockchain Libraries**: `@stellar/stellar-sdk`, `@stellar/freighter-api`
 - **Icons**: Lucide React
@@ -285,15 +340,18 @@ RentVault interacts with a deployed Soroban WASM smart contract on Stellar Testn
 
 ---
 
-## 🗺️ Roadmap & Phase Progression
+## 🗺️ Roadmap
 
-- [x] **Phase 1-3**: Core Design System, Stellar Midnight Theme, Navigation, & Landing Page
-- [x] **Phase 4**: Freighter Wallet Integration, Live XLM Balance, & Horizon RPC
-- [x] **Phase 4.5-5**: Transaction History Ledger & Rental Agreement Management
-- [x] **Phase 6-7**: Soroban Escrow Contract Integration & 7-Stage Lease Lifecycle
-- [x] **Phase 7.5**: Application Stabilization, Strict Identity Filtering, & State Synchronization
-- [x] **Phase 8**: Production Polish, Shimmer Skeletons, Toast Notifications, ErrorBoundary, & Vercel SPA Setup
-- [x] **Phase 8.5**: Executive Hero Summary, Live Stellar Activity Ribbon, Accordions, & Stella Judge Presentation Guide
+- [x] **Phase 1**: Design System & Stellar Midnight Theme
+- [x] **Phase 2**: Landing Page & Hero Visual Engine
+- [x] **Phase 3**: Freighter Wallet Integration & Horizon Balance Fetching
+- [x] **Phase 4**: Native XLM Payments & Transaction Ledger
+- [x] **Phase 5**: Rental Agreement Management & Role Authorization
+- [x] **Phase 6**: Soroban Escrow Contract Integration & Deposit Locking
+- [x] **Phase 7**: 7-Stage Lease Lifecycle & Utility Settlement Engine
+- [x] **Phase 7.5**: Application Stabilization & Identity Filtering
+- [x] **Phase 8**: Production Polish, Shimmer Skeletons, Toast Stack, & ErrorBoundary
+- [x] **Phase 8.5**: Executive Hero Summary, Stellar Activity Ribbon, & Accordions
 - [x] **Phase 9**: Real Soroban Contract Execution (`lock_deposit` & `release_deposit`) & Stella Level 2 Submission Audit
 
 ---
