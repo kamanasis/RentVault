@@ -14,12 +14,14 @@ export const ExecutiveHeroSummary = ({ onOpenDemoGuide }) => {
 
   const normalizedAddress = (address || '').toLowerCase().trim();
 
-  // Role-filtered agreement sets for connected wallet
-  const userAgreements = agreements.filter((a) => {
-    const landlord = (a.landlordWallet || '').toLowerCase().trim();
-    const tenant = (a.tenantWallet || '').toLowerCase().trim();
-    return landlord === normalizedAddress || tenant === normalizedAddress;
-  });
+  // Role-filtered agreement sets for connected wallet (fallback to all when disconnected)
+  const userAgreements = (connected && address)
+    ? agreements.filter((a) => {
+        const landlord = (a.landlordWallet || '').toLowerCase().trim();
+        const tenant = (a.tenantWallet || '').toLowerCase().trim();
+        return landlord === normalizedAddress || tenant === normalizedAddress;
+      })
+    : agreements;
 
   const landlordCount = userAgreements.filter(
     (a) => (a.landlordWallet || '').toLowerCase().trim() === normalizedAddress
@@ -30,17 +32,20 @@ export const ExecutiveHeroSummary = ({ onOpenDemoGuide }) => {
   ).length;
 
   // Primary evaluated role for user
-  const primaryRole = landlordCount >= tenantCount ? 'landlord' : 'tenant';
+  const primaryRole = (connected && address)
+    ? (landlordCount >= tenantCount ? 'landlord' : 'tenant')
+    : 'landlord';
 
   // Active escrows strictly in funded/locked states:
-  // Deposit Locked | Lease Active | Lease Ended | Utility Settlement | Approval Pending
+  // Deposit Locked | Lease Active | Lease Ended | Utility Settlement | Approval Pending | Dispute Pending
   const activeEscrows = userAgreements.filter((a) => {
     return (
       a.status === 'Deposit Locked' ||
       a.status === 'Lease Active' ||
       a.status === 'Lease Ended' ||
       a.status === 'Utility Settlement' ||
-      a.status === 'Approval Pending'
+      a.status === 'Approval Pending' ||
+      a.status === 'Dispute Pending'
     );
   });
 
@@ -52,14 +57,22 @@ export const ExecutiveHeroSummary = ({ onOpenDemoGuide }) => {
   // Active agreements count
   const activeCount = activeEscrows.length;
 
-  // Pending actions count
+  // Pending actions count (agreements requiring action)
   const pendingActionsCount = userAgreements.filter(
-    (a) => a.status === 'Awaiting Deposit' || a.status === 'Lease Ended' || a.status === 'Approval Pending'
+    (a) => 
+      a.status === 'Awaiting Deposit' || 
+      a.status === 'Lease Ended' || 
+      a.status === 'Utility Settlement' || 
+      a.status === 'Approval Pending' || 
+      a.status === 'Dispute Pending'
   ).length;
 
-  // Last settlement refund
-  const completedSettlement = userAgreements.find((a) => a.status === 'Refund Completed');
-  const lastRefundXLM = completedSettlement ? (completedSettlement.finalRefundAmount !== undefined ? completedSettlement.finalRefundAmount : completedSettlement.depositAmount) : 0;
+  // Last settlement refund paid from completed history
+  const completedSettlements = userAgreements.filter((a) => a.status === 'Refund Completed');
+  const lastRefundAgreement = completedSettlements.length > 0 ? completedSettlements[completedSettlements.length - 1] : null;
+  const lastRefundXLM = lastRefundAgreement 
+    ? (lastRefundAgreement.finalRefundAmount !== undefined ? parseFloat(lastRefundAgreement.finalRefundAmount) : parseFloat(lastRefundAgreement.depositAmount || 0))
+    : 0;
 
   const truncateKey = (key) => {
     if (!key) return 'G...';
@@ -78,7 +91,7 @@ export const ExecutiveHeroSummary = ({ onOpenDemoGuide }) => {
             <RoleBadge role={primaryRole} />
           </div>
           <h2 className="text-h2 text-text-primary pt-1">
-            Welcome, <span className="font-mono text-primary-glow">{truncateKey(address)}</span>
+            Welcome, <span className="font-mono text-primary-glow">{connected ? truncateKey(address) : 'Demo Host'}</span>
           </h2>
           <p className="text-caption text-text-secondary">
             Decentralized Soroban security deposit escrow dashboard on Stellar Testnet.
@@ -107,7 +120,7 @@ export const ExecutiveHeroSummary = ({ onOpenDemoGuide }) => {
             <Coins className="w-4 h-4 text-primary-glow" />
           </div>
           <span className="text-h2 font-extrabold text-primary-glow block font-mono">
-            {totalProtectedXLM} XLM
+            {totalProtectedXLM.toLocaleString('en-US')} XLM
           </span>
           <span className="text-[11px] text-text-secondary block">Locked in Soroban Contract</span>
         </div>
@@ -121,7 +134,7 @@ export const ExecutiveHeroSummary = ({ onOpenDemoGuide }) => {
           <span className="text-h2 font-extrabold text-success block font-mono">
             {activeCount}
           </span>
-          <span className="text-[11px] text-text-secondary block">Active Rental Leases</span>
+          <span className="text-[11px] text-text-secondary block">Active Escrow Leases</span>
         </div>
 
         {/* Metric 3: Pending Actions */}
@@ -143,7 +156,7 @@ export const ExecutiveHeroSummary = ({ onOpenDemoGuide }) => {
             <CheckCircle2 className="w-4 h-4 text-text-primary" />
           </div>
           <span className="text-h2 font-extrabold text-text-primary block font-mono">
-            {lastRefundXLM > 0 ? `${lastRefundXLM} XLM` : '0 XLM'}
+            {lastRefundXLM > 0 ? `${lastRefundXLM.toLocaleString('en-US')} XLM` : '0 XLM'}
           </span>
           <span className="text-[11px] text-text-secondary block">Completed Settlement</span>
         </div>

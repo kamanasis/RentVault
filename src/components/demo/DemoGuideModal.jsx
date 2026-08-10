@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Card } from '../cards/Card';
 import { PrimaryButton } from '../buttons/PrimaryButton';
 import { SecondaryButton } from '../buttons/SecondaryButton';
@@ -10,14 +10,9 @@ import {
   X, 
   Play, 
   ArrowRight, 
-  Wallet, 
-  FileText, 
-  Share2, 
-  Lock, 
-  Zap, 
-  ShieldCheck, 
-  RotateCcw,
-  Sparkles
+  Plus, 
+  Sparkles, 
+  AlertCircle 
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -30,25 +25,85 @@ export const DemoGuideModal = ({ isOpen, onClose }) => {
 
   const normalizedAddress = (address || '').toLowerCase().trim();
 
-  // Find demo agreement or first agreement
-  const currentAgreement = agreements.find((a) => {
-    const landlord = (a.landlordWallet || '').toLowerCase().trim();
-    const tenant = (a.tenantWallet || '').toLowerCase().trim();
-    return landlord === normalizedAddress || tenant === normalizedAddress;
-  }) || agreements[0];
+  // Participating agreements for connected wallet
+  const userAgreements = connected
+    ? agreements.filter((a) => {
+        const landlord = (a.landlordWallet || '').toLowerCase().trim();
+        const tenant = (a.tenantWallet || '').toLowerCase().trim();
+        return landlord === normalizedAddress || tenant === normalizedAddress;
+      })
+    : agreements;
 
-  const status = currentAgreement?.status || 'Draft';
+  // Active agreement priority selection:
+  // 1. Lease Active
+  // 2. Deposit Locked
+  // 3. Utility Settlement / Lease Ended
+  // 4. Awaiting Deposit
+  // 5. Most recently created
+  const activeAgreement = userAgreements.find((a) => a.status === 'Lease Active')
+    || userAgreements.find((a) => a.status === 'Deposit Locked')
+    || userAgreements.find((a) => a.status === 'Utility Settlement' || a.status === 'Lease Ended')
+    || userAgreements.find((a) => a.status === 'Awaiting Deposit')
+    || (userAgreements.length > 0 ? userAgreements[0] : null);
+
+  const status = activeAgreement?.status || 'Draft';
+  const hasAgreements = userAgreements.length > 0;
 
   const demoSteps = [
-    { id: '1', title: '1. Connect Wallet', desc: 'Authenticate Landlord or Tenant Freighter account', done: connected },
-    { id: '2', title: '2. Create Agreement', desc: 'Specify security deposit (XLM), reserve, and dates', done: !!currentAgreement },
-    { id: '3', title: '3. Share Agreement', desc: 'Copy agreement link for tenant wallet assignment', done: !!currentAgreement },
-    { id: '4', title: '4. Tenant Escrow Deposit', desc: 'Tenant locks XLM into Soroban contract vault', done: status !== 'Awaiting Deposit' && status !== 'Draft' },
-    { id: '5', title: '5. Escrow Locked', desc: 'Smart contract verifies 100% funding', done: status === 'Deposit Locked' || status === 'Lease Active' || status === 'Lease Ended' || status === 'Utility Settlement' || status === 'Refund Completed' },
-    { id: '6', title: '6. Lease Active', desc: 'Rental occupancy period in progress', done: status === 'Lease Active' || status === 'Lease Ended' || status === 'Utility Settlement' || status === 'Refund Completed' },
-    { id: '7', title: '7. Utility Settlement', desc: 'Landlord enters electricity/water bill deductions', done: status === 'Utility Settlement' || status === 'Refund Completed' },
-    { id: '8', title: '8. Auto-Release Countdown', desc: '60s automated refund timer or tenant review', done: status === 'Refund Completed' },
-    { id: '9', title: '9. Refund Completed', desc: 'Instant XLM refund paid back to tenant on Stellar', done: status === 'Refund Completed' },
+    { 
+      id: '1', 
+      title: '1. Connect Wallet', 
+      desc: 'Authenticate Landlord or Tenant Freighter account', 
+      done: connected 
+    },
+    { 
+      id: '2', 
+      title: '2. Create Agreement', 
+      desc: 'Specify security deposit (XLM), reserve, and dates', 
+      done: hasAgreements 
+    },
+    { 
+      id: '3', 
+      title: '3. Share Agreement', 
+      desc: 'Copy agreement link for tenant wallet assignment', 
+      done: hasAgreements 
+    },
+    { 
+      id: '4', 
+      title: '4. Tenant Escrow Deposit', 
+      desc: 'Tenant locks XLM into Soroban contract vault', 
+      done: hasAgreements && status !== 'Awaiting Deposit' 
+    },
+    { 
+      id: '5', 
+      title: '5. Escrow Locked', 
+      desc: 'Smart contract verifies 100% funding', 
+      done: hasAgreements && (status === 'Deposit Locked' || status === 'Lease Active' || status === 'Lease Ended' || status === 'Utility Settlement' || status === 'Refund Completed') 
+    },
+    { 
+      id: '6', 
+      title: '6. Lease Active', 
+      desc: 'Rental occupancy period in progress', 
+      done: hasAgreements && (status === 'Lease Active' || status === 'Lease Ended' || status === 'Utility Settlement' || status === 'Refund Completed') 
+    },
+    { 
+      id: '7', 
+      title: '7. Utility Settlement', 
+      desc: 'Landlord enters electricity/water bill deductions', 
+      done: hasAgreements && (status === 'Lease Ended' || status === 'Utility Settlement' || status === 'Refund Completed') 
+    },
+    { 
+      id: '8', 
+      title: '8. Auto-Release Countdown', 
+      desc: '60s automated refund timer or tenant review', 
+      done: hasAgreements && (status === 'Utility Settlement' || status === 'Refund Completed') 
+    },
+    { 
+      id: '9', 
+      title: '9. Refund Completed', 
+      desc: 'Instant XLM refund paid back to tenant on Stellar', 
+      done: hasAgreements && status === 'Refund Completed' 
+    },
   ];
 
   return (
@@ -77,8 +132,16 @@ export const DemoGuideModal = ({ isOpen, onClose }) => {
             </div>
           </div>
 
+          {/* Empty State Banner if user has no agreements */}
+          {connected && !hasAgreements && (
+            <div className="p-4 bg-primary/10 border border-primary/30 rounded-2xl flex items-center gap-3 text-caption text-text-primary">
+              <AlertCircle className="w-5 h-5 text-primary-glow flex-shrink-0" />
+              <span>Create your first agreement to begin the Stella demonstration.</span>
+            </div>
+          )}
+
           {/* Vertical Step Tracker */}
-          <div className="space-y-2.5 max-h-[360px] overflow-y-auto pr-1 scrollbar-thin">
+          <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1 scrollbar-thin">
             {demoSteps.map((step) => (
               <div
                 key={step.id}
@@ -111,32 +174,33 @@ export const DemoGuideModal = ({ isOpen, onClose }) => {
             ))}
           </div>
 
+          {/* Footer Actions */}
           <div className="pt-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
             <SecondaryButton onClick={onClose} className="w-full sm:w-auto">
               Close Guide
             </SecondaryButton>
 
-            {currentAgreement ? (
+            {activeAgreement ? (
               <PrimaryButton
                 icon={ArrowRight}
                 onClick={() => {
                   onClose();
-                  navigate(`/agreements/${currentAgreement.id}`);
+                  navigate(`/agreements/${activeAgreement.id}`);
                 }}
                 className="w-full sm:w-auto"
               >
-                Go to Active Agreement
+                Go to Active Agreement ({activeAgreement.id})
               </PrimaryButton>
             ) : (
               <PrimaryButton
-                icon={Play}
+                icon={Plus}
                 onClick={() => {
                   onClose();
                   navigate('/agreements/new');
                 }}
                 className="w-full sm:w-auto"
               >
-                Start Demo Workflow
+                Create Agreement
               </PrimaryButton>
             )}
           </div>
