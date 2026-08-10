@@ -40,35 +40,72 @@ const INITIAL_DEMO_AGREEMENTS = [
   },
 ];
 
+/**
+ * Self-healing status migration:
+ * Automatically advances 'Lease Active' agreements to 'Lease Ended' if leaseEnd date has passed.
+ * Never deletes or hides agreements from history.
+ */
+const checkAndMigrateLeaseStatus = (agreementsList = []) => {
+  let hasChanges = false;
+  const now = new Date();
+
+  const migrated = agreementsList.map((a) => {
+    if (a.status === 'Lease Active' && a.leaseEnd) {
+      const endDate = new Date(a.leaseEnd);
+      // Compare with end of day for leaseEnd
+      endDate.setHours(23, 59, 59, 999);
+      if (endDate < now) {
+        hasChanges = true;
+        return {
+          ...a,
+          status: 'Lease Ended',
+          leaseEndedAt: a.leaseEndedAt || new Date().toISOString(),
+        };
+      }
+    }
+    return a;
+  });
+
+  return { migrated, hasChanges };
+};
+
 export const AgreementProvider = ({ children }) => {
   const { address } = useWallet();
   const [agreements, setAgreements] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Restore agreements from localStorage or seed initial demo data
+  // Restore agreements from localStorage and apply self-healing migration
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
+      let initialList = INITIAL_DEMO_AGREEMENTS;
       if (saved) {
         const parsed = JSON.parse(saved);
-        setAgreements(parsed);
-      } else {
-        setAgreements(INITIAL_DEMO_AGREEMENTS);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_DEMO_AGREEMENTS));
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          initialList = parsed;
+        }
+      }
+
+      const { migrated, hasChanges } = checkAndMigrateLeaseStatus(initialList);
+      setAgreements(migrated);
+      if (hasChanges || !saved) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
       }
     } catch (err) {
       console.warn('[AgreementContext] localStorage load warning:', err);
-      setAgreements(INITIAL_DEMO_AGREEMENTS);
+      const { migrated } = checkAndMigrateLeaseStatus(INITIAL_DEMO_AGREEMENTS);
+      setAgreements(migrated);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Sync agreements to localStorage whenever updated
+  // Sync agreements to state and localStorage
   const persistAgreements = (newAgreements) => {
-    setAgreements(newAgreements);
+    const { migrated } = checkAndMigrateLeaseStatus(newAgreements);
+    setAgreements(migrated);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newAgreements));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
     } catch (err) {
       console.error('[AgreementContext] localStorage save error:', err);
     }
@@ -194,7 +231,6 @@ export const AgreementProvider = ({ children }) => {
       if (a.id.toLowerCase() === id.toLowerCase()) {
         const deposit = a.depositAmount || 0;
         const reserve = a.utilityReserve || 0;
-        const totalEscrow = deposit + reserve;
         const refundVal = a.finalRefundAmount !== undefined ? a.finalRefundAmount : deposit;
 
         return {
@@ -203,7 +239,7 @@ export const AgreementProvider = ({ children }) => {
           finalRefundAmount: refundVal,
           refundApprovedAt: new Date().toISOString(),
           refundTxHash: mockRefundHash,
-          fundedAmount: 0, // Escrow un-locked upon refund completion
+          fundedAmount: 0, // Escrow unlocked upon refund completion
         };
       }
       return a;

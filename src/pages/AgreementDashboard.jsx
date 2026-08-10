@@ -3,41 +3,48 @@ import { PageContainer } from '../components/layout/PageContainer';
 import { Card } from '../components/cards/Card';
 import { AgreementCard } from '../components/agreements/AgreementCard';
 import { PrimaryButton } from '../components/buttons/PrimaryButton';
-import { SecondaryButton } from '../components/buttons/SecondaryButton';
 import { InputField } from '../components/forms/InputField';
 import { useAgreements } from '../context/AgreementContext';
 import { useWallet } from '../context/WalletContext';
-import { Search, Plus, Filter, ArrowUpDown, FileCheck, Building, ShieldCheck, UserCheck } from 'lucide-react';
+import { Search, Plus, Filter, ArrowUpDown, FileCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const AgreementDashboard = () => {
   const navigate = useNavigate();
   const { agreements, loading } = useAgreements();
-  const { address } = useWallet();
+  const { connected, address } = useWallet();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('All'); // 'All' | 'As Landlord' | 'As Tenant'
-  const [statusFilter, setStatusFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Active' | 'Lease Ended' | 'Settlement Pending' | 'Completed'
   const [sortBy, setSortBy] = useState('newest');
 
   const normalizedAddress = (address || '').toLowerCase().trim();
 
   // Internal identity filtering: connected wallet must participate as Landlord or Tenant
-  const landlordAgreements = agreements.filter(
-    (a) => (a.landlordWallet || '').toLowerCase().trim() === normalizedAddress
-  );
+  const userAgreements = (connected && address)
+    ? agreements.filter((a) => {
+        const landlord = (a.landlordWallet || '').toLowerCase().trim();
+        const tenant = (a.tenantWallet || '').toLowerCase().trim();
+        return landlord === normalizedAddress || tenant === normalizedAddress;
+      })
+    : agreements; // Fallback to all agreements when disconnected for demo visibility
 
-  const tenantAgreements = agreements.filter(
-    (a) => (a.tenantWallet || '').toLowerCase().trim() === normalizedAddress
-  );
+  const landlordAgreements = (connected && address)
+    ? agreements.filter((a) => (a.landlordWallet || '').toLowerCase().trim() === normalizedAddress)
+    : agreements;
 
-  const userAgreements = agreements.filter((a) => {
-    const landlord = (a.landlordWallet || '').toLowerCase().trim();
-    const tenant = (a.tenantWallet || '').toLowerCase().trim();
-    return landlord === normalizedAddress || tenant === normalizedAddress;
-  });
+  const tenantAgreements = (connected && address)
+    ? agreements.filter((a) => (a.tenantWallet || '').toLowerCase().trim() === normalizedAddress)
+    : agreements;
 
-  const statusOptions = ['All', 'Awaiting Deposit', 'Deposit Locked', 'Lease Active', 'Refund Completed'];
+  const statusTabOptions = [
+    { id: 'All', label: 'All' },
+    { id: 'Active', label: 'Active' },
+    { id: 'Lease Ended', label: 'Lease Ended' },
+    { id: 'Settlement Pending', label: 'Settlement Pending' },
+    { id: 'Completed', label: 'Completed' },
+  ];
 
   // Base list depending on Role filter tab
   const roleBaseAgreements = roleFilter === 'As Landlord' 
@@ -55,7 +62,18 @@ export const AgreementDashboard = () => {
         a.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         a.tenantWallet.toLowerCase().includes(searchQuery.toLowerCase());
       
-      const matchesStatus = statusFilter === 'All' || a.status === statusFilter;
+      let matchesStatus = true;
+      if (statusFilter === 'Active') {
+        matchesStatus = a.status === 'Awaiting Deposit' || a.status === 'Deposit Locked' || a.status === 'Lease Active';
+      } else if (statusFilter === 'Lease Ended') {
+        matchesStatus = a.status === 'Lease Ended';
+      } else if (statusFilter === 'Settlement Pending') {
+        matchesStatus = a.status === 'Utility Settlement' || a.status === 'Dispute Pending';
+      } else if (statusFilter === 'Completed') {
+        matchesStatus = a.status === 'Refund Completed';
+      } else if (statusFilter !== 'All') {
+        matchesStatus = a.status === statusFilter;
+      }
 
       return matchesSearch && matchesStatus;
     })
@@ -71,6 +89,12 @@ export const AgreementDashboard = () => {
       }
       return 0;
     });
+
+  // Calculate status counts
+  const activeCount = roleBaseAgreements.filter(a => a.status === 'Awaiting Deposit' || a.status === 'Deposit Locked' || a.status === 'Lease Active').length;
+  const endedCount = roleBaseAgreements.filter(a => a.status === 'Lease Ended').length;
+  const settlementCount = roleBaseAgreements.filter(a => a.status === 'Utility Settlement' || a.status === 'Dispute Pending').length;
+  const completedCount = roleBaseAgreements.filter(a => a.status === 'Refund Completed').length;
 
   return (
     <PageContainer>
@@ -90,9 +114,9 @@ export const AgreementDashboard = () => {
 
       {/* Filter & Search Bar */}
       <Card className="mb-8 space-y-5 p-5 sm:p-6">
-        {/* Role Tabs */}
+        {/* Role Tabs - ALWAYS Visible */}
         <div className="flex items-center justify-between gap-4 pb-4 border-b border-border/60">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
             <button
               onClick={() => setRoleFilter('All')}
               className={`px-4 py-2 rounded-xl text-caption font-semibold transition-all cursor-pointer ${
@@ -151,24 +175,30 @@ export const AgreementDashboard = () => {
           </div>
         </div>
 
-        {/* Status Filter Tabs */}
+        {/* Status Filter Tabs (Active, Lease Ended, Settlement Pending, Completed, All) */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none border-t border-border/60">
           <span className="text-xs text-text-muted font-medium flex items-center gap-1 mr-2 flex-shrink-0">
             <Filter className="w-3.5 h-3.5" /> Status:
           </span>
-          {statusOptions.map((opt) => {
-            const isActive = statusFilter === opt;
+          {statusTabOptions.map((opt) => {
+            const isActive = statusFilter === opt.id;
+            let tabCount = roleBaseAgreements.length;
+            if (opt.id === 'Active') tabCount = activeCount;
+            if (opt.id === 'Lease Ended') tabCount = endedCount;
+            if (opt.id === 'Settlement Pending') tabCount = settlementCount;
+            if (opt.id === 'Completed') tabCount = completedCount;
+
             return (
               <button
-                key={opt}
-                onClick={() => setStatusFilter(opt)}
+                key={opt.id}
+                onClick={() => setStatusFilter(opt.id)}
                 className={`px-4 py-1.5 rounded-full text-caption font-medium transition-all cursor-pointer flex-shrink-0 ${
                   isActive 
                     ? 'bg-primary text-white font-semibold shadow-sm' 
                     : 'bg-surface/60 text-text-secondary hover:text-text-primary hover:bg-surface border border-border/40'
                 }`}
               >
-                {opt}
+                {opt.label} ({tabCount})
               </button>
             );
           })}
@@ -186,7 +216,7 @@ export const AgreementDashboard = () => {
             <p className="text-caption text-text-secondary max-w-md mx-auto">
               {searchQuery || statusFilter !== 'All' || roleFilter !== 'All'
                 ? 'No rental agreements matched your current filters.' 
-                : 'This wallet address is not currently associated with any rental agreements.'}
+                : 'No rental agreements found for this category.'}
             </p>
           </div>
           <div className="pt-2">
