@@ -4,7 +4,7 @@ import { Card } from '../cards/Card';
 import { RoleBadge } from '../roles/RoleBadge';
 import { useWallet } from '../../context/WalletContext';
 import { useAgreements } from '../../context/AgreementContext';
-import { ShieldCheck, Coins, Building, ArrowUpRight, CheckCircle2, Clock } from 'lucide-react';
+import { ShieldCheck, Coins, Building, ArrowUpRight, CheckCircle2, Clock, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const ExecutiveHeroSummary = ({ onOpenDemoGuide }) => {
@@ -67,6 +67,11 @@ export const ExecutiveHeroSummary = ({ onOpenDemoGuide }) => {
       a.status === 'Dispute Pending'
   ).length;
 
+  // Auto-Release Queue Count
+  const autoReleaseQueueCount = userAgreements.filter(
+    (a) => a.status === 'Lease Ended' || a.status === 'Utility Settlement'
+  ).length;
+
   // Last settlement refund paid from completed history
   const completedSettlements = userAgreements.filter((a) => a.status === 'Refund Completed');
   const lastRefundAgreement = completedSettlements.length > 0 ? completedSettlements[completedSettlements.length - 1] : null;
@@ -110,6 +115,22 @@ export const ExecutiveHeroSummary = ({ onOpenDemoGuide }) => {
           </motion.button>
         )}
       </div>
+
+      {/* Auto-Release Queue Banner */}
+      {autoReleaseQueueCount > 0 && (
+        <div className="p-3.5 bg-primary/10 border border-primary/30 rounded-2xl flex items-center justify-between text-xs font-mono text-primary-glow">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-primary-glow animate-pulse" />
+            <span>Auto-Release Queue: <strong>{autoReleaseQueueCount}</strong> agreement{autoReleaseQueueCount > 1 ? 's' : ''} scheduled for automated release</span>
+          </div>
+          <button 
+            onClick={() => navigate('/agreements')}
+            className="hover:underline cursor-pointer font-sans font-semibold text-[11px]"
+          >
+            View Queue →
+          </button>
+        </div>
+      )}
 
       {/* 4 Executive Metrics Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

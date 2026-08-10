@@ -1,7 +1,8 @@
 import React from 'react';
 import { Card } from '../cards/Card';
 import { calculateLeaseDuration } from '../../utils/duration';
-import { Coins, ShieldCheck, Calendar, ArrowRightLeft, CheckCircle2 } from 'lucide-react';
+import { getAutoReleasePolicyLabel } from '../../utils/autoRelease';
+import { Coins, ShieldCheck, Calendar, ArrowRightLeft, CheckCircle2, Clock } from 'lucide-react';
 
 export const AgreementSummary = ({ agreement }) => {
   if (!agreement) return null;
@@ -23,6 +24,7 @@ export const AgreementSummary = ({ agreement }) => {
   const remainingAmount = isCompleted ? 0 : Math.max(0, totalEscrow - fundedAmount);
   const isFullyFunded = fundedAmount >= totalEscrow && totalEscrow > 0;
   const leaseDurationStr = calculateLeaseDuration(agreement.leaseStart, agreement.leaseEnd);
+  const autoReleaseLabel = getAutoReleasePolicyLabel(agreement.autoRelease);
 
   if (isCompleted) {
     return (
@@ -58,7 +60,7 @@ export const AgreementSummary = ({ agreement }) => {
           </div>
         </div>
 
-        {/* Final Refund Paid Badge (Fix 6) */}
+        {/* Final Refund Paid Badge */}
         <div className="p-3.5 bg-success/15 rounded-2xl border border-success/40 flex items-center justify-between">
           <div>
             <span className="text-[10px] text-text-muted uppercase tracking-wider block font-semibold">Final Refund Paid</span>
@@ -67,7 +69,7 @@ export const AgreementSummary = ({ agreement }) => {
           <span className="text-h3 font-extrabold text-success">{finalRefund.toFixed(2)} XLM</span>
         </div>
 
-        {/* Real Lease Duration */}
+        {/* Real Lease Duration & Auto Release */}
         <div className="p-3.5 bg-background/60 rounded-2xl border border-border/60 text-xs space-y-1.5 text-text-secondary">
           <div className="flex justify-between">
             <span>Lease Start:</span>
@@ -76,6 +78,10 @@ export const AgreementSummary = ({ agreement }) => {
           <div className="flex justify-between">
             <span>Lease End:</span>
             <span className="text-text-primary font-medium">{agreement.leaseEnd}</span>
+          </div>
+          <div className="flex justify-between pt-1 border-t border-border/40 font-semibold">
+            <span className="text-primary-glow">Auto-Release Policy:</span>
+            <span className="text-text-primary font-bold">{autoReleaseLabel}</span>
           </div>
           <div className="flex justify-between pt-1 border-t border-border/40 font-semibold">
             <span className="text-primary-glow">Real Lease Duration:</span>
@@ -150,7 +156,7 @@ export const AgreementSummary = ({ agreement }) => {
         <span className="text-h3 font-extrabold text-success">{deposit} XLM</span>
       </div>
 
-      {/* Real Lease Duration */}
+      {/* Real Lease Duration & Auto Release Policy */}
       <div className="p-3.5 bg-background/60 rounded-2xl border border-border/60 text-xs space-y-1.5 text-text-secondary">
         <div className="flex justify-between">
           <span>Lease Start:</span>
@@ -159,6 +165,10 @@ export const AgreementSummary = ({ agreement }) => {
         <div className="flex justify-between">
           <span>Lease End:</span>
           <span className="text-text-primary font-medium">{agreement.leaseEnd}</span>
+        </div>
+        <div className="flex justify-between pt-1 border-t border-border/40 font-semibold">
+          <span className="text-primary-glow">Auto-Release Policy:</span>
+          <span className="text-text-primary font-bold">{autoReleaseLabel}</span>
         </div>
         <div className="flex justify-between pt-1 border-t border-border/40 font-semibold">
           <span className="text-primary-glow">Real Lease Duration:</span>

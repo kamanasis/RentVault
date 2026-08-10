@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Edit3, Building, Coins, Calendar, Lock, Check } from 'lucide-react';
+import { X, Edit3, Building, Coins, Calendar, Lock, Check, Clock } from 'lucide-react';
 import { InputField } from '../forms/InputField';
 import { PrimaryButton } from '../buttons/PrimaryButton';
 import { SecondaryButton } from '../buttons/SecondaryButton';
 import { useAgreements } from '../../context/AgreementContext';
+import { AUTO_RELEASE_PRESETS, calculateAutoReleaseMs } from '../../utils/autoRelease';
 
 export const EditAgreementModal = ({ agreement, isOpen, onClose }) => {
   const { updateAgreement } = useAgreements();
@@ -18,6 +19,9 @@ export const EditAgreementModal = ({ agreement, isOpen, onClose }) => {
     utilityReserve: agreement?.utilityReserve || 0,
     leaseStart: agreement?.leaseStart || '',
     leaseEnd: agreement?.leaseEnd || '',
+    autoReleasePreset: agreement?.autoRelease?.preset || '7_days',
+    customAutoReleaseDuration: agreement?.autoRelease?.preset === 'custom' ? String(agreement?.autoRelease?.duration || 12) : '12',
+    customAutoReleaseUnit: agreement?.autoRelease?.preset === 'custom' ? (agreement?.autoRelease?.unit || 'hours') : 'hours',
     notes: agreement?.notes || '',
   });
 
@@ -47,6 +51,13 @@ export const EditAgreementModal = ({ agreement, isOpen, onClose }) => {
       newErrors.leaseEnd = 'Lease end date must be after lease start date.';
     }
 
+    if (formData.autoReleasePreset === 'custom') {
+      const numCustom = parseFloat(formData.customAutoReleaseDuration);
+      if (!formData.customAutoReleaseDuration || isNaN(numCustom) || numCustom <= 0) {
+        newErrors.customAutoReleaseDuration = 'Custom duration must be greater than 0.';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -55,7 +66,39 @@ export const EditAgreementModal = ({ agreement, isOpen, onClose }) => {
     e.preventDefault();
     if (!validate()) return;
 
-    updateAgreement(agreement.id, formData);
+    let autoReleaseObj = {
+      preset: formData.autoReleasePreset || '7_days',
+      duration: 7,
+      unit: 'days',
+      milliseconds: 7 * 24 * 60 * 60 * 1000,
+    };
+
+    if (formData.autoReleasePreset === 'custom') {
+      const customDur = Math.max(1, parseFloat(formData.customAutoReleaseDuration) || 1);
+      const customUnit = formData.customAutoReleaseUnit || 'days';
+      const customMs = calculateAutoReleaseMs(customDur, customUnit);
+      autoReleaseObj = {
+        preset: 'custom',
+        duration: customDur,
+        unit: customUnit,
+        milliseconds: customMs,
+      };
+    } else if (formData.autoReleasePreset) {
+      const presetFound = AUTO_RELEASE_PRESETS.find((p) => p.id === formData.autoReleasePreset);
+      if (presetFound) {
+        autoReleaseObj = {
+          preset: presetFound.id,
+          duration: presetFound.duration,
+          unit: presetFound.unit,
+          milliseconds: presetFound.milliseconds,
+        };
+      }
+    }
+
+    updateAgreement(agreement.id, {
+      ...formData,
+      autoRelease: autoReleaseObj,
+    });
     onClose();
   };
 
@@ -163,6 +206,55 @@ export const EditAgreementModal = ({ agreement, isOpen, onClose }) => {
                 error={errors.leaseEnd}
                 required
               />
+            </div>
+
+            {/* Auto-Release Policy Selector */}
+            <div className="space-y-3 p-4 bg-background/60 rounded-2xl border border-border/80">
+              <label className="text-caption font-semibold text-text-primary flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-primary-glow" /> Auto-Release Policy (Landlord Controlled)
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <select
+                  name="autoReleasePreset"
+                  value={formData.autoReleasePreset}
+                  onChange={handleChange}
+                  className="w-full bg-surface border border-border text-text-primary rounded-2xl px-4 py-2.5 text-caption outline-none cursor-pointer hover:border-primary/50 transition-colors"
+                >
+                  {AUTO_RELEASE_PRESETS.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+
+                {formData.autoReleasePreset === 'custom' && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <InputField
+                      label="Duration"
+                      name="customAutoReleaseDuration"
+                      type="number"
+                      min="1"
+                      value={formData.customAutoReleaseDuration}
+                      onChange={handleChange}
+                      error={errors.customAutoReleaseDuration}
+                      required
+                    />
+
+                    <select
+                      name="customAutoReleaseUnit"
+                      value={formData.customAutoReleaseUnit}
+                      onChange={handleChange}
+                      className="mt-6 bg-surface border border-border text-text-primary rounded-2xl px-3 py-2.5 text-caption outline-none cursor-pointer"
+                    >
+                      <option value="minutes">Minutes</option>
+                      <option value="hours">Hours</option>
+                      <option value="days">Days</option>
+                      <option value="weeks">Weeks</option>
+                    </select>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="space-y-1.5">

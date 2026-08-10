@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useWallet } from './WalletContext';
+import { AUTO_RELEASE_PRESETS, calculateAutoReleaseMs } from '../utils/autoRelease';
 
 const AgreementContext = createContext();
 
@@ -20,6 +21,12 @@ const INITIAL_DEMO_AGREEMENTS = [
     notes: 'Includes reserved utility escrow for electricity and water settlement.',
     status: 'Awaiting Deposit',
     createdAt: '2026-08-01T10:00:00.000Z',
+    autoRelease: {
+      preset: '7_days',
+      duration: 7,
+      unit: 'days',
+      milliseconds: 7 * 24 * 60 * 60 * 1000,
+    },
   },
   {
     id: 'RV-2026-002',
@@ -37,32 +44,50 @@ const INITIAL_DEMO_AGREEMENTS = [
     createdAt: '2026-05-20T14:30:00.000Z',
     txHash: '8f92a10e2b4c129d39f4011029419082001',
     depositConfirmedAt: '2026-05-20T14:35:00.000Z',
+    autoRelease: {
+      preset: '1_min',
+      duration: 1,
+      unit: 'minutes',
+      milliseconds: 60 * 1000,
+    },
   },
 ];
 
 /**
- * Self-healing status migration:
- * Automatically advances 'Lease Active' agreements to 'Lease Ended' if leaseEnd date has passed.
- * Never deletes or hides agreements from history.
+ * Self-healing status migration
  */
 const checkAndMigrateLeaseStatus = (agreementsList = []) => {
   let hasChanges = false;
   const now = new Date();
 
   const migrated = agreementsList.map((a) => {
+    // Default autoRelease policy fallback if missing
+    const autoReleaseObj = a.autoRelease || {
+      preset: '7_days',
+      duration: 7,
+      unit: 'days',
+      milliseconds: 7 * 24 * 60 * 60 * 1000,
+    };
+
     if (a.status === 'Lease Active' && a.leaseEnd) {
       const endDate = new Date(a.leaseEnd);
-      // Compare with end of day for leaseEnd
       endDate.setHours(23, 59, 59, 999);
       if (endDate < now) {
         hasChanges = true;
         return {
           ...a,
+          autoRelease: autoReleaseObj,
           status: 'Lease Ended',
           leaseEndedAt: a.leaseEndedAt || new Date().toISOString(),
         };
       }
     }
+
+    if (!a.autoRelease) {
+      hasChanges = true;
+      return { ...a, autoRelease: autoReleaseObj };
+    }
+
     return a;
   });
 
@@ -74,7 +99,6 @@ export const AgreementProvider = ({ children }) => {
   const [agreements, setAgreements] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Restore agreements from localStorage and apply self-healing migration
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -100,7 +124,6 @@ export const AgreementProvider = ({ children }) => {
     }
   }, []);
 
-  // Sync agreements to state and localStorage
   const persistAgreements = (newAgreements) => {
     const { migrated } = checkAndMigrateLeaseStatus(newAgreements);
     setAgreements(migrated);
@@ -111,11 +134,40 @@ export const AgreementProvider = ({ children }) => {
     }
   };
 
-  // Create new agreement
+  // Create new agreement with customizable autoRelease policy
   const createAgreement = (formData) => {
     const nextIndex = agreements.length + 1;
     const padIndex = String(nextIndex).padStart(3, '0');
     const newId = `RV-2026-${padIndex}`;
+
+    let autoReleaseObj = {
+      preset: formData.autoReleasePreset || '7_days',
+      duration: 7,
+      unit: 'days',
+      milliseconds: 7 * 24 * 60 * 60 * 1000,
+    };
+
+    if (formData.autoReleasePreset === 'custom') {
+      const customDur = Math.max(1, parseFloat(formData.customAutoReleaseDuration) || 1);
+      const customUnit = formData.customAutoReleaseUnit || 'days';
+      const customMs = calculateAutoReleaseMs(customDur, customUnit);
+      autoReleaseObj = {
+        preset: 'custom',
+        duration: customDur,
+        unit: customUnit,
+        milliseconds: customMs,
+      };
+    } else if (formData.autoReleasePreset) {
+      const presetFound = AUTO_RELEASE_PRESETS.find((p) => p.id === formData.autoReleasePreset);
+      if (presetFound) {
+        autoReleaseObj = {
+          preset: presetFound.id,
+          duration: presetFound.duration,
+          unit: presetFound.unit,
+          milliseconds: presetFound.milliseconds,
+        };
+      }
+    }
 
     const newAgreement = {
       id: newId,
@@ -129,6 +181,7 @@ export const AgreementProvider = ({ children }) => {
       leaseStart: formData.leaseStart,
       leaseEnd: formData.leaseEnd,
       notes: formData.notes || '',
+      autoRelease: autoReleaseObj,
       status: 'Awaiting Deposit',
       createdAt: new Date().toISOString(),
     };
@@ -147,6 +200,22 @@ export const AgreementProvider = ({ children }) => {
           ...updatedFields,
           depositAmount: updatedFields.depositAmount !== undefined ? parseFloat(updatedFields.depositAmount) : a.depositAmount,
           utilityReserve: updatedFields.utilityReserve !== undefined ? parseFloat(updatedFields.utilityReserve) : a.utilityReserve,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return a;
+    });
+
+    persistAgreements(updated);
+  };
+
+  // Update landlord auto-release policy
+  const updateAutoReleasePolicy = (id, newAutoReleaseObj) => {
+    const updated = agreements.map((a) => {
+      if (a.id.toLowerCase() === id.toLowerCase()) {
+        return {
+          ...a,
+          autoRelease: newAutoReleaseObj,
           updatedAt: new Date().toISOString(),
         };
       }
@@ -230,7 +299,6 @@ export const AgreementProvider = ({ children }) => {
     const updated = agreements.map((a) => {
       if (a.id.toLowerCase() === id.toLowerCase()) {
         const deposit = a.depositAmount || 0;
-        const reserve = a.utilityReserve || 0;
         const refundVal = a.finalRefundAmount !== undefined ? a.finalRefundAmount : deposit;
 
         return {
@@ -239,7 +307,7 @@ export const AgreementProvider = ({ children }) => {
           finalRefundAmount: refundVal,
           refundApprovedAt: new Date().toISOString(),
           refundTxHash: mockRefundHash,
-          fundedAmount: 0, // Escrow unlocked upon refund completion
+          fundedAmount: 0,
         };
       }
       return a;
@@ -283,6 +351,7 @@ export const AgreementProvider = ({ children }) => {
         loading,
         createAgreement,
         updateAgreement,
+        updateAutoReleasePolicy,
         depositEscrow,
         activateLease,
         endLease,

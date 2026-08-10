@@ -6,7 +6,8 @@ import { PrimaryButton } from '../components/buttons/PrimaryButton';
 import { SecondaryButton } from '../components/buttons/SecondaryButton';
 import { useAgreements } from '../context/AgreementContext';
 import { useWallet } from '../context/WalletContext';
-import { Building, Wallet, Calendar, ShieldCheck, FileText, ArrowLeft, Coins } from 'lucide-react';
+import { AUTO_RELEASE_PRESETS } from '../utils/autoRelease';
+import { Building, Wallet, Calendar, ShieldCheck, ArrowLeft, Coins, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import * as StellarSdk from '@stellar/stellar-sdk';
 
@@ -23,6 +24,9 @@ export const CreateAgreement = () => {
     utilityReserve: '200',
     leaseStart: new Date().toISOString().split('T')[0],
     leaseEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    autoReleasePreset: '7_days',
+    customAutoReleaseDuration: '12',
+    customAutoReleaseUnit: 'hours',
     notes: '',
   });
 
@@ -73,6 +77,13 @@ export const CreateAgreement = () => {
       newErrors.leaseEnd = 'Lease end date must be after lease start date.';
     }
 
+    if (formData.autoReleasePreset === 'custom') {
+      const numCustom = parseFloat(formData.customAutoReleaseDuration);
+      if (!formData.customAutoReleaseDuration || isNaN(numCustom) || numCustom <= 0) {
+        newErrors.customAutoReleaseDuration = 'Custom duration must be greater than 0.';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -96,7 +107,7 @@ export const CreateAgreement = () => {
         </button>
         <h1 className="text-h1 text-text-primary mb-1">Create Digital Rental Agreement</h1>
         <p className="text-body text-text-secondary">
-          Establish property details, security deposit terms, and tenant wallet assignments before escrow locking.
+          Establish property details, security deposit terms, auto-release policy, and tenant wallet assignments before escrow locking.
         </p>
       </div>
 
@@ -215,10 +226,72 @@ export const CreateAgreement = () => {
             </div>
           </div>
 
-          {/* Section 5: Additional Notes */}
+          {/* Section 5: Landlord Controlled Auto-Release Policy */}
+          <div className="space-y-4">
+            <h3 className="text-h3 text-text-primary flex items-center gap-2 pb-2 border-b border-border">
+              <Clock className="w-5 h-5 text-primary-glow" /> 5. Auto-Release Policy (Landlord Controlled)
+            </h3>
+            <p className="text-caption text-text-secondary">
+              Configure when deposit funds are automatically released to the tenant if no manual settlement occurs after lease completion.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-caption text-text-secondary font-medium block">
+                  Select Auto-Release Duration
+                </label>
+                <select
+                  name="autoReleasePreset"
+                  value={formData.autoReleasePreset}
+                  onChange={handleChange}
+                  className="w-full bg-surface border border-border text-text-primary rounded-2xl px-4 py-3 text-caption outline-none cursor-pointer hover:border-primary/50 transition-colors"
+                >
+                  {AUTO_RELEASE_PRESETS.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {formData.autoReleasePreset === 'custom' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <InputField
+                    label="Duration Number"
+                    name="customAutoReleaseDuration"
+                    type="number"
+                    min="1"
+                    value={formData.customAutoReleaseDuration}
+                    onChange={handleChange}
+                    error={errors.customAutoReleaseDuration}
+                    required
+                  />
+
+                  <div className="space-y-2">
+                    <label className="text-caption text-text-secondary font-medium block">
+                      Duration Unit
+                    </label>
+                    <select
+                      name="customAutoReleaseUnit"
+                      value={formData.customAutoReleaseUnit}
+                      onChange={handleChange}
+                      className="w-full bg-surface border border-border text-text-primary rounded-2xl px-4 py-3 text-caption outline-none cursor-pointer hover:border-primary/50 transition-colors"
+                    >
+                      <option value="minutes">Minutes</option>
+                      <option value="hours">Hours</option>
+                      <option value="days">Days</option>
+                      <option value="weeks">Weeks</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Section 6: Additional Notes */}
           <div className="space-y-2">
             <label className="text-caption text-text-secondary font-medium block">
-              5. Additional Lease Terms / Notes (Optional)
+              6. Additional Lease Terms / Notes (Optional)
             </label>
             <textarea
               name="notes"

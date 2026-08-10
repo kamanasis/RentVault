@@ -14,7 +14,9 @@ export const horizonServer = new StellarSdk.Horizon.Server(HORIZON_URL);
 /**
  * Encodes agreement escrow parameters for Soroban smart contract invocation
  */
-export const encodeLockDepositParams = ({ agreementId, landlordAddress, tenantAddress, depositAmount, utilityReserve }) => {
+export const encodeLockDepositParams = ({ agreementId, landlordAddress, tenantAddress, depositAmount, utilityReserve, autoReleaseMs }) => {
+  const autoReleaseSeconds = Math.round((autoReleaseMs || 7 * 24 * 60 * 60 * 1000) / 1000);
+
   return {
     contractId: SOROBAN_CONTRACT_ID,
     functionName: 'lock_deposit',
@@ -24,6 +26,7 @@ export const encodeLockDepositParams = ({ agreementId, landlordAddress, tenantAd
       StellarSdk.nativeToScVal(tenantAddress, { type: 'address' }),
       StellarSdk.nativeToScVal(Math.round(depositAmount * 10_000_000), { type: 'i128' }),
       StellarSdk.nativeToScVal(Math.round(utilityReserve * 10_000_000), { type: 'i128' }),
+      StellarSdk.nativeToScVal(autoReleaseSeconds, { type: 'u64' }),
     ],
   };
 };
