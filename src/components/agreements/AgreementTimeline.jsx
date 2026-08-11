@@ -52,32 +52,34 @@ export const AgreementTimeline = ({ currentStatus = 'Awaiting Deposit' }) => {
       </div>
 
       {/* Timeline Layout Container */}
-      <div className="relative pt-3 pb-2 overflow-x-auto scrollbar-none">
-        <div className="relative min-w-[760px] lg:min-w-0 py-2">
+      <div className="relative pt-2 pb-2 overflow-x-auto scrollbar-none">
+        <div className="relative min-w-[760px] lg:min-w-0 py-2 space-y-3.5">
           
-          {/* Layer 1: Background Gray Track Line (3px thickness, aligned at exact vertical center y=24px of 48px circle) */}
-          <div className="absolute top-[24px] -translate-y-1/2 left-[7.14%] right-[7.14%] h-[3px] bg-border/80 rounded-full z-0">
-            {/* Layer 2: Completed Solid Green Track Line (NO BLUE CONNECTORS) */}
-            <motion.div
-              initial={{ width: '0%' }}
-              animate={{ width: `${progressPercent}%` }}
-              transition={{ duration: 0.6, ease: 'easeInOut' }}
-              className="h-full bg-success rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)]"
-            />
-          </div>
+          {/* Row 1: Dedicated Node Circle & Connector Line Container (Fixed 48px height) */}
+          <div className="relative h-12 flex items-center">
+            
+            {/* Layer 1: Background Gray Track Line (3px thickness, 100% mathematical center y=50% of 48px node row) */}
+            <div className="absolute top-1/2 -translate-y-1/2 left-[7.14%] right-[7.14%] h-[3px] bg-border/80 rounded-full z-0">
+              {/* Layer 2: Completed Solid Green Track Line (NO BLUE CONNECTORS) */}
+              <motion.div
+                initial={{ width: '0%' }}
+                animate={{ width: `${progressPercent}%` }}
+                transition={{ duration: 0.6, ease: 'easeInOut' }}
+                className="h-full bg-success rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)]"
+              />
+            </div>
 
-          {/* Layer 3: 7 Stage Equal Columns Grid (z-10 above track line) */}
-          <div className="relative z-10 grid grid-cols-7 w-full">
-            {stages.map((stage, idx) => {
-              const isCompletedStage = idx < activeStageIndex || isCompleted;
-              const isCurrentStage = idx === activeStageIndex && !isCompleted;
-              const isPendingStage = idx > activeStageIndex && !isCompleted;
-              const Icon = stage.icon;
+            {/* Layer 3: 7 Stage Circle Nodes (z-10 strictly above connector track) */}
+            <div className="relative z-10 grid grid-cols-7 w-full">
+              {stages.map((stage, idx) => {
+                const isCompletedStage = idx < activeStageIndex || isCompleted;
+                const isCurrentStage = idx === activeStageIndex && !isCompleted;
+                const isPendingStage = idx > activeStageIndex && !isCompleted;
+                const Icon = stage.icon;
 
-              return (
-                <div key={stage.id} className="flex flex-col items-center text-center px-1">
-                  {/* Node Circle Container (48px x 48px, solid bg-card opacity 100 to cover background track line cleanly) */}
-                  <div className="relative flex items-center justify-center">
+                return (
+                  <div key={stage.id} className="flex justify-center items-center">
+                    {/* Circle Node (48px x 48px, solid bg-card to cover track line cleanly) */}
                     <motion.div
                       whileHover={{ scale: 1.08 }}
                       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
@@ -100,21 +102,30 @@ export const AgreementTimeline = ({ currentStatus = 'Awaiting Deposit' }) => {
                       )}
                     </motion.div>
                   </div>
+                );
+              })}
+            </div>
+          </div>
 
-                  {/* Stage Label Typography (Fixed height container for uniform baseline alignment across 7 columns) */}
-                  <div className="h-10 mt-3.5 flex items-start justify-center">
-                    <span className={`
-                      text-[12px] md:text-[13px] font-semibold leading-tight max-w-[105px] transition-colors duration-200
-                      ${isCompletedStage
-                        ? 'text-success'
-                        : isCurrentStage
-                        ? 'text-primary-glow font-bold'
-                        : 'text-text-muted'
-                      }
-                    `}>
-                      {stage.label}
-                    </span>
-                  </div>
+          {/* Row 2: Stage Labels Grid (Independent row below nodes with uniform baseline) */}
+          <div className="grid grid-cols-7 w-full">
+            {stages.map((stage, idx) => {
+              const isCompletedStage = idx < activeStageIndex || isCompleted;
+              const isCurrentStage = idx === activeStageIndex && !isCompleted;
+
+              return (
+                <div key={stage.id} className="flex justify-center text-center px-1">
+                  <span className={`
+                    text-[12px] md:text-[13px] font-semibold leading-tight max-w-[105px] transition-colors duration-200
+                    ${isCompletedStage
+                      ? 'text-success'
+                      : isCurrentStage
+                      ? 'text-primary-glow font-bold'
+                      : 'text-text-muted'
+                    }
+                  `}>
+                    {stage.label}
+                  </span>
                 </div>
               );
             })}
