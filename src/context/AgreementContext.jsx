@@ -79,6 +79,7 @@ const checkAndMigrateLeaseStatus = (agreementsList = []) => {
           autoRelease: autoReleaseObj,
           status: 'Lease Ended',
           leaseEndedAt: a.leaseEndedAt || new Date().toISOString(),
+          leaseEndedBy: a.leaseEndedBy || a.landlordWallet,
         };
       }
     }
@@ -254,11 +255,20 @@ export const AgreementProvider = ({ children }) => {
     persistAgreements(updated);
   };
 
-  // End Lease State
-  const endLease = (id) => {
-    const updated = agreements.map((a) => 
-      a.id.toLowerCase() === id.toLowerCase() ? { ...a, status: 'Lease Ended', leaseEndedAt: new Date().toISOString() } : a
-    );
+  // Landlord-only End Lease State Handler
+  const endLease = (id, actorAddress = '') => {
+    const updated = agreements.map((a) => {
+      if (a.id.toLowerCase() === id.toLowerCase()) {
+        return {
+          ...a,
+          status: 'Lease Ended',
+          leaseEndedAt: new Date().toISOString(),
+          leaseEndedBy: actorAddress || address || a.landlordWallet,
+        };
+      }
+      return a;
+    });
+
     persistAgreements(updated);
   };
 
@@ -272,16 +282,17 @@ export const AgreementProvider = ({ children }) => {
 
         const electricity = parseFloat(deductionsData.electricity || 0);
         const water = parseFloat(deductionsData.water || 0);
+        const internet = parseFloat(deductionsData.internet || 0);
         const maintenance = parseFloat(deductionsData.maintenance || 0);
         const other = parseFloat(deductionsData.other || 0);
-        const totalDeduction = electricity + water + maintenance + other;
+        const totalDeduction = electricity + water + internet + maintenance + other;
 
         const finalRefundAmount = Math.max(0, totalEscrow - totalDeduction);
 
         return {
           ...a,
           status: 'Utility Settlement',
-          utilityDeductions: { electricity, water, maintenance, other, notes: deductionsData.notes || '' },
+          utilityDeductions: { electricity, water, internet, maintenance, other, notes: deductionsData.notes || '' },
           totalDeduction,
           finalRefundAmount,
           settlementSubmittedAt: new Date().toISOString(),

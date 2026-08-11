@@ -6,8 +6,10 @@ import { PrimaryButton } from '../buttons/PrimaryButton';
 import { SecondaryButton } from '../buttons/SecondaryButton';
 import { ShieldCheck, Calendar, Clock, Play, AlertCircle, ArrowRight } from 'lucide-react';
 import { useAgreements } from '../../context/AgreementContext';
+import { useNavigate } from 'react-router-dom';
 
 export const LeaseStatusCard = ({ agreement, isLandlord }) => {
+  const navigate = useNavigate();
   const { activateLease, endLease } = useAgreements();
 
   if (!agreement) return null;
@@ -36,14 +38,16 @@ export const LeaseStatusCard = ({ agreement, isLandlord }) => {
           Security deposit of <strong className="text-text-primary font-mono">{(agreement.depositAmount || 0) + (agreement.utilityReserve || 0)} XLM</strong> is safely locked in the Soroban smart contract vault.
         </p>
 
-        <div className="pt-2 flex justify-end">
-          <PrimaryButton 
-            icon={Play} 
-            onClick={() => activateLease(agreement.id)}
-          >
-            Activate Lease Period
-          </PrimaryButton>
-        </div>
+        {isLandlord && (
+          <div className="pt-2 flex justify-end">
+            <PrimaryButton 
+              icon={Play} 
+              onClick={() => activateLease(agreement.id)}
+            >
+              Activate Lease Period
+            </PrimaryButton>
+          </div>
+        )}
       </Card>
     );
   }
@@ -66,22 +70,34 @@ export const LeaseStatusCard = ({ agreement, isLandlord }) => {
           </StatusBadge>
         </div>
 
+        <p className="text-body text-text-secondary leading-relaxed">
+          {isLandlord 
+            ? 'The rental lease is currently active. Click below to initiate lease completion and open the Utility Settlement Portal.'
+            : 'Your lease is currently active. The landlord will initiate lease completion and utility settlement when the rental period ends.'}
+        </p>
+
         <div className="p-4 bg-background/80 rounded-2xl border border-border/80 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-success" />
-            <span className="text-caption text-text-secondary">Occupancy Progress:</span>
+            <span className="text-caption text-text-secondary">Occupancy Status:</span>
           </div>
-          <span className="text-body font-bold text-success">Active Lease Period</span>
+          <span className="text-body font-bold text-success">Lease Active</span>
         </div>
 
-        <div className="pt-2 flex justify-end">
-          <SecondaryButton 
-            icon={ArrowRight} 
-            onClick={() => endLease(agreement.id)}
-          >
-            Trigger Lease End & Settlement
-          </SecondaryButton>
-        </div>
+        {/* Landlord-Only Lease Termination CTA */}
+        {isLandlord && (
+          <div className="pt-2 flex justify-end">
+            <PrimaryButton 
+              icon={ArrowRight} 
+              onClick={() => {
+                endLease(agreement.id);
+                navigate(`/agreements/${agreement.id}/settlement`);
+              }}
+            >
+              Trigger Lease End & Settlement
+            </PrimaryButton>
+          </div>
+        )}
       </Card>
     );
   }
@@ -96,7 +112,9 @@ export const LeaseStatusCard = ({ agreement, isLandlord }) => {
             </div>
             <div>
               <h3 className="text-h3 text-text-primary">Lease Period Ended</h3>
-              <p className="text-caption text-text-secondary">Utility Settlement Required</p>
+              <p className="text-caption text-text-secondary">
+                {isLandlord ? 'Utility Settlement Portal Ready' : 'Awaiting Landlord Settlement'}
+              </p>
             </div>
           </div>
           <StatusBadge variant="warning" size="md">
@@ -106,8 +124,19 @@ export const LeaseStatusCard = ({ agreement, isLandlord }) => {
         <p className="text-body text-text-secondary">
           {isLandlord 
             ? 'The rental occupancy period has ended. Please submit utility deductions below.' 
-            : 'The lease period has ended. Waiting for landlord utility bill submission.'}
+            : 'The landlord has completed lease termination. Utility settlement is currently being processed.'}
         </p>
+
+        {isLandlord && (
+          <div className="pt-2 flex justify-end">
+            <PrimaryButton
+              icon={ArrowRight}
+              onClick={() => navigate(`/agreements/${agreement.id}/settlement`)}
+            >
+              Open Utility Settlement Portal
+            </PrimaryButton>
+          </div>
+        )}
       </Card>
     );
   }

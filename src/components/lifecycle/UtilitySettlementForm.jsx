@@ -4,16 +4,18 @@ import { InputField } from '../forms/InputField';
 import { PrimaryButton } from '../buttons/PrimaryButton';
 import { SecondaryButton } from '../buttons/SecondaryButton';
 import { useAgreements } from '../../context/AgreementContext';
-import { Zap, Droplets, Wrench, FileText, CheckCircle2, Coins } from 'lucide-react';
+import { Zap, Droplets, Wrench, FileText, CheckCircle2, Coins, Wifi, AlertCircle } from 'lucide-react';
 
 export const UtilitySettlementForm = ({ agreement }) => {
   const { submitUtilitySettlement } = useAgreements();
 
   const [electricity, setElectricity] = useState('1.25');
   const [water, setWater] = useState('0.50');
+  const [internet, setInternet] = useState('0.00');
   const [maintenance, setMaintenance] = useState('0.00');
   const [other, setOther] = useState('0.00');
   const [notes, setNotes] = useState('Final utility settlement for August occupancy.');
+  const [error, setError] = useState(null);
 
   if (!agreement) return null;
 
@@ -21,29 +23,42 @@ export const UtilitySettlementForm = ({ agreement }) => {
   const reserve = agreement.utilityReserve || 0;
   const totalEscrow = deposit + reserve;
 
-  const totalDeduction = (parseFloat(electricity) || 0) + (parseFloat(water) || 0) + (parseFloat(maintenance) || 0) + (parseFloat(other) || 0);
+  const numElec = Math.max(0, parseFloat(electricity) || 0);
+  const numWater = Math.max(0, parseFloat(water) || 0);
+  const numNet = Math.max(0, parseFloat(internet) || 0);
+  const numMaint = Math.max(0, parseFloat(maintenance) || 0);
+  const numOther = Math.max(0, parseFloat(other) || 0);
+
+  const totalDeduction = numElec + numWater + numNet + numMaint + numOther;
   const finalRefund = Math.max(0, totalEscrow - totalDeduction);
+  const isExceeded = totalDeduction > totalEscrow;
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (isExceeded) {
+      setError(`Total deductions (${totalDeduction.toFixed(2)} XLM) cannot exceed available escrow balance (${totalEscrow} XLM).`);
+      return;
+    }
+    setError(null);
     submitUtilitySettlement(agreement.id, {
-      electricity,
-      water,
-      maintenance,
-      other,
+      electricity: numElec,
+      water: numWater,
+      internet: numNet,
+      maintenance: numMaint,
+      other: numOther,
       notes,
     });
   };
 
   return (
-    <Card className="space-y-6 border border-warning/40">
+    <Card className="space-y-6 border border-warning/40 shadow-stellar-glow">
       <div className="flex items-center justify-between pb-4 border-b border-border">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-warning/15 border border-warning/30 text-warning flex items-center justify-center">
             <Zap className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-h3 text-text-primary">Utility Settlement Panel</h3>
+            <h3 className="text-h3 text-text-primary">Utility Settlement Portal</h3>
             <p className="text-caption text-text-secondary">Landlord Deductions Submission</p>
           </div>
         </div>
@@ -52,24 +67,52 @@ export const UtilitySettlementForm = ({ agreement }) => {
         </span>
       </div>
 
+      {error && (
+        <div className="p-3 bg-error/15 border border-error/40 rounded-2xl text-xs text-error flex items-center gap-2 font-mono">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <InputField
             label="Electricity Bill (XLM)"
             type="number"
             step="0.01"
+            min="0"
             icon={Zap}
             value={electricity}
-            onChange={(e) => setElectricity(e.target.value)}
+            onChange={(e) => {
+              setElectricity(e.target.value);
+              if (error) setError(null);
+            }}
           />
 
           <InputField
             label="Water & Sewage (XLM)"
             type="number"
             step="0.01"
+            min="0"
             icon={Droplets}
             value={water}
-            onChange={(e) => setWater(e.target.value)}
+            onChange={(e) => {
+              setWater(e.target.value);
+              if (error) setError(null);
+            }}
+          />
+
+          <InputField
+            label="Internet / Fiber (XLM)"
+            type="number"
+            step="0.01"
+            min="0"
+            icon={Wifi}
+            value={internet}
+            onChange={(e) => {
+              setInternet(e.target.value);
+              if (error) setError(null);
+            }}
           />
         </div>
 
@@ -78,18 +121,26 @@ export const UtilitySettlementForm = ({ agreement }) => {
             label="Maintenance / Cleaning (XLM)"
             type="number"
             step="0.01"
+            min="0"
             icon={Wrench}
             value={maintenance}
-            onChange={(e) => setMaintenance(e.target.value)}
+            onChange={(e) => {
+              setMaintenance(e.target.value);
+              if (error) setError(null);
+            }}
           />
 
           <InputField
             label="Other Deductions (XLM)"
             type="number"
             step="0.01"
+            min="0"
             icon={Coins}
             value={other}
-            onChange={(e) => setOther(e.target.value)}
+            onChange={(e) => {
+              setOther(e.target.value);
+              if (error) setError(null);
+            }}
           />
         </div>
 
@@ -117,12 +168,14 @@ export const UtilitySettlementForm = ({ agreement }) => {
           </div>
           <div className="pt-2 border-t border-border/60 flex justify-between text-h3 font-sans">
             <span className="text-text-primary font-bold">Final Tenant Refund:</span>
-            <span className="font-extrabold text-success">{finalRefund.toFixed(2)} XLM</span>
+            <span className={`font-extrabold ${isExceeded ? 'text-error' : 'text-success'}`}>
+              {finalRefund.toFixed(2)} XLM
+            </span>
           </div>
         </div>
 
-        <div className="pt-2 flex justify-end">
-          <PrimaryButton type="submit" icon={CheckCircle2}>
+        <div className="pt-2 flex justify-end gap-3">
+          <PrimaryButton type="submit" icon={CheckCircle2} disabled={isExceeded}>
             Submit Settlement to Tenant
           </PrimaryButton>
         </div>
