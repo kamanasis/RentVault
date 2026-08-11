@@ -31,7 +31,7 @@ export const AgreementTimeline = ({ currentStatus = 'Awaiting Deposit' }) => {
     ? 1
     : 0;
 
-  // Percentage width of progress line (0% to 100%)
+  // Connector progress line reaches strictly from start (node 0) to current node index (0% to 100%)
   const progressPercent = isCompleted ? 100 : (activeStageIndex / 6) * 100;
 
   return (
@@ -55,18 +55,14 @@ export const AgreementTimeline = ({ currentStatus = 'Awaiting Deposit' }) => {
       <div className="relative pt-2 pb-2 overflow-x-auto scrollbar-none">
         <div className="relative min-w-[700px] md:min-w-0 py-2">
           
-          {/* Layer 1: Background Track Line */}
-          <div className="absolute top-[22px] md:top-[24px] left-[7.14%] right-[7.14%] h-1 bg-border/60 rounded-full z-0">
-            {/* Layer 2: Completed Green & Current Blue Track Line */}
+          {/* Layer 1: Background Gray Track Line (3px thickness, centered at y=22px) */}
+          <div className="absolute top-[22px] md:top-[24px] left-[7.14%] right-[7.14%] h-[3px] bg-border/80 rounded-full z-0">
+            {/* Layer 2: Completed Pure Green Connector Line (NO BLUE CONNECTORS) */}
             <motion.div
               initial={{ width: '0%' }}
               animate={{ width: `${progressPercent}%` }}
-              transition={{ duration: 0.8, ease: 'easeInOut' }}
-              className={`h-full rounded-full ${
-                isCompleted 
-                  ? 'bg-success shadow-[0_0_10px_rgba(34,197,94,0.5)]' 
-                  : 'bg-gradient-to-r from-success via-success to-primary-glow shadow-[0_0_10px_rgba(59,130,246,0.5)]'
-              }`}
+              transition={{ duration: 0.6, ease: 'easeInOut' }}
+              className="h-full bg-success rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)]"
             />
           </div>
 
@@ -80,14 +76,14 @@ export const AgreementTimeline = ({ currentStatus = 'Awaiting Deposit' }) => {
 
               return (
                 <div key={stage.id} className="flex flex-col items-center text-center px-1">
-                  {/* Node Circle */}
+                  {/* Node Circle (44px/48px, solid bg-card to cover track line cleanly) */}
                   <motion.div
                     whileHover={{ scale: 1.08 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                     className={`
-                      w-11 h-11 md:w-12 md:h-12 rounded-full flex items-center justify-center border-2 transition-all duration-300 bg-card select-none cursor-pointer
+                      w-[44px] h-[44px] md:w-[48px] md:h-[48px] rounded-full flex items-center justify-center border-2 transition-all duration-300 bg-card select-none cursor-pointer
                       ${isCompletedStage
-                        ? 'border-success text-success bg-success/15 shadow-[0_0_15px_rgba(34,197,94,0.35)]'
+                        ? 'border-success text-success bg-success/15 shadow-[0_0_15px_rgba(34,197,94,0.4)]'
                         : isCurrentStage
                         ? 'border-primary-glow text-primary-glow bg-primary/20 ring-4 ring-primary/30 shadow-[0_0_15px_rgba(59,130,246,0.5)] animate-pulse'
                         : 'border-border/80 text-text-muted bg-card opacity-70'
@@ -125,3 +121,6 @@ export const AgreementTimeline = ({ currentStatus = 'Awaiting Deposit' }) => {
     </Card>
   );
 };
+
+// Export alias for AgreementLifecycleTimeline component name compatibility
+export const AgreementLifecycleTimeline = AgreementTimeline;
