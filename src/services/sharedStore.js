@@ -2,12 +2,12 @@ import { generateDemoEventHistory } from '../utils/agreementLifecycle';
 
 // Firebase configuration (uses VITE_FIREBASE_* environment variables)
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyRentVaultTestnetKey2026Demonstration",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "rentvault-e2f94.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "rentvault-e2f94",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "rentvault-e2f94.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "1097102419135",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:1097102419135:web:a4ed3e31d8601750cc920a"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "YOUR_FIREBASE_API_KEY",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "YOUR_FIREBASE_AUTH_DOMAIN",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "YOUR_FIREBASE_PROJECT_ID",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "YOUR_FIREBASE_STORAGE_BUCKET",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "YOUR_FIREBASE_MESSAGING_SENDER_ID",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "YOUR_FIREBASE_APP_ID"
 };
 
 let firebaseApp = null;
