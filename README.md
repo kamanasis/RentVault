@@ -35,6 +35,20 @@ Traditional rental deposit management is plagued by friction, mistrust, and opaq
 
 ---
 
+## 🌟 Why Use Stellar & Soroban?
+
+Building a rental deposit escrow platform on **Stellar** and **Soroban WASM Smart Contracts** offers distinct technical and financial advantages over traditional Web2 banking and legacy EVM blockchains:
+
+| Feature | Stellar & Soroban Advantage | Benefit for RentVault Users |
+| :--- | :--- | :--- |
+| **⚡ 3-5 Second Finality** | Stellar Consensus Protocol (SCP) settles transactions in 3–5 seconds. | Near-instant deposit locking and zero-wait refund execution upon lease completion. |
+| **💸 Micro-Cent Fees** | Transaction cost is a fraction of a cent (~$0.00001 per tx). | No prohibitive gas spikes; making escrow locking and utility settlement micro-cost effective. |
+| **🛡️ WASM Contract Security** | Soroban smart contracts run in a sandboxed Rust WebAssembly (WASM) engine. | Eliminates EVM-style reentrancy vulnerabilities, guaranteeing deterministic escrow fund security. |
+| **🔐 Freighter Wallet Auth** | Seamless browser extension authentication without raw private key exposure. | Non-custodial, user-friendly Web3 onboarding for landlords and tenants alike. |
+| **🌱 Enterprise Scalability** | Low-latency, energy-efficient, enterprise-grade blockchain infrastructure. | Sustainable platform capable of scaling to thousands of concurrent rental agreements globally. |
+
+---
+
 ## 🏆 Stella Level 1 & Level 2 Compliance
 
 RentVault fulfills all core requirements for the **Stellar (Stella) Web3 Program** Level 1 & Level 2 submissions:
