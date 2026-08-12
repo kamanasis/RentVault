@@ -271,29 +271,7 @@ Open **[http://localhost:5173](http://localhost:5173)** in your browser.
 
 ---
 
-## ⚙️ Environment Variables
 
-Create a `.env` file in the root directory (refer to `.env.example`):
-
-```env
-# Stellar Network Endpoints
-VITE_STELLAR_NETWORK=TESTNET
-VITE_HORIZON_URL=https://horizon-testnet.stellar.org
-VITE_SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
-
-# Soroban Smart Contract Configuration
-VITE_SOROBAN_CONTRACT_ID=YOUR_SOROBAN_CONTRACT_ID
-
-# Firebase Realtime Cloud Synchronization
-VITE_FIREBASE_API_KEY=YOUR_FIREBASE_API_KEY
-VITE_FIREBASE_AUTH_DOMAIN=YOUR_FIREBASE_AUTH_DOMAIN
-VITE_FIREBASE_PROJECT_ID=YOUR_FIREBASE_PROJECT_ID
-VITE_FIREBASE_STORAGE_BUCKET=YOUR_FIREBASE_STORAGE_BUCKET
-VITE_FIREBASE_MESSAGING_SENDER_ID=YOUR_FIREBASE_MESSAGING_SENDER_ID
-VITE_FIREBASE_APP_ID=YOUR_FIREBASE_APP_ID
-```
-
----
 
 ## 🌌 Stellar Testnet Setup
 
