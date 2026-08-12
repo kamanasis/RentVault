@@ -194,6 +194,152 @@ export const AgreementProvider = ({ children }) => {
     return newAgreement;
   };
 
+  // Raise Settlement Dispute Handler (Tenant)
+  const raiseSettlementDispute = async (id, disputeData) => {
+    const target = agreements.find((a) => a.id.toLowerCase() === id.toLowerCase());
+    if (!target) return;
+
+    const actor = (address || target.tenantWallet).trim().toUpperCase();
+
+    const disputeObj = {
+      status: 'open',
+      openedBy: 'tenant',
+      openedAt: new Date().toISOString(),
+      reason: disputeData.reason || 'Excessive Utility Deduction',
+      description: disputeData.description || '',
+      autoReleasePausedAt: new Date().toISOString(),
+      responses: [],
+    };
+
+    await advanceAgreementStatus(id, 'dispute_open', {
+      type: 'DISPUTE_RAISED',
+      actor,
+      metadata: { reason: disputeObj.reason, description: disputeObj.description },
+      updatedFields: { dispute: disputeObj },
+    });
+  };
+
+  // Respond to Dispute (Landlord)
+  const respondToDisputeLandlord = async (id, responseData) => {
+    const target = agreements.find((a) => a.id.toLowerCase() === id.toLowerCase());
+    if (!target || !target.dispute) return;
+
+    const actor = (address || target.landlordWallet).trim().toUpperCase();
+    const action = responseData.action || 'revised_proposal';
+    const now = new Date().toISOString();
+
+    const newResponse = {
+      id: `resp-${Date.now()}`,
+      by: actor,
+      role: 'landlord',
+      action,
+      message: responseData.message || '',
+      proposedUtilityDeduction: responseData.revisedUtility,
+      timestamp: now,
+    };
+
+    const updatedResponses = [...(target.dispute.responses || []), newResponse];
+
+    if (action === 'accept') {
+      // Landlord accepted tenant claim: set total deduction to 0 and resolve dispute
+      const totalEscrow = (target.depositAmount || 0) + (target.utilityReserve || 0);
+      const updatedDispute = {
+        ...target.dispute,
+        status: 'resolved',
+        resolvedAt: now,
+        finalUtilityDeduction: 0,
+        responses: updatedResponses,
+      };
+
+      await advanceAgreementStatus(id, 'dispute_resolved', {
+        type: 'LANDLORD_ACCEPTED_DISPUTE',
+        actor,
+        metadata: { note: 'Landlord accepted tenant dispute claim.' },
+        updatedFields: {
+          dispute: updatedDispute,
+          totalDeduction: 0,
+          finalRefundAmount: totalEscrow,
+        },
+      });
+    } else {
+      // Propose revised settlement or reject claim
+      const updatedDispute = {
+        ...target.dispute,
+        status: 'landlord_response',
+        responses: updatedResponses,
+      };
+
+      const deposit = target.depositAmount || 0;
+      const reserve = target.utilityReserve || 0;
+      const totalEscrow = deposit + reserve;
+      const newDeduction = action === 'revised_proposal' ? responseData.revisedUtility : target.totalDeduction;
+      const newRefund = Math.max(0, totalEscrow - newDeduction);
+
+      await advanceAgreementStatus(id, 'dispute_landlord_response', {
+        type: 'LANDLORD_DISPUTE_RESPONSE',
+        actor,
+        metadata: { action, proposedUtility: newDeduction },
+        updatedFields: {
+          dispute: updatedDispute,
+          totalDeduction: newDeduction,
+          finalRefundAmount: newRefund,
+        },
+      });
+    }
+  };
+
+  // Respond to Dispute (Tenant)
+  const respondToDisputeTenant = async (id, responseData) => {
+    const target = agreements.find((a) => a.id.toLowerCase() === id.toLowerCase());
+    if (!target || !target.dispute) return;
+
+    const actor = (address || target.tenantWallet).trim().toUpperCase();
+    const action = responseData.action || 'accept';
+    const now = new Date().toISOString();
+
+    const newResponse = {
+      id: `resp-${Date.now()}`,
+      by: actor,
+      role: 'tenant',
+      action,
+      message: responseData.message || '',
+      timestamp: now,
+    };
+
+    const updatedResponses = [...(target.dispute.responses || []), newResponse];
+
+    if (action === 'accept') {
+      // Tenant accepted revised settlement -> Resolve dispute
+      const updatedDispute = {
+        ...target.dispute,
+        status: 'resolved',
+        resolvedAt: now,
+        responses: updatedResponses,
+      };
+
+      await advanceAgreementStatus(id, 'dispute_resolved', {
+        type: 'TENANT_ACCEPTED_SETTLEMENT',
+        actor,
+        metadata: { note: 'Tenant accepted revised settlement proposal.' },
+        updatedFields: { dispute: updatedDispute },
+      });
+    } else {
+      // Continue dispute
+      const updatedDispute = {
+        ...target.dispute,
+        status: 'tenant_response',
+        responses: updatedResponses,
+      };
+
+      await advanceAgreementStatus(id, 'dispute_tenant_response', {
+        type: 'TENANT_CONTINUED_DISPUTE',
+        actor,
+        metadata: { note: 'Tenant requested further dispute negotiation.' },
+        updatedFields: { dispute: updatedDispute },
+      });
+    }
+  };
+
   // Update agreement terms
   const updateAgreement = async (id, updatedFields) => {
     const target = agreements.find((a) => a.id.toLowerCase() === id.toLowerCase());
@@ -301,9 +447,14 @@ export const AgreementProvider = ({ children }) => {
     });
   };
 
-  // Tenant Approve Refund
+  // Tenant Approve Refund (Locked if active dispute exists)
   const approveRefund = async (id) => {
     const target = agreements.find((a) => a.id.toLowerCase() === id.toLowerCase());
+    if (target?.dispute && target.dispute.status !== 'resolved') {
+      console.warn(`[AgreementContext] Refund locked for ${id}: active dispute in progress.`);
+      return;
+    }
+
     const mockRefundHash = `9f71c42e88b1092a${Date.now().toString(16)}`;
     const deposit = target?.depositAmount || 0;
     const refundVal = target?.finalRefundAmount !== undefined ? target.finalRefundAmount : deposit;
@@ -319,17 +470,6 @@ export const AgreementProvider = ({ children }) => {
         refundTxHash: mockRefundHash,
         fundedAmount: 0,
       },
-    });
-  };
-
-  // Tenant Raise Dispute
-  const raiseDispute = async (id) => {
-    const target = agreements.find((a) => a.id.toLowerCase() === id.toLowerCase());
-    await advanceAgreementStatus(id, 'Dispute Pending', {
-      type: 'SETTLEMENT_DISPUTE_RAISED',
-      actor: address ? address.trim().toUpperCase() : target?.tenantWallet,
-      metadata: { note: 'Dispute raised by tenant.' },
-      updatedFields: { disputedAt: new Date().toISOString() },
     });
   };
 
@@ -362,8 +502,10 @@ export const AgreementProvider = ({ children }) => {
         activateLease,
         endLease,
         submitUtilitySettlement,
+        raiseSettlementDispute,
+        respondToDisputeLandlord,
+        respondToDisputeTenant,
         approveRefund,
-        raiseDispute,
         getAgreementById,
         updateAgreementStatus,
         deleteAgreement,

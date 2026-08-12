@@ -16,13 +16,11 @@ export const AgreementDashboard = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('All'); // 'All' | 'As Landlord' | 'As Tenant'
-  const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Active' | 'Lease Ended' | 'Settlement Pending' | 'Completed'
+  const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Active' | 'Lease Ended' | 'Settlement Pending' | 'Disputed' | 'Completed'
   const [sortBy, setSortBy] = useState('newest');
 
   // Enforce uppercase trimmed wallet address normalization for exact matching
   const normalizedAddress = (address || '').trim().toUpperCase();
-
-  console.log(`[Wallet] Connected Address: '${normalizedAddress || 'DISCONNECTED'}' | Total Cloud Agreements: ${agreements.length}`);
 
   // Internal identity filtering: connected wallet must participate as Landlord or Tenant
   const userAgreements = (connected && normalizedAddress)
@@ -41,13 +39,12 @@ export const AgreementDashboard = () => {
     ? agreements.filter((a) => (a.tenantWallet || '').trim().toUpperCase() === normalizedAddress)
     : agreements;
 
-  console.log(`[Filter] Landlord matches: ${landlordAgreements.length} | Tenant matches: ${tenantAgreements.length} | Total User: ${userAgreements.length}`);
-
   const statusTabOptions = [
     { id: 'All', label: 'All' },
     { id: 'Active', label: 'Active' },
     { id: 'Lease Ended', label: 'Lease Ended' },
     { id: 'Settlement Pending', label: 'Settlement Pending' },
+    { id: 'Disputed', label: 'Disputed' },
     { id: 'Completed', label: 'Completed' },
   ];
 
@@ -73,7 +70,14 @@ export const AgreementDashboard = () => {
       } else if (statusFilter === 'Lease Ended') {
         matchesStatus = a.status === 'Lease Ended';
       } else if (statusFilter === 'Settlement Pending') {
-        matchesStatus = a.status === 'Utility Settlement' || a.status === 'Dispute Pending';
+        matchesStatus = a.status === 'Utility Settlement';
+      } else if (statusFilter === 'Disputed') {
+        matchesStatus = 
+          a.status === 'dispute_open' || 
+          a.status === 'dispute_landlord_response' || 
+          a.status === 'dispute_tenant_response' || 
+          a.status === 'Dispute Pending' ||
+          (a.dispute && a.dispute.status !== 'resolved');
       } else if (statusFilter === 'Completed') {
         matchesStatus = a.status === 'Refund Completed';
       } else if (statusFilter !== 'All') {
@@ -98,7 +102,14 @@ export const AgreementDashboard = () => {
   // Calculate status counts
   const activeCount = roleBaseAgreements.filter(a => a.status === 'Awaiting Deposit' || a.status === 'Deposit Locked' || a.status === 'Lease Active').length;
   const endedCount = roleBaseAgreements.filter(a => a.status === 'Lease Ended').length;
-  const settlementCount = roleBaseAgreements.filter(a => a.status === 'Utility Settlement' || a.status === 'Dispute Pending').length;
+  const settlementCount = roleBaseAgreements.filter(a => a.status === 'Utility Settlement').length;
+  const disputedCount = roleBaseAgreements.filter(a => 
+    a.status === 'dispute_open' || 
+    a.status === 'dispute_landlord_response' || 
+    a.status === 'dispute_tenant_response' || 
+    a.status === 'Dispute Pending' || 
+    (a.dispute && a.dispute.status !== 'resolved')
+  ).length;
   const completedCount = roleBaseAgreements.filter(a => a.status === 'Refund Completed').length;
 
   return (
@@ -180,7 +191,7 @@ export const AgreementDashboard = () => {
           </div>
         </div>
 
-        {/* Status Filter Tabs (Active, Lease Ended, Settlement Pending, Completed, All) */}
+        {/* Status Filter Tabs */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none border-t border-border/60">
           <span className="text-xs text-text-muted font-medium flex items-center gap-1 mr-2 flex-shrink-0">
             <Filter className="w-3.5 h-3.5" /> Status:
@@ -191,6 +202,7 @@ export const AgreementDashboard = () => {
             if (opt.id === 'Active') tabCount = activeCount;
             if (opt.id === 'Lease Ended') tabCount = endedCount;
             if (opt.id === 'Settlement Pending') tabCount = settlementCount;
+            if (opt.id === 'Disputed') tabCount = disputedCount;
             if (opt.id === 'Completed') tabCount = completedCount;
 
             return (

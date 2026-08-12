@@ -1,5 +1,6 @@
 /**
  * RentVault Centralized Agreement Lifecycle State Machine & Event Helper
+ * 8-Stage Timeline Architecture with Dispute Resolution Workspace
  */
 
 export const LIFECYCLE_STAGES = [
@@ -9,13 +10,24 @@ export const LIFECYCLE_STAGES = [
   { stage: 4, key: 'lease_active', status: 'Lease Active', label: 'Lease Active' },
   { stage: 5, key: 'lease_ended', status: 'Lease Ended', label: 'Lease Ended' },
   { stage: 6, key: 'utility_settlement', status: 'Utility Settlement', label: 'Utility Settlement' },
-  { stage: 7, key: 'refund_completed', status: 'Refund Completed', label: 'Refund Completed' },
+  { stage: 7, key: 'dispute_resolution', status: 'Dispute Resolution', label: 'Dispute Resolution' },
+  { stage: 8, key: 'refund_completed', status: 'Refund Completed', label: 'Refund Completed' },
 ];
 
 /**
- * Returns stage number (1 to 7) for a given status
+ * Returns stage number (1 to 8) for a given status
  */
 export const getStageNumber = (status) => {
+  if (
+    status === 'dispute_open' ||
+    status === 'dispute_landlord_response' ||
+    status === 'dispute_tenant_response' ||
+    status === 'dispute_resolved' ||
+    status === 'Dispute Pending'
+  ) {
+    return 7;
+  }
+
   const found = LIFECYCLE_STAGES.find((s) => s.status === status || s.key === status);
   return found ? found.stage : 1;
 };
@@ -82,6 +94,10 @@ export const generateDemoEventHistory = (agreement) => {
     agreement.status === 'Lease Active' ||
     agreement.status === 'Lease Ended' ||
     agreement.status === 'Utility Settlement' ||
+    agreement.status === 'dispute_open' ||
+    agreement.status === 'dispute_landlord_response' ||
+    agreement.status === 'dispute_tenant_response' ||
+    agreement.status === 'dispute_resolved' ||
     agreement.status === 'Refund Completed'
   ) {
     events.push(createLifecycleEvent({
@@ -100,6 +116,10 @@ export const generateDemoEventHistory = (agreement) => {
     agreement.status === 'Lease Active' ||
     agreement.status === 'Lease Ended' ||
     agreement.status === 'Utility Settlement' ||
+    agreement.status === 'dispute_open' ||
+    agreement.status === 'dispute_landlord_response' ||
+    agreement.status === 'dispute_tenant_response' ||
+    agreement.status === 'dispute_resolved' ||
     agreement.status === 'Refund Completed'
   ) {
     events.push(createLifecycleEvent({
@@ -116,6 +136,10 @@ export const generateDemoEventHistory = (agreement) => {
   if (
     agreement.status === 'Lease Ended' ||
     agreement.status === 'Utility Settlement' ||
+    agreement.status === 'dispute_open' ||
+    agreement.status === 'dispute_landlord_response' ||
+    agreement.status === 'dispute_tenant_response' ||
+    agreement.status === 'dispute_resolved' ||
     agreement.status === 'Refund Completed'
   ) {
     events.push(createLifecycleEvent({
@@ -131,6 +155,10 @@ export const generateDemoEventHistory = (agreement) => {
   // Stage 6
   if (
     agreement.status === 'Utility Settlement' ||
+    agreement.status === 'dispute_open' ||
+    agreement.status === 'dispute_landlord_response' ||
+    agreement.status === 'dispute_tenant_response' ||
+    agreement.status === 'dispute_resolved' ||
     agreement.status === 'Refund Completed'
   ) {
     events.push(createLifecycleEvent({
@@ -146,7 +174,19 @@ export const generateDemoEventHistory = (agreement) => {
     }));
   }
 
-  // Stage 7
+  // Stage 7 (Dispute events if dispute existed)
+  if (agreement.dispute) {
+    events.push(createLifecycleEvent({
+      agreementId: agreement.id,
+      type: 'DISPUTE_RAISED',
+      status: 'Dispute Resolution',
+      actor: tenant,
+      timestamp: agreement.dispute.openedAt || createdAt,
+      metadata: { reason: agreement.dispute.reason, description: agreement.dispute.description },
+    }));
+  }
+
+  // Stage 8
   if (agreement.status === 'Refund Completed') {
     events.push(createLifecycleEvent({
       agreementId: agreement.id,

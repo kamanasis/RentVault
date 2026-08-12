@@ -8,6 +8,7 @@ import { AgreementTimeline } from '../components/agreements/AgreementTimeline';
 import { AgreementActivityTimeline } from '../components/lifecycle/AgreementActivityTimeline';
 import { LeaseStatusCard } from '../components/lifecycle/LeaseStatusCard';
 import { TenantReviewPanel } from '../components/lifecycle/TenantReviewPanel';
+import { DisputeResolutionPanel } from '../components/lifecycle/DisputeResolutionPanel';
 import { RefundConfirmationCard } from '../components/lifecycle/RefundConfirmationCard';
 import { EditAgreementModal } from '../components/agreements/EditAgreementModal';
 import { FundingProgress } from '../components/escrow/FundingProgress';
@@ -45,13 +46,19 @@ import {
   Archive,
   Download,
   FileText,
-  Cpu
+  Cpu,
+  ShieldAlert
 } from 'lucide-react';
 
 export const AgreementDetails = () => {
   const { id = 'RV-2026-001' } = useParams();
   const navigate = useNavigate();
-  const { getAgreementById, endLease } = useAgreements();
+  const { 
+    getAgreementById, 
+    endLease, 
+    respondToDisputeLandlord, 
+    respondToDisputeTenant 
+  } = useAgreements();
   const { address } = useWallet();
 
   const agreement = getAgreementById(id);
@@ -114,15 +121,25 @@ export const AgreementDetails = () => {
     agreement.status === 'Lease Active' || 
     agreement.status === 'Lease Ended' || 
     agreement.status === 'Utility Settlement' || 
-    agreement.status === 'Approval Pending' || 
-    agreement.status === 'Dispute Pending' || 
+    agreement.status === 'dispute_open' ||
+    agreement.status === 'dispute_landlord_response' ||
+    agreement.status === 'dispute_tenant_response' ||
+    agreement.status === 'dispute_resolved' ||
     agreement.status === 'Refund Completed';
 
   const fundedAmount = isFundedState ? totalEscrow : (parseFloat(agreement.fundedAmount) || 0);
 
   const isDepositLocked = agreement.status !== 'Awaiting Deposit';
   const isRefundCompleted = agreement.status === 'Refund Completed';
-  const isSettlementMode = agreement.status === 'Utility Settlement';
+  const isSettlementMode = 
+    agreement.status === 'Utility Settlement' || 
+    agreement.status === 'dispute_open' ||
+    agreement.status === 'dispute_landlord_response' ||
+    agreement.status === 'dispute_tenant_response' ||
+    agreement.status === 'dispute_resolved';
+
+  const hasDispute = Boolean(agreement.dispute);
+
   const contractId = getSorobanContractId();
 
   // Role permissions list items
@@ -243,9 +260,9 @@ export const AgreementDetails = () => {
             </>
           )}
 
-          {(agreement.status === 'Lease Ended' || agreement.status === 'Utility Settlement') && (
+          {isSettlementMode && !isRefundCompleted && (
             <PrimaryButton icon={Zap} onClick={() => navigate(`/agreements/${agreement.id}/settlement`)}>
-              Utility Settlement Portal
+              {hasDispute ? 'Dispute Workspace' : 'Utility Settlement Portal'}
             </PrimaryButton>
           )}
 
@@ -285,8 +302,18 @@ export const AgreementDetails = () => {
           {!isRefundCompleted && <LeaseStatusCard agreement={agreement} isLandlord={roleInfo.isLandlord} />}
 
           {/* Tenant Review Panel */}
-          {isSettlementMode && (
+          {isSettlementMode && !isRefundCompleted && (
             <TenantReviewPanel agreement={agreement} />
+          )}
+
+          {/* Dispute Resolution Workspace Panel */}
+          {hasDispute && (
+            <DisputeResolutionPanel
+              agreement={agreement}
+              roleInfo={roleInfo}
+              onLandlordRespond={(data) => respondToDisputeLandlord(agreement.id, data)}
+              onTenantRespond={(data) => respondToDisputeTenant(agreement.id, data)}
+            />
           )}
 
           {/* Always Visible: Escrow Status & Funding Progress */}
@@ -300,7 +327,7 @@ export const AgreementDetails = () => {
             finalRefundAmount={agreement.finalRefundAmount}
           />
 
-          {/* Always Visible: Agreement Lifecycle Timeline */}
+          {/* Always Visible: 8-Stage Agreement Lifecycle Timeline */}
           <AgreementTimeline currentStatus={agreement.status} />
 
           {/* Expandable Accordion 1: Parties & Wallet Verification */}
@@ -365,9 +392,9 @@ export const AgreementDetails = () => {
             </Accordion>
           )}
 
-          {/* Expandable Accordion 3: Complete 10-Stage Activity Feed */}
+          {/* Expandable Accordion 3: Activity Log */}
           <Accordion
-            title="Complete 10-Stage Activity Log"
+            title="Complete Activity & Dispute Event Log"
             subtitle="Auditable timeline event history"
             icon={Clock}
             badgeText="Auditable"
@@ -462,13 +489,15 @@ export const AgreementDetails = () => {
             <div className="p-3.5 bg-surface/60 rounded-2xl border border-border/60 space-y-1.5 text-xs">
               <div className="flex items-center justify-between font-semibold">
                 <span className="text-text-muted">Escrow Lifecycle</span>
-                <span className={isRefundCompleted ? 'text-success' : 'text-primary-glow'}>
+                <span className={isRefundCompleted ? 'text-success' : hasDispute ? 'text-error' : 'text-primary-glow'}>
                   {agreement.status}
                 </span>
               </div>
               <p className="text-[11px] text-text-secondary leading-relaxed">
                 {isRefundCompleted 
                   ? `Refund of ${(agreement.finalRefundAmount || depositAmount).toFixed(2)} XLM fully executed on Stellar Testnet.`
+                  : hasDispute
+                  ? `Active settlement dispute in progress. Refund release is locked until mutual resolution.`
                   : isDepositLocked 
                   ? `Funded by tenant wallet (${totalEscrow} XLM locked on-chain)`
                   : `Requires ${totalEscrow} XLM escrow deposit by assigned tenant`}

@@ -4,8 +4,13 @@ import { Clock, AlertTriangle, ShieldCheck, Plus, Zap } from 'lucide-react';
 import { useAgreements } from '../../context/AgreementContext';
 import { formatAutoReleaseCountdown, getAutoReleasePolicyLabel } from '../../utils/autoRelease';
 
-export const AutoReleaseTimer = ({ agreement, onTimerExpire, isDisputed = false, isLandlord = false }) => {
+export const AutoReleaseTimer = ({ agreement, onTimerExpire, isDisputed: isDisputedProp = false, isLandlord = false }) => {
   const { updateAutoReleasePolicy } = useAgreements();
+
+  const isDisputed = isDisputedProp || (
+    agreement?.dispute && 
+    agreement?.dispute?.status !== 'resolved'
+  );
 
   const autoReleaseObj = agreement?.autoRelease || {
     preset: '7_days',
@@ -67,10 +72,12 @@ export const AutoReleaseTimer = ({ agreement, onTimerExpire, isDisputed = false,
     return (
       <div className="p-4 bg-error/15 border border-error/40 rounded-2xl flex items-center justify-between text-error font-mono text-caption">
         <div className="flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5" />
-          <span className="font-sans font-semibold">Auto-Release Policy Frozen</span>
+          <AlertTriangle className="w-5 h-5 text-error" />
+          <span className="font-sans font-semibold">Auto-Release Policy Paused</span>
         </div>
-        <span>Dispute Pending</span>
+        <span className="text-xs font-bold uppercase tracking-wider bg-error/20 px-3 py-1 rounded-full">
+          Dispute Active
+        </span>
       </div>
     );
   }
