@@ -51,7 +51,7 @@ import {
 export const AgreementDetails = () => {
   const { id = 'RV-2026-001' } = useParams();
   const navigate = useNavigate();
-  const { getAgreementById } = useAgreements();
+  const { getAgreementById, endLease } = useAgreements();
   const { address } = useWallet();
 
   const agreement = getAgreementById(id);
@@ -108,9 +108,17 @@ export const AgreementDetails = () => {
   const depositAmount = agreement.depositAmount || 0;
   const utilityReserve = agreement.utilityReserve || 0;
   const totalEscrow = depositAmount + utilityReserve;
-  const fundedAmount = agreement.fundedAmount !== undefined 
-    ? agreement.fundedAmount 
-    : (agreement.status === 'Deposit Locked' || agreement.status === 'Lease Active' || agreement.status === 'Lease Ended' || agreement.status === 'Utility Settlement' ? totalEscrow : 0);
+
+  const isFundedState = 
+    agreement.status === 'Deposit Locked' || 
+    agreement.status === 'Lease Active' || 
+    agreement.status === 'Lease Ended' || 
+    agreement.status === 'Utility Settlement' || 
+    agreement.status === 'Approval Pending' || 
+    agreement.status === 'Dispute Pending' || 
+    agreement.status === 'Refund Completed';
+
+  const fundedAmount = isFundedState ? totalEscrow : (parseFloat(agreement.fundedAmount) || 0);
 
   const isDepositLocked = agreement.status !== 'Awaiting Deposit';
   const isRefundCompleted = agreement.status === 'Refund Completed';
@@ -125,7 +133,7 @@ export const AgreementDetails = () => {
   ] : [
     'Edit agreement metadata',
     'Share agreement link',
-    'Submit utility settlement',
+    'Trigger lease termination & settlement',
     'Monitor escrow status',
     'View funding details',
   ];
@@ -212,9 +220,26 @@ export const AgreementDetails = () => {
               <SecondaryButton icon={Share2} onClick={handleShareAgreement}>
                 {copiedShareLink ? 'Link Copied!' : 'Share Link'}
               </SecondaryButton>
-              <PrimaryButton icon={Calendar} onClick={() => navigate(`/agreements/${agreement.id}/timeline`)}>
-                View Active Timeline
-              </PrimaryButton>
+              {roleInfo.isLandlord && (
+                <SecondaryButton icon={Edit3} onClick={() => setIsEditModalOpen(true)}>
+                  Edit Terms
+                </SecondaryButton>
+              )}
+              {roleInfo.isLandlord ? (
+                <PrimaryButton 
+                  icon={Zap} 
+                  onClick={() => {
+                    endLease(agreement.id);
+                    navigate(`/agreements/${agreement.id}/settlement`);
+                  }}
+                >
+                  Trigger Lease End & Settlement
+                </PrimaryButton>
+              ) : (
+                <PrimaryButton icon={Calendar} onClick={() => navigate(`/agreements/${agreement.id}/timeline`)}>
+                  View Active Timeline
+                </PrimaryButton>
+              )}
             </>
           )}
 
@@ -251,15 +276,15 @@ export const AgreementDetails = () => {
             <WalletMismatchNotice requiredRole="tenant" connectedAddress={address} />
           )}
 
-          {/* Phase 7 Refund Completion Card */}
+          {/* Refund Completion Card */}
           {isRefundCompleted && (
             <RefundConfirmationCard agreement={agreement} />
           )}
 
-          {/* Phase 7 Lease Lifecycle Status Card */}
+          {/* Lease Lifecycle Status Card */}
           {!isRefundCompleted && <LeaseStatusCard agreement={agreement} isLandlord={roleInfo.isLandlord} />}
 
-          {/* Phase 7 Tenant Review Panel */}
+          {/* Tenant Review Panel */}
           {isSettlementMode && (
             <TenantReviewPanel agreement={agreement} />
           )}

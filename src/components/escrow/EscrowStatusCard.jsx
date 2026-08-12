@@ -48,7 +48,15 @@ export const EscrowStatusCard = ({ status = 'Awaiting Deposit', errorMessage }) 
     );
   }
 
-  if (status === 'Deposit Locked' || status === 'Lease Active') {
+  const isLockedState = 
+    status === 'Deposit Locked' || 
+    status === 'Lease Active' || 
+    status === 'Lease Ended' || 
+    status === 'Utility Settlement' || 
+    status === 'Approval Pending' || 
+    status === 'Dispute Pending';
+
+  if (isLockedState) {
     return (
       <Card className="p-6 bg-success/10 border-success/40 space-y-3">
         <div className="flex items-center justify-between">

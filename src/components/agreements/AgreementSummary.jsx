@@ -17,11 +17,17 @@ export const AgreementSummary = ({ agreement }) => {
     ? agreement.finalRefundAmount 
     : (isCompleted ? Math.max(0, totalEscrow - totalDeduction) : deposit);
 
-  const fundedAmount = agreement.fundedAmount !== undefined 
-    ? agreement.fundedAmount 
-    : (agreement.status === 'Deposit Locked' || agreement.status === 'Lease Active' || agreement.status === 'Lease Ended' || agreement.status === 'Utility Settlement' ? totalEscrow : 0);
+  const isFundedState = 
+    agreement.status === 'Deposit Locked' || 
+    agreement.status === 'Lease Active' || 
+    agreement.status === 'Lease Ended' || 
+    agreement.status === 'Utility Settlement' || 
+    agreement.status === 'Approval Pending' || 
+    agreement.status === 'Dispute Pending' || 
+    agreement.status === 'Refund Completed';
 
-  const remainingAmount = isCompleted ? 0 : Math.max(0, totalEscrow - fundedAmount);
+  const fundedAmount = isFundedState ? totalEscrow : (parseFloat(agreement.fundedAmount) || 0);
+  const remainingAmount = isCompleted || isFundedState ? 0 : Math.max(0, totalEscrow - fundedAmount);
   const isFullyFunded = fundedAmount >= totalEscrow && totalEscrow > 0;
   const leaseDurationStr = calculateLeaseDuration(agreement.leaseStart, agreement.leaseEnd);
   const autoReleaseLabel = getAutoReleasePolicyLabel(agreement.autoRelease);
