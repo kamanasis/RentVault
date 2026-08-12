@@ -19,24 +19,29 @@ export const AgreementDashboard = () => {
   const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Active' | 'Lease Ended' | 'Settlement Pending' | 'Completed'
   const [sortBy, setSortBy] = useState('newest');
 
-  const normalizedAddress = (address || '').toLowerCase().trim();
+  // Enforce uppercase trimmed wallet address normalization for exact matching
+  const normalizedAddress = (address || '').trim().toUpperCase();
+
+  console.log(`[Wallet] Connected Address: '${normalizedAddress || 'DISCONNECTED'}' | Total Cloud Agreements: ${agreements.length}`);
 
   // Internal identity filtering: connected wallet must participate as Landlord or Tenant
-  const userAgreements = (connected && address)
+  const userAgreements = (connected && normalizedAddress)
     ? agreements.filter((a) => {
-        const landlord = (a.landlordWallet || '').toLowerCase().trim();
-        const tenant = (a.tenantWallet || '').toLowerCase().trim();
+        const landlord = (a.landlordWallet || '').trim().toUpperCase();
+        const tenant = (a.tenantWallet || '').trim().toUpperCase();
         return landlord === normalizedAddress || tenant === normalizedAddress;
       })
     : agreements; // Fallback to all agreements when disconnected for demo visibility
 
-  const landlordAgreements = (connected && address)
-    ? agreements.filter((a) => (a.landlordWallet || '').toLowerCase().trim() === normalizedAddress)
+  const landlordAgreements = (connected && normalizedAddress)
+    ? agreements.filter((a) => (a.landlordWallet || '').trim().toUpperCase() === normalizedAddress)
     : agreements;
 
-  const tenantAgreements = (connected && address)
-    ? agreements.filter((a) => (a.tenantWallet || '').toLowerCase().trim() === normalizedAddress)
+  const tenantAgreements = (connected && normalizedAddress)
+    ? agreements.filter((a) => (a.tenantWallet || '').trim().toUpperCase() === normalizedAddress)
     : agreements;
+
+  console.log(`[Filter] Landlord matches: ${landlordAgreements.length} | Tenant matches: ${tenantAgreements.length} | Total User: ${userAgreements.length}`);
 
   const statusTabOptions = [
     { id: 'All', label: 'All' },

@@ -1,5 +1,6 @@
 /**
  * Evaluate agreement access role based on connected wallet public key
+ * Enforces uppercase trimmed string comparison for robust cross-browser matching
  * Returns { role: 'landlord' | 'tenant' | 'unauthorized' | 'guest', isLandlord, isTenant, isUnauthorized }
  */
 export const evaluateAgreementRole = (connectedAddress, agreement) => {
@@ -23,9 +24,9 @@ export const evaluateAgreementRole = (connectedAddress, agreement) => {
     };
   }
 
-  const normalizedConnected = connectedAddress.toLowerCase().trim();
-  const normalizedLandlord = (agreement.landlordWallet || '').toLowerCase().trim();
-  const normalizedTenant = (agreement.tenantWallet || '').toLowerCase().trim();
+  const normalizedConnected = connectedAddress.trim().toUpperCase();
+  const normalizedLandlord = (agreement.landlordWallet || '').trim().toUpperCase();
+  const normalizedTenant = (agreement.tenantWallet || '').trim().toUpperCase();
 
   const isLandlord = normalizedConnected === normalizedLandlord;
   const isTenant = normalizedConnected === normalizedTenant;

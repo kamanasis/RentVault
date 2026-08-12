@@ -5,61 +5,11 @@ import { createLifecycleEvent, generateDemoEventHistory, getStageNumber } from '
 import { 
   subscribeToSharedAgreements, 
   saveAgreementToSharedStore, 
-  saveAllAgreementsToSharedStore,
   deleteAgreementFromSharedStore,
   normalizeAgreementForStorage
 } from '../services/sharedStore';
 
 const AgreementContext = createContext();
-
-const STORAGE_KEY = 'rentvault_agreements';
-
-const INITIAL_DEMO_AGREEMENTS = [
-  {
-    id: 'RV-2026-001',
-    propertyName: 'Sunset Bay Apartments #402',
-    propertyAddress: '742 Evergreen Terrace, Sector 4',
-    landlordWallet: 'GB7X42F098A190B38812TESTNETRENTVAULTKEY99',
-    tenantWallet: 'GDKX89A190B38812TESTNETTENANTKEY99881',
-    depositAmount: 2300,
-    utilityReserve: 200,
-    fundedAmount: 0,
-    leaseStart: '2026-09-01',
-    leaseEnd: '2027-08-31',
-    notes: 'Includes reserved utility escrow for electricity and water settlement.',
-    status: 'Awaiting Deposit',
-    createdAt: '2026-08-01T10:00:00.000Z',
-    autoRelease: {
-      preset: '7_days',
-      duration: 7,
-      unit: 'days',
-      milliseconds: 7 * 24 * 60 * 60 * 1000,
-    },
-  },
-  {
-    id: 'RV-2026-002',
-    propertyName: 'Metro Loft Suites #12',
-    propertyAddress: '101 Innovation Boulevard, Tech District',
-    landlordWallet: 'GB7X42F098A190B38812TESTNETRENTVAULTKEY99',
-    tenantWallet: 'GC2Y19D488A1009182TESTNETTENANTKEY77',
-    depositAmount: 1800,
-    utilityReserve: 200,
-    fundedAmount: 2000,
-    leaseStart: '2026-06-01',
-    leaseEnd: '2027-05-31',
-    notes: 'Escrow deposit locked on Stellar Testnet.',
-    status: 'Deposit Locked',
-    createdAt: '2026-05-20T14:30:00.000Z',
-    txHash: '8f92a10e2b4c129d39f4011029419082001',
-    depositConfirmedAt: '2026-05-20T14:35:00.000Z',
-    autoRelease: {
-      preset: '1_min',
-      duration: 1,
-      unit: 'minutes',
-      milliseconds: 60 * 1000,
-    },
-  },
-];
 
 /**
  * Self-healing status migration & event history initialization
@@ -119,31 +69,15 @@ export const AgreementProvider = ({ children }) => {
   const [agreements, setAgreements] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Initialize and subscribe to real-time shared store across distinct browsers/tabs
+  // Subscribe strictly to Firestore realtime onSnapshot single source of truth
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      let initialList = INITIAL_DEMO_AGREEMENTS;
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          initialList = parsed;
-        }
-      }
-
-      const { migrated } = checkAndMigrateLeaseStatus(initialList);
-      setAgreements(migrated);
-    } catch (err) {
-      const { migrated } = checkAndMigrateLeaseStatus(INITIAL_DEMO_AGREEMENTS);
-      setAgreements(migrated);
-    } finally {
-      setLoading(false);
-    }
-
-    // Subscribe to shared real-time persistence layer (Firebase + BroadcastChannel)
+    console.log('[AgreementContext] Initializing Firestore realtime listener...');
+    
     const unsubscribe = subscribeToSharedAgreements((sharedList) => {
       const { migrated } = checkAndMigrateLeaseStatus(sharedList);
+      console.log(`[AgreementContext] Received ${migrated.length} agreements from Firestore realtime feed`);
       setAgreements(migrated);
+      setLoading(false);
     });
 
     return () => {
@@ -151,53 +85,41 @@ export const AgreementProvider = ({ children }) => {
     };
   }, []);
 
-  const persistAgreements = (newAgreements) => {
-    const { migrated } = checkAndMigrateLeaseStatus(newAgreements);
-    setAgreements(migrated);
-    saveAllAgreementsToSharedStore(migrated);
-  };
+  // Centralized Lifecycle State Machine advance function (Atomic Firestore Write)
+  const advanceAgreementStatus = async (id, nextStatus, eventDetails = {}) => {
+    const target = agreements.find((a) => a.id.toLowerCase() === id.toLowerCase());
+    if (!target) return;
 
-  // Centralized Lifecycle State Machine advance function
-  const advanceAgreementStatus = (id, nextStatus, eventDetails = {}) => {
-    let targetUpdated = null;
-    const updated = agreements.map((a) => {
-      if (a.id.toLowerCase() === id.toLowerCase()) {
-        const newEvt = createLifecycleEvent({
-          agreementId: a.id,
-          type: eventDetails.type || `STATUS_ADVANCED_${nextStatus.toUpperCase().replace(/\s+/g, '_')}`,
-          status: nextStatus,
-          actor: eventDetails.actor || address || a.landlordWallet,
-          txHash: eventDetails.txHash || null,
-          metadata: eventDetails.metadata || {},
-        });
-
-        const currentHistory = Array.isArray(a.eventHistory) ? a.eventHistory : [];
-
-        targetUpdated = {
-          ...a,
-          ...eventDetails.updatedFields,
-          status: nextStatus,
-          updatedAt: new Date().toISOString(),
-          eventHistory: [...currentHistory, newEvt],
-        };
-        return targetUpdated;
-      }
-      return a;
+    const newEvt = createLifecycleEvent({
+      agreementId: target.id,
+      type: eventDetails.type || `STATUS_ADVANCED_${nextStatus.toUpperCase().replace(/\s+/g, '_')}`,
+      status: nextStatus,
+      actor: eventDetails.actor || address || target.landlordWallet,
+      txHash: eventDetails.txHash || null,
+      metadata: eventDetails.metadata || {},
     });
 
-    if (targetUpdated) {
-      saveAgreementToSharedStore(targetUpdated);
-    } else {
-      persistAgreements(updated);
-    }
+    const currentHistory = Array.isArray(target.eventHistory) ? target.eventHistory : [];
+
+    const updatedAgreement = {
+      ...target,
+      ...eventDetails.updatedFields,
+      status: nextStatus,
+      updatedAt: new Date().toISOString(),
+      eventHistory: [...currentHistory, newEvt],
+    };
+
+    console.log(`[AgreementContext] Advancing agreement ${id} to state '${nextStatus}'...`);
+    await saveAgreementToSharedStore(updatedAgreement);
   };
 
-  // Create new agreement with customizable autoRelease policy
-  const createAgreement = (formData) => {
+  // Create new agreement with customizable autoRelease policy (Atomic Firestore Write)
+  const createAgreement = async (formData) => {
     const nextIndex = agreements.length + 1;
     const padIndex = String(nextIndex).padStart(3, '0');
     const newId = `RV-2026-${padIndex}`;
-    const landlordAddr = address || 'GB7X42F098A190B38812TESTNETRENTVAULTKEY99';
+    const landlordAddr = (address || 'GB7X42F098A190B38812TESTNETRENTVAULTKEY99').trim().toUpperCase();
+    const tenantAddr = (formData.tenantWallet || '').trim().toUpperCase();
 
     let autoReleaseObj = {
       preset: formData.autoReleasePreset || '7_days',
@@ -235,7 +157,7 @@ export const AgreementProvider = ({ children }) => {
       propertyName: formData.propertyName,
       propertyAddress: formData.propertyAddress,
       landlordWallet: landlordAddr,
-      tenantWallet: formData.tenantWallet,
+      tenantWallet: tenantAddr,
       depositAmount: parseFloat(formData.depositAmount) || 0,
       utilityReserve: parseFloat(formData.utilityReserve) || 0,
       fundedAmount: 0,
@@ -267,64 +189,51 @@ export const AgreementProvider = ({ children }) => {
     ];
 
     const newAgreement = { ...newAgreementDraft, eventHistory: initialEvents };
-    saveAgreementToSharedStore(newAgreement);
+    console.log(`[AgreementContext] Creating new agreement ${newId} in Firestore...`);
+    await saveAgreementToSharedStore(newAgreement);
     return newAgreement;
   };
 
   // Update agreement terms
-  const updateAgreement = (id, updatedFields) => {
-    let targetUpdated = null;
-    const updated = agreements.map((a) => {
-      if (a.id.toLowerCase() === id.toLowerCase()) {
-        targetUpdated = {
-          ...a,
-          ...updatedFields,
-          depositAmount: updatedFields.depositAmount !== undefined ? parseFloat(updatedFields.depositAmount) : a.depositAmount,
-          utilityReserve: updatedFields.utilityReserve !== undefined ? parseFloat(updatedFields.utilityReserve) : a.utilityReserve,
-          updatedAt: new Date().toISOString(),
-        };
-        return targetUpdated;
-      }
-      return a;
-    });
+  const updateAgreement = async (id, updatedFields) => {
+    const target = agreements.find((a) => a.id.toLowerCase() === id.toLowerCase());
+    if (!target) return;
 
-    if (targetUpdated) {
-      saveAgreementToSharedStore(targetUpdated);
-    } else {
-      persistAgreements(updated);
-    }
+    const updatedAgreement = {
+      ...target,
+      ...updatedFields,
+      landlordWallet: updatedFields.landlordWallet ? updatedFields.landlordWallet.trim().toUpperCase() : target.landlordWallet,
+      tenantWallet: updatedFields.tenantWallet ? updatedFields.tenantWallet.trim().toUpperCase() : target.tenantWallet,
+      depositAmount: updatedFields.depositAmount !== undefined ? parseFloat(updatedFields.depositAmount) : target.depositAmount,
+      utilityReserve: updatedFields.utilityReserve !== undefined ? parseFloat(updatedFields.utilityReserve) : target.utilityReserve,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await saveAgreementToSharedStore(updatedAgreement);
   };
 
   // Update landlord auto-release policy
-  const updateAutoReleasePolicy = (id, newAutoReleaseObj) => {
-    let targetUpdated = null;
-    const updated = agreements.map((a) => {
-      if (a.id.toLowerCase() === id.toLowerCase()) {
-        targetUpdated = {
-          ...a,
-          autoRelease: newAutoReleaseObj,
-          updatedAt: new Date().toISOString(),
-        };
-        return targetUpdated;
-      }
-      return a;
-    });
+  const updateAutoReleasePolicy = async (id, newAutoReleaseObj) => {
+    const target = agreements.find((a) => a.id.toLowerCase() === id.toLowerCase());
+    if (!target) return;
 
-    if (targetUpdated) {
-      saveAgreementToSharedStore(targetUpdated);
-    } else {
-      persistAgreements(updated);
-    }
+    const updatedAgreement = {
+      ...target,
+      autoRelease: newAutoReleaseObj,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await saveAgreementToSharedStore(updatedAgreement);
   };
 
   // Deposit Escrow Contract execution handler
-  const depositEscrow = (id, txData) => {
+  const depositEscrow = async (id, txData) => {
     const target = agreements.find((a) => a.id.toLowerCase() === id.toLowerCase());
     const total = target ? (target.depositAmount || 0) + (target.utilityReserve || 0) : 0;
 
-    advanceAgreementStatus(id, 'Deposit Locked', {
+    await advanceAgreementStatus(id, 'Deposit Locked', {
       type: 'ESCROW_DEPOSIT_LOCKED',
-      actor: address || target?.tenantWallet,
+      actor: address ? address.trim().toUpperCase() : target?.tenantWallet,
       txHash: txData.hash,
       metadata: { fundedAmount: total, ledger: txData.ledger },
       updatedFields: {
@@ -338,22 +247,22 @@ export const AgreementProvider = ({ children }) => {
   };
 
   // Activate Lease State
-  const activateLease = (id) => {
+  const activateLease = async (id) => {
     const target = agreements.find((a) => a.id.toLowerCase() === id.toLowerCase());
-    advanceAgreementStatus(id, 'Lease Active', {
+    await advanceAgreementStatus(id, 'Lease Active', {
       type: 'LEASE_ACTIVATED',
-      actor: address || target?.landlordWallet,
+      actor: address ? address.trim().toUpperCase() : target?.landlordWallet,
       metadata: { leaseStart: target?.leaseStart, leaseEnd: target?.leaseEnd },
       updatedFields: { leaseActivatedAt: new Date().toISOString() },
     });
   };
 
   // Landlord-only End Lease State Handler
-  const endLease = (id, actorAddress = '') => {
+  const endLease = async (id, actorAddress = '') => {
     const target = agreements.find((a) => a.id.toLowerCase() === id.toLowerCase());
-    const actor = actorAddress || address || target?.landlordWallet;
+    const actor = (actorAddress || address || target?.landlordWallet || '').trim().toUpperCase();
 
-    advanceAgreementStatus(id, 'Lease Ended', {
+    await advanceAgreementStatus(id, 'Lease Ended', {
       type: 'LEASE_ENDED',
       actor,
       metadata: { note: 'Lease terminated by landlord.' },
@@ -365,7 +274,7 @@ export const AgreementProvider = ({ children }) => {
   };
 
   // Submit Landlord Utility Settlement
-  const submitUtilitySettlement = (id, deductionsData) => {
+  const submitUtilitySettlement = async (id, deductionsData) => {
     const target = agreements.find((a) => a.id.toLowerCase() === id.toLowerCase());
     const deposit = target?.depositAmount || 0;
     const reserve = target?.utilityReserve || 0;
@@ -379,9 +288,9 @@ export const AgreementProvider = ({ children }) => {
     const totalDeduction = electricity + water + internet + maintenance + other;
     const finalRefundAmount = Math.max(0, totalEscrow - totalDeduction);
 
-    advanceAgreementStatus(id, 'Utility Settlement', {
+    await advanceAgreementStatus(id, 'Utility Settlement', {
       type: 'UTILITY_SETTLEMENT_SUBMITTED',
-      actor: address || target?.landlordWallet,
+      actor: address ? address.trim().toUpperCase() : target?.landlordWallet,
       metadata: { totalDeduction, finalRefundAmount },
       updatedFields: {
         utilityDeductions: { electricity, water, internet, maintenance, other, notes: deductionsData.notes || '' },
@@ -393,15 +302,15 @@ export const AgreementProvider = ({ children }) => {
   };
 
   // Tenant Approve Refund
-  const approveRefund = (id) => {
+  const approveRefund = async (id) => {
     const target = agreements.find((a) => a.id.toLowerCase() === id.toLowerCase());
     const mockRefundHash = `9f71c42e88b1092a${Date.now().toString(16)}`;
     const deposit = target?.depositAmount || 0;
     const refundVal = target?.finalRefundAmount !== undefined ? target.finalRefundAmount : deposit;
 
-    advanceAgreementStatus(id, 'Refund Completed', {
+    await advanceAgreementStatus(id, 'Refund Completed', {
       type: 'REFUND_COMPLETED',
-      actor: address || target?.tenantWallet,
+      actor: address ? address.trim().toUpperCase() : target?.tenantWallet,
       txHash: mockRefundHash,
       metadata: { refundVal },
       updatedFields: {
@@ -414,11 +323,11 @@ export const AgreementProvider = ({ children }) => {
   };
 
   // Tenant Raise Dispute
-  const raiseDispute = (id) => {
+  const raiseDispute = async (id) => {
     const target = agreements.find((a) => a.id.toLowerCase() === id.toLowerCase());
-    advanceAgreementStatus(id, 'Dispute Pending', {
+    await advanceAgreementStatus(id, 'Dispute Pending', {
       type: 'SETTLEMENT_DISPUTE_RAISED',
-      actor: address || target?.tenantWallet,
+      actor: address ? address.trim().toUpperCase() : target?.tenantWallet,
       metadata: { note: 'Dispute raised by tenant.' },
       updatedFields: { disputedAt: new Date().toISOString() },
     });
@@ -431,13 +340,13 @@ export const AgreementProvider = ({ children }) => {
   }, [agreements]);
 
   // Update agreement status
-  const updateAgreementStatus = (id, newStatus) => {
-    advanceAgreementStatus(id, newStatus);
+  const updateAgreementStatus = async (id, newStatus) => {
+    await advanceAgreementStatus(id, newStatus);
   };
 
   // Delete agreement
-  const deleteAgreement = (id) => {
-    deleteAgreementFromSharedStore(id);
+  const deleteAgreement = async (id) => {
+    await deleteAgreementFromSharedStore(id);
   };
 
   return (

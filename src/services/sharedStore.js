@@ -1,13 +1,13 @@
 import { generateDemoEventHistory } from '../utils/agreementLifecycle';
 
-// Firebase configuration (using public demo/project keys with fallback)
+// Firebase configuration (uses VITE_FIREBASE_* environment variables)
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyRentVaultTestnetKey2026Demonstration",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "rentvault-stellar.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "rentvault-stellar",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "rentvault-stellar.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "9812039182",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:9812039182:web:8a9120c9182019"
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "rentvault-e2f94.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "rentvault-e2f94",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "rentvault-e2f94.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "1097102419135",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:1097102419135:web:a4ed3e31d8601750cc920a"
 };
 
 let firebaseApp = null;
@@ -26,10 +26,58 @@ const getFirestoreDb = async () => {
     firestoreDb = getFirestore(firebaseApp);
     return firestoreDb;
   } catch (err) {
-    console.warn('[SharedStore] Firebase dynamic import warning (using BroadcastChannel sync):', err);
+    console.warn('[SharedStore] Firebase dynamic import warning:', err);
     return null;
   }
 };
+
+// Initial demo seed agreements
+const INITIAL_DEMO_AGREEMENTS = [
+  {
+    id: 'RV-2026-001',
+    propertyName: 'Sunset Bay Apartments #402',
+    propertyAddress: '742 Evergreen Terrace, Sector 4',
+    landlordWallet: 'GB7X42F098A190B38812TESTNETRENTVAULTKEY99',
+    tenantWallet: 'GDKX89A190B38812TESTNETTENANTKEY99881',
+    depositAmount: 2300,
+    utilityReserve: 200,
+    fundedAmount: 0,
+    leaseStart: '2026-09-01',
+    leaseEnd: '2027-08-31',
+    notes: 'Includes reserved utility escrow for electricity and water settlement.',
+    status: 'Awaiting Deposit',
+    createdAt: '2026-08-01T10:00:00.000Z',
+    autoRelease: {
+      preset: '7_days',
+      duration: 7,
+      unit: 'days',
+      milliseconds: 7 * 24 * 60 * 60 * 1000,
+    },
+  },
+  {
+    id: 'RV-2026-002',
+    propertyName: 'Metro Loft Suites #12',
+    propertyAddress: '101 Innovation Boulevard, Tech District',
+    landlordWallet: 'GB7X42F098A190B38812TESTNETRENTVAULTKEY99',
+    tenantWallet: 'GC2Y19D488A1009182TESTNETTENANTKEY77',
+    depositAmount: 1800,
+    utilityReserve: 200,
+    fundedAmount: 2000,
+    leaseStart: '2026-06-01',
+    leaseEnd: '2027-05-31',
+    notes: 'Escrow deposit locked on Stellar Testnet.',
+    status: 'Deposit Locked',
+    createdAt: '2026-05-20T14:30:00.000Z',
+    txHash: '8f92a10e2b4c129d39f4011029419082001',
+    depositConfirmedAt: '2026-05-20T14:35:00.000Z',
+    autoRelease: {
+      preset: '1_min',
+      duration: 1,
+      unit: 'minutes',
+      milliseconds: 60 * 1000,
+    },
+  },
+];
 
 // BroadcastChannel for instant local cross-browser/cross-tab synchronization
 const SYNC_CHANNEL_NAME = 'rentvault_cross_browser_sync';
@@ -43,20 +91,21 @@ if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
   }
 }
 
-const STORAGE_KEY = 'rentvault_agreements';
-
 /**
- * Normalizes agreement object for cross-browser storage
+ * Normalizes agreement object for cross-browser storage & uppercase wallet matching
  */
 export const normalizeAgreementForStorage = (a) => {
   if (!a || !a.id) return null;
+  const landlordWallet = (a.landlordWallet || '').trim().toUpperCase();
+  const tenantWallet = (a.tenantWallet || '').trim().toUpperCase();
+
   return {
     ...a,
     id: a.id,
     propertyName: a.propertyName || 'Rental Property',
     propertyAddress: a.propertyAddress || '',
-    landlordWallet: (a.landlordWallet || '').trim(),
-    tenantWallet: (a.tenantWallet || '').trim(),
+    landlordWallet,
+    tenantWallet,
     depositAmount: parseFloat(a.depositAmount) || 0,
     utilityReserve: parseFloat(a.utilityReserve) || 0,
     fundedAmount: a.fundedAmount !== undefined ? parseFloat(a.fundedAmount) : 0,
@@ -69,21 +118,22 @@ export const normalizeAgreementForStorage = (a) => {
 };
 
 /**
- * Subscribes to real-time agreement changes across distinct browsers & tabs
+ * Subscribes to real-time agreement changes across distinct browsers via Firestore onSnapshot
  */
 export const subscribeToSharedAgreements = (onUpdateCallback) => {
   let isUnsubscribed = false;
   let unsubscribeFirestore = () => {};
 
-  // 1. Firebase Firestore Real-Time Listener (Dynamic Async Initialization)
+  // 1. Firebase Firestore Real-Time Listener (Primary Source of Truth)
   getFirestoreDb().then(async (db) => {
     if (!db || isUnsubscribed) return;
     try {
-      const { collection, onSnapshot } = await import('firebase/firestore');
+      const { collection, onSnapshot, doc, setDoc } = await import('firebase/firestore');
       const agreementsCol = collection(db, 'agreements');
+
       unsubscribeFirestore = onSnapshot(
         agreementsCol,
-        (snapshot) => {
+        async (snapshot) => {
           if (isUnsubscribed) return;
           const cloudAgreements = [];
           snapshot.forEach((docSnap) => {
@@ -92,16 +142,22 @@ export const subscribeToSharedAgreements = (onUpdateCallback) => {
             if (normalized) cloudAgreements.push(normalized);
           });
 
-          if (cloudAgreements.length > 0) {
-            try {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudAgreements));
-            } catch (e) {}
+          console.log(`[Firestore] Received ${cloudAgreements.length} agreements from cloud snapshot`);
 
-            onUpdateCallback(cloudAgreements);
+          // Initial Seed if Firestore is empty on fresh setup
+          if (cloudAgreements.length === 0) {
+            console.log('[Firestore] Collection empty. Seeding initial demo agreements...');
+            for (const demo of INITIAL_DEMO_AGREEMENTS) {
+              const normDemo = normalizeAgreementForStorage(demo);
+              await setDoc(doc(db, 'agreements', normDemo.id), normDemo, { merge: true });
+            }
+            return; // Next onSnapshot trigger will process seeded documents
           }
+
+          onUpdateCallback(cloudAgreements);
         },
         (error) => {
-          console.warn('[SharedStore] Firestore snapshot warning:', error.message);
+          console.warn('[SharedStore] Firestore snapshot warning (using broadcast listener fallback):', error.message);
         }
       );
     } catch (err) {
@@ -114,9 +170,7 @@ export const subscribeToSharedAgreements = (onUpdateCallback) => {
     if (isUnsubscribed) return;
     if (event.data && event.data.type === 'AGREEMENTS_UPDATED' && Array.isArray(event.data.agreements)) {
       const list = event.data.agreements.map(normalizeAgreementForStorage).filter(Boolean);
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-      } catch (e) {}
+      console.log(`[BroadcastChannel] Received ${list.length} agreements across local windows`);
       onUpdateCallback(list);
     }
   };
@@ -125,22 +179,6 @@ export const subscribeToSharedAgreements = (onUpdateCallback) => {
     broadcastChannel.addEventListener('message', handleBroadcastMessage);
   }
 
-  // 3. Storage Event Listener (Cross-window localStorage change listener)
-  const handleStorageEvent = (e) => {
-    if (isUnsubscribed) return;
-    if (e.key === STORAGE_KEY && e.newValue) {
-      try {
-        const parsed = JSON.parse(e.newValue);
-        if (Array.isArray(parsed)) {
-          const list = parsed.map(normalizeAgreementForStorage).filter(Boolean);
-          onUpdateCallback(list);
-        }
-      } catch (err) {}
-    }
-  };
-
-  window.addEventListener('storage', handleStorageEvent);
-
   // Return unsubscribe cleanup function
   return () => {
     isUnsubscribed = true;
@@ -148,22 +186,14 @@ export const subscribeToSharedAgreements = (onUpdateCallback) => {
     if (broadcastChannel) {
       broadcastChannel.removeEventListener('message', handleBroadcastMessage);
     }
-    window.removeEventListener('storage', handleStorageEvent);
   };
 };
 
 /**
- * Broadcasts agreement list update to all connected listeners
+ * Broadcasts agreement list update over local BroadcastChannel
  */
-const notifyListeners = (agreementsList) => {
+const notifyLocalBroadcast = (agreementsList) => {
   const normalizedList = agreementsList.map(normalizeAgreementForStorage).filter(Boolean);
-
-  // Save to localStorage
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedList));
-  } catch (e) {}
-
-  // Broadcast over BroadcastChannel
   if (broadcastChannel) {
     try {
       broadcastChannel.postMessage({
@@ -176,93 +206,70 @@ const notifyListeners = (agreementsList) => {
 };
 
 /**
- * Saves or updates a single agreement in the shared persistence store
+ * Saves or updates a single agreement atomically in Firestore
  */
 export const saveAgreementToSharedStore = async (agreement) => {
   const normalized = normalizeAgreementForStorage(agreement);
   if (!normalized) return;
 
-  // 1. Firebase Firestore Write
-  getFirestoreDb().then(async (db) => {
-    if (!db) return;
+  console.log(`[Firestore] Writing atomic update for agreement ${normalized.id} (Status: ${normalized.status})...`);
+
+  // 1. Firestore Atomic Write (setDoc with merge)
+  const db = await getFirestoreDb();
+  if (db) {
     try {
       const { doc, setDoc } = await import('firebase/firestore');
       const docRef = doc(db, 'agreements', normalized.id);
       await setDoc(docRef, normalized, { merge: true });
+      console.log(`[Firestore] Successfully saved document ${normalized.id} to Firestore cloud!`);
     } catch (err) {
-      console.warn('[SharedStore] Firestore write warning:', err);
+      console.warn(`[Firestore] Save failed for ${normalized.id}:`, err);
     }
-  });
-
-  // 2. Local & Broadcast Sync
-  try {
-    const existingStr = localStorage.getItem(STORAGE_KEY);
-    let existingList = [];
-    if (existingStr) {
-      existingList = JSON.parse(existingStr);
-    }
-
-    const idx = existingList.findIndex((a) => a.id.toLowerCase() === normalized.id.toLowerCase());
-    if (idx >= 0) {
-      existingList[idx] = normalized;
-    } else {
-      existingList = [normalized, ...existingList];
-    }
-
-    notifyListeners(existingList);
-  } catch (err) {
-    console.error('[SharedStore] Local save warning:', err);
   }
+
+  // 2. Local Broadcast Channel sync
+  notifyLocalBroadcast([normalized]);
 };
 
 /**
- * Saves entire agreements array to shared store
+ * Saves entire agreements array to shared store atomically
  */
 export const saveAllAgreementsToSharedStore = async (agreementsList) => {
   const normalizedList = agreementsList.map(normalizeAgreementForStorage).filter(Boolean);
 
-  // Firestore Writes
-  getFirestoreDb().then(async (db) => {
-    if (!db) return;
+  const db = await getFirestoreDb();
+  if (db) {
     try {
       const { doc, setDoc } = await import('firebase/firestore');
       for (const ag of normalizedList) {
         const docRef = doc(db, 'agreements', ag.id);
         await setDoc(docRef, ag, { merge: true });
       }
+      console.log(`[Firestore] Saved ${normalizedList.length} agreements to cloud`);
     } catch (err) {
-      console.warn('[SharedStore] Firestore batch write warning:', err);
+      console.warn('[Firestore] Batch save warning:', err);
     }
-  });
+  }
 
-  notifyListeners(normalizedList);
+  notifyLocalBroadcast(normalizedList);
 };
 
 /**
- * Deletes an agreement from the shared persistence store
+ * Deletes an agreement from Firestore
  */
 export const deleteAgreementFromSharedStore = async (id) => {
   if (!id) return;
 
-  getFirestoreDb().then(async (db) => {
-    if (!db) return;
+  console.log(`[Firestore] Deleting agreement document ${id}...`);
+  const db = await getFirestoreDb();
+  if (db) {
     try {
       const { doc, deleteDoc } = await import('firebase/firestore');
       const docRef = doc(db, 'agreements', id);
       await deleteDoc(docRef);
+      console.log(`[Firestore] Successfully deleted ${id} from Firestore`);
     } catch (err) {
-      console.warn('[SharedStore] Firestore delete warning:', err);
+      console.warn('[Firestore] Delete warning:', err);
     }
-  });
-
-  try {
-    const existingStr = localStorage.getItem(STORAGE_KEY);
-    if (existingStr) {
-      const existingList = JSON.parse(existingStr);
-      const filtered = existingList.filter((a) => a.id.toLowerCase() !== id.toLowerCase());
-      notifyListeners(filtered);
-    }
-  } catch (err) {
-    console.error('[SharedStore] Local delete warning:', err);
   }
 };
