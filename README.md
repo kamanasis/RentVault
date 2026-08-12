@@ -146,7 +146,8 @@ This guarantees 100% transparency, preventing retroactive record tampering.
 <br />
 
 ### 6. Escrow Refund Completed
-![Escrow Refund Completed](./screenshots/6_escrow_refund.png)
+![Escrow Refund Completed](.<img width="1398" height="1078" alt="Screenshot 2026-08-12 124233" src="https://github.com/user-attachments/assets/00d22fad-469f-4f38-8bda-a10fa9023c81" />
+)
 
 <br />
 
