@@ -2,6 +2,13 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useWallet } from './WalletContext';
 import { AUTO_RELEASE_PRESETS, calculateAutoReleaseMs } from '../utils/autoRelease';
 import { createLifecycleEvent, generateDemoEventHistory, getStageNumber } from '../utils/agreementLifecycle';
+import { 
+  subscribeToSharedAgreements, 
+  saveAgreementToSharedStore, 
+  saveAllAgreementsToSharedStore,
+  deleteAgreementFromSharedStore,
+  normalizeAgreementForStorage
+} from '../services/sharedStore';
 
 const AgreementContext = createContext();
 
@@ -112,6 +119,7 @@ export const AgreementProvider = ({ children }) => {
   const [agreements, setAgreements] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Initialize and subscribe to real-time shared store across distinct browsers/tabs
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -123,32 +131,35 @@ export const AgreementProvider = ({ children }) => {
         }
       }
 
-      const { migrated, hasChanges } = checkAndMigrateLeaseStatus(initialList);
+      const { migrated } = checkAndMigrateLeaseStatus(initialList);
       setAgreements(migrated);
-      if (hasChanges || !saved) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-      }
     } catch (err) {
-      console.warn('[AgreementContext] localStorage load warning:', err);
       const { migrated } = checkAndMigrateLeaseStatus(INITIAL_DEMO_AGREEMENTS);
       setAgreements(migrated);
     } finally {
       setLoading(false);
     }
+
+    // Subscribe to shared real-time persistence layer (Firebase + BroadcastChannel)
+    const unsubscribe = subscribeToSharedAgreements((sharedList) => {
+      const { migrated } = checkAndMigrateLeaseStatus(sharedList);
+      setAgreements(migrated);
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const persistAgreements = (newAgreements) => {
     const { migrated } = checkAndMigrateLeaseStatus(newAgreements);
     setAgreements(migrated);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-    } catch (err) {
-      console.error('[AgreementContext] localStorage save error:', err);
-    }
+    saveAllAgreementsToSharedStore(migrated);
   };
 
   // Centralized Lifecycle State Machine advance function
   const advanceAgreementStatus = (id, nextStatus, eventDetails = {}) => {
+    let targetUpdated = null;
     const updated = agreements.map((a) => {
       if (a.id.toLowerCase() === id.toLowerCase()) {
         const newEvt = createLifecycleEvent({
@@ -162,18 +173,23 @@ export const AgreementProvider = ({ children }) => {
 
         const currentHistory = Array.isArray(a.eventHistory) ? a.eventHistory : [];
 
-        return {
+        targetUpdated = {
           ...a,
           ...eventDetails.updatedFields,
           status: nextStatus,
           updatedAt: new Date().toISOString(),
           eventHistory: [...currentHistory, newEvt],
         };
+        return targetUpdated;
       }
       return a;
     });
 
-    persistAgreements(updated);
+    if (targetUpdated) {
+      saveAgreementToSharedStore(targetUpdated);
+    } else {
+      persistAgreements(updated);
+    }
   };
 
   // Create new agreement with customizable autoRelease policy
@@ -251,43 +267,54 @@ export const AgreementProvider = ({ children }) => {
     ];
 
     const newAgreement = { ...newAgreementDraft, eventHistory: initialEvents };
-    const updated = [newAgreement, ...agreements];
-    persistAgreements(updated);
+    saveAgreementToSharedStore(newAgreement);
     return newAgreement;
   };
 
   // Update agreement terms
   const updateAgreement = (id, updatedFields) => {
+    let targetUpdated = null;
     const updated = agreements.map((a) => {
       if (a.id.toLowerCase() === id.toLowerCase()) {
-        return {
+        targetUpdated = {
           ...a,
           ...updatedFields,
           depositAmount: updatedFields.depositAmount !== undefined ? parseFloat(updatedFields.depositAmount) : a.depositAmount,
           utilityReserve: updatedFields.utilityReserve !== undefined ? parseFloat(updatedFields.utilityReserve) : a.utilityReserve,
           updatedAt: new Date().toISOString(),
         };
+        return targetUpdated;
       }
       return a;
     });
 
-    persistAgreements(updated);
+    if (targetUpdated) {
+      saveAgreementToSharedStore(targetUpdated);
+    } else {
+      persistAgreements(updated);
+    }
   };
 
   // Update landlord auto-release policy
   const updateAutoReleasePolicy = (id, newAutoReleaseObj) => {
+    let targetUpdated = null;
     const updated = agreements.map((a) => {
       if (a.id.toLowerCase() === id.toLowerCase()) {
-        return {
+        targetUpdated = {
           ...a,
           autoRelease: newAutoReleaseObj,
           updatedAt: new Date().toISOString(),
         };
+        return targetUpdated;
       }
       return a;
     });
 
-    persistAgreements(updated);
+    if (targetUpdated) {
+      saveAgreementToSharedStore(targetUpdated);
+    } else {
+      persistAgreements(updated);
+    }
   };
 
   // Deposit Escrow Contract execution handler
@@ -410,8 +437,7 @@ export const AgreementProvider = ({ children }) => {
 
   // Delete agreement
   const deleteAgreement = (id) => {
-    const updated = agreements.filter((a) => a.id.toLowerCase() !== id.toLowerCase());
-    persistAgreements(updated);
+    deleteAgreementFromSharedStore(id);
   };
 
   return (
