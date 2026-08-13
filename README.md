@@ -16,7 +16,8 @@ RentVault is a decentralized rental deposit escrow platform powered by **Stellar
 
 <br />
 
-![RentVault Banner](./screenshots/banner.png)
+<img width="1983" height="793" alt="image" src="https://github.com/user-attachments/assets/a37a24c6-233b-4a6d-ac09-1e9987196e0e" />
+
 
 </div>
 
