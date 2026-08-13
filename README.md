@@ -292,7 +292,7 @@ npm install
 npm run dev
 ```
 
-Open **[http://localhost:5173](http://localhost:5173)** in your browser.
+Open **[https://rent-vault-pi.vercel.app](https://rent-vault-pi.vercel.app)** in your browser.
 
 ---
 
