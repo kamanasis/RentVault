@@ -11,12 +11,12 @@ export const WalletStatus = () => {
 
   if (!connected) return null;
 
-  const normalizedAddress = (address || '').toLowerCase().trim();
+  const normalizedAddress = (address || '').trim().toUpperCase();
 
   // Strict identity filtering: agreements participating as Landlord or Tenant
   const userAgreements = agreements.filter((a) => {
-    const landlord = (a.landlordWallet || '').toLowerCase().trim();
-    const tenant = (a.tenantWallet || '').toLowerCase().trim();
+    const landlord = (a.landlordWallet || '').trim().toUpperCase();
+    const tenant = (a.tenantWallet || '').trim().toUpperCase();
     return landlord === normalizedAddress || tenant === normalizedAddress;
   });
 

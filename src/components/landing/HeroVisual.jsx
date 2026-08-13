@@ -8,13 +8,13 @@ export const HeroVisual = () => {
   const { connected, address, truncateAddress } = useWallet();
   const { agreements } = useAgreements();
 
-  const normalizedAddress = (address || '').toLowerCase().trim();
+  const normalizedAddress = (address || '').trim().toUpperCase();
 
   // User participating agreements when wallet is connected
   const userAgreements = connected
     ? agreements.filter((a) => {
-        const landlord = (a.landlordWallet || '').toLowerCase().trim();
-        const tenant = (a.tenantWallet || '').toLowerCase().trim();
+        const landlord = (a.landlordWallet || '').trim().toUpperCase();
+        const tenant = (a.tenantWallet || '').trim().toUpperCase();
         return landlord === normalizedAddress || tenant === normalizedAddress;
       })
     : [];

@@ -23,13 +23,13 @@ export const DemoGuideModal = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const normalizedAddress = (address || '').toLowerCase().trim();
+  const normalizedAddress = (address || '').trim().toUpperCase();
 
   // Participating agreements for connected wallet
   const userAgreements = connected
     ? agreements.filter((a) => {
-        const landlord = (a.landlordWallet || '').toLowerCase().trim();
-        const tenant = (a.tenantWallet || '').toLowerCase().trim();
+        const landlord = (a.landlordWallet || '').trim().toUpperCase();
+        const tenant = (a.tenantWallet || '').trim().toUpperCase();
         return landlord === normalizedAddress || tenant === normalizedAddress;
       })
     : agreements;

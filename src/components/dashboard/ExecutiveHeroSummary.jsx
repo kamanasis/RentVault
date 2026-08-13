@@ -12,23 +12,23 @@ export const ExecutiveHeroSummary = ({ onOpenDemoGuide }) => {
   const { connected, address } = useWallet();
   const { agreements } = useAgreements();
 
-  const normalizedAddress = (address || '').toLowerCase().trim();
+  const normalizedAddress = (address || '').trim().toUpperCase();
 
   // Role-filtered agreement sets for connected wallet (fallback to all when disconnected)
   const userAgreements = (connected && address)
     ? agreements.filter((a) => {
-        const landlord = (a.landlordWallet || '').toLowerCase().trim();
-        const tenant = (a.tenantWallet || '').toLowerCase().trim();
+        const landlord = (a.landlordWallet || '').trim().toUpperCase();
+        const tenant = (a.tenantWallet || '').trim().toUpperCase();
         return landlord === normalizedAddress || tenant === normalizedAddress;
       })
     : agreements;
 
   const landlordCount = userAgreements.filter(
-    (a) => (a.landlordWallet || '').toLowerCase().trim() === normalizedAddress
+    (a) => (a.landlordWallet || '').trim().toUpperCase() === normalizedAddress
   ).length;
 
   const tenantCount = userAgreements.filter(
-    (a) => (a.tenantWallet || '').toLowerCase().trim() === normalizedAddress
+    (a) => (a.tenantWallet || '').trim().toUpperCase() === normalizedAddress
   ).length;
 
   // Primary evaluated role for user
