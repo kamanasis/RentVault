@@ -88,11 +88,11 @@ export const CreateAgreement = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    const newAgreement = createAgreement(formData);
+    const newAgreement = await createAgreement(formData);
     navigate(`/agreements/${newAgreement.id}`);
   };
 
