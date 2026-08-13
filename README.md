@@ -148,7 +148,8 @@ This guarantees 100% transparency, preventing retroactive record tampering.
 <br />
 
 ### 5. Utility Settlement Portal
-<img width="1635" height="995" alt="image" src="https://github.com/user-attachments/assets/9c592687-784d-45e8-b1c3-4923f9f513dd" />
+<img width="1024" height="623" alt="image" src="https://github.com/user-attachments/assets/efb03a75-d2bb-40f9-8ff4-ff2da043645b" />
+
 
 
 <br />
