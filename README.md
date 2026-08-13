@@ -141,7 +141,8 @@ This guarantees 100% transparency, preventing retroactive record tampering.
 <br />
 
 ### 4. Landlord Agreement Dashboard
-<img width="1910" height="1078" alt="image" src="https://github.com/user-attachments/assets/e601c0d1-bcbd-48ef-8c9c-8a1d93fc86bb" />
+<img width="2726" height="1536" alt="image" src="https://github.com/user-attachments/assets/d2582348-f3e5-4a1c-a57f-1d746e8ab0e4" />
+
 
 
 <br />
