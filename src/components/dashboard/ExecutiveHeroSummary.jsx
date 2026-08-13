@@ -31,10 +31,14 @@ export const ExecutiveHeroSummary = ({ onOpenDemoGuide }) => {
     (a) => (a.tenantWallet || '').trim().toUpperCase() === normalizedAddress
   ).length;
 
-  // Primary evaluated role for user
-  const primaryRole = (connected && address)
-    ? (landlordCount >= tenantCount ? 'landlord' : 'tenant')
-    : 'landlord';
+  // Primary evaluated role for user — only show a role if there are actual matching agreements
+  const primaryRole = (() => {
+    if (!connected || !address) return 'guest';
+    if (tenantCount > 0 && landlordCount === 0) return 'tenant';
+    if (landlordCount > 0 && tenantCount === 0) return 'landlord';
+    if (landlordCount > 0 && tenantCount > 0) return landlordCount >= tenantCount ? 'landlord' : 'tenant';
+    return 'guest'; // no agreements yet — don't claim a role
+  })();
 
   // Active escrows strictly in funded/locked states:
   // Deposit Locked | Lease Active | Lease Ended | Utility Settlement | Approval Pending | Dispute Pending
