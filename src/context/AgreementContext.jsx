@@ -12,8 +12,7 @@ import {
 const AgreementContext = createContext();
 
 /**
- * Self-healing migration: ensure autoRelease, eventHistory, and date-based lease transitions.
- * Does NOT write back to Firestore — purely local display migration.
+ * Self-healing migration: ensure autoRelease, eventHistory, and auto lease-end transitions.
  */
 const migrateAgreementsList = (list = []) => {
   const now = new Date();
@@ -28,12 +27,10 @@ const migrateAgreementsList = (list = []) => {
       },
     };
 
-    // Ensure eventHistory exists
     if (!Array.isArray(ag.eventHistory) || ag.eventHistory.length === 0) {
       ag.eventHistory = generateDemoEventHistory(ag);
     }
 
-    // Auto-advance Lease Active → Lease Ended when end date is past
     if (ag.status === 'Lease Active' && ag.leaseEnd) {
       const endDate = new Date(ag.leaseEnd);
       endDate.setHours(23, 59, 59, 999);
@@ -66,42 +63,37 @@ export const AgreementProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   /**
-   * Core Firestore real-time subscription.
-   * Resubscribes automatically whenever the connected wallet address changes.
-   * Firestore is the SINGLE SOURCE OF TRUTH — no localStorage, no cached arrays.
+   * Subscribe to ALL agreements in Firestore via a single global real-time listener.
+   * This is the same architecture that was working before.
+   * The listener is started once and runs for the lifetime of the session.
+   * Role-based filtering (landlord vs tenant view) is done by the UI, not here.
    */
   useEffect(() => {
-    if (!address) {
-      setAgreements([]);
-      setLoading(false);
-      return;
-    }
-
+    console.log('[AgreementContext] Starting global Firestore subscription...');
     setLoading(true);
-    console.log(`[AgreementContext] Subscribing to Firestore for wallet: ${normalizeWallet(address)}`);
 
-    const unsubscribe = subscribeToSharedAgreements(address, (firestoreList) => {
+    const unsubscribe = subscribeToSharedAgreements((firestoreList) => {
       const migrated = migrateAgreementsList(firestoreList);
-      console.log(`[AgreementContext] State updated — ${migrated.length} agreements`);
+      console.log(`[AgreementContext] Received ${migrated.length} agreements from Firestore`);
       setAgreements(migrated);
       setLoading(false);
     });
 
-    // Cleanup: unsubscribe previous listeners on wallet change
     return () => {
-      console.log(`[AgreementContext] Unsubscribing Firestore listeners for ${normalizeWallet(address)}`);
+      console.log('[AgreementContext] Cleaning up Firestore subscription');
       unsubscribe();
     };
-  }, [address]);
+  }, []); // Run once — global listener, not wallet-specific
 
   /**
    * Central lifecycle state machine — advances an agreement to a new status
-   * and persists it atomically to Firestore.
+   * and persists it atomically to Firestore. All browsers receive the update
+   * instantly via the global onSnapshot listener.
    */
   const advanceAgreementStatus = async (id, nextStatus, eventDetails = {}) => {
     const target = agreements.find((a) => a.id === id);
     if (!target) {
-      console.error(`[AgreementContext] Agreement ${id} not found for status advance`);
+      console.error(`[AgreementContext] Agreement ${id} not found`);
       return;
     }
 
@@ -128,16 +120,16 @@ export const AgreementProvider = ({ children }) => {
   };
 
   /**
-   * Creates a new rental agreement.
-   * Uses a human-readable ID and stores normalized wallet addresses.
-   * Firestore is written first; the onSnapshot listener propagates the result.
+   * Creates a new rental agreement and writes it to Firestore.
+   * The global onSnapshot listener ensures all browsers receive it immediately.
    */
   const createAgreement = async (formData) => {
     const landlordAddr = normalizeWallet(address) || 'GB7X42F098A190B38812TESTNETRENTVAULTKEY99';
     const tenantAddr = normalizeWallet(formData.tenantWallet);
 
     const nextIndex = agreements.length + 1;
-    const newId = `RV-${Date.now()}-${String(nextIndex).padStart(3, '0')}`;
+    const padIndex = String(nextIndex).padStart(3, '0');
+    const newId = `RV-${Date.now()}-${padIndex}`;
 
     let autoReleaseObj = {
       preset: '7_days',
@@ -173,7 +165,6 @@ export const AgreementProvider = ({ children }) => {
       id: newId,
       propertyName: formData.propertyName,
       propertyAddress: formData.propertyAddress,
-      // Canonical field names — only these two are used everywhere
       landlordWallet: landlordAddr,
       tenantWallet: tenantAddr,
       depositAmount: parseFloat(formData.depositAmount) || 0,

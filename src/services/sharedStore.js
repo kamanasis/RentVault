@@ -38,22 +38,18 @@ export const normalizeWallet = (address) =>
   (address || '').trim().toUpperCase();
 
 /**
- * Normalizes an agreement object from Firestore data + document ID.
- * The docId must be passed explicitly since Firestore data() does not include it.
+ * Normalizes an agreement object from Firestore.
+ * docId must be passed explicitly — Firestore data() does not include it.
  */
 export const normalizeAgreementForStorage = (data, docId) => {
-  // Use the Firestore document ID first, fall back to data.id
   const id = docId || data?.id;
   if (!id || !data) return null;
-
-  const landlordWallet = normalizeWallet(data.landlordWallet);
-  const tenantWallet = normalizeWallet(data.tenantWallet);
 
   return {
     ...data,
     id,
-    landlordWallet,
-    tenantWallet,
+    landlordWallet: normalizeWallet(data.landlordWallet),
+    tenantWallet: normalizeWallet(data.tenantWallet),
     propertyName: data.propertyName || 'Rental Property',
     propertyAddress: data.propertyAddress || '',
     depositAmount: parseFloat(data.depositAmount) || 0,
@@ -69,109 +65,51 @@ export const normalizeAgreementForStorage = (data, docId) => {
 };
 
 /**
- * Subscribes to real-time Firestore agreements for the connected wallet.
- * Runs TWO queries (landlord + tenant) and merges results.
+ * Subscribes to ALL agreements in Firestore via a single global onSnapshot.
+ * This is the most reliable approach — no wallet-specific queries needed.
+ * The UI (AgreementContext) handles role-based filtering from the full list.
  * Returns an unsubscribe function.
  */
-export const subscribeToSharedAgreements = (walletAddress, onUpdateCallback) => {
+export const subscribeToSharedAgreements = (onUpdateCallback) => {
   let isUnsubscribed = false;
-  let unsubscribeLandlord = () => {};
-  let unsubscribeTenant = () => {};
+  let unsubscribeFirestore = () => {};
 
-  const normalizedWallet = normalizeWallet(walletAddress);
-
-  if (!normalizedWallet) {
-    console.warn('[SharedStore] No wallet address provided — skipping subscription.');
-    onUpdateCallback([]);
-    return () => {};
-  }
-
-  // Shared result buckets for merge
-  let landlordResults = [];
-  let tenantResults = [];
-
-  const mergeAndNotify = () => {
-    if (isUnsubscribed) return;
-
-    // Merge both lists, deduplicate by Firestore document ID
-    const seen = new Map();
-    [...landlordResults, ...tenantResults].forEach((ag) => {
-      if (!seen.has(ag.id)) seen.set(ag.id, ag);
-    });
-
-    // Sort by createdAt descending (newest first)
-    const merged = [...seen.values()].sort((a, b) => {
-      const aTime = new Date(a.createdAt).getTime() || 0;
-      const bTime = new Date(b.createdAt).getTime() || 0;
-      return bTime - aTime;
-    });
-
-    console.log(`[Firestore] Merged agreements for ${normalizedWallet}: ${merged.length}`);
-    onUpdateCallback(merged);
-  };
-
-  // Attach listeners once DB is ready
   getFirestoreDb().then(async (db) => {
     if (!db || isUnsubscribed) return;
 
     try {
-      const { collection, onSnapshot, query, where } = await import('firebase/firestore');
+      const { collection, onSnapshot } = await import('firebase/firestore');
       const agreementsCol = collection(db, 'agreements');
 
-      const landlordQuery = query(
+      unsubscribeFirestore = onSnapshot(
         agreementsCol,
-        where('landlordWallet', '==', normalizedWallet)
-      );
-      const tenantQuery = query(
-        agreementsCol,
-        where('tenantWallet', '==', normalizedWallet)
-      );
-
-      // Landlord listener
-      unsubscribeLandlord = onSnapshot(
-        landlordQuery,
         (snapshot) => {
           if (isUnsubscribed) return;
-          landlordResults = snapshot.docs
+
+          const agreements = snapshot.docs
             .map((docSnap) => normalizeAgreementForStorage(docSnap.data(), docSnap.id))
             .filter(Boolean);
-          console.log(`[Firestore] Landlord snapshot — ${landlordResults.length} docs for ${normalizedWallet}`);
-          mergeAndNotify();
-        },
-        (err) => console.error('[SharedStore] Landlord listener error:', err.code, err.message)
-      );
 
-      // Tenant listener
-      unsubscribeTenant = onSnapshot(
-        tenantQuery,
-        (snapshot) => {
-          if (isUnsubscribed) return;
-          console.log(`TENANT LISTENER WALLET: ${normalizedWallet}`);
-          console.log(`TENANT SNAPSHOT SIZE: ${snapshot.size}`);
-          snapshot.docs.forEach((d) => console.log('[Tenant doc]', d.id, d.data()));
-
-          tenantResults = snapshot.docs
-            .map((docSnap) => normalizeAgreementForStorage(docSnap.data(), docSnap.id))
-            .filter(Boolean);
-          mergeAndNotify();
+          console.log(`[Firestore] Global snapshot received: ${agreements.length} total agreements`);
+          onUpdateCallback(agreements);
         },
-        (err) => console.error('[SharedStore] Tenant listener error:', err.code, err.message)
+        (err) => {
+          console.error('[SharedStore] Firestore global snapshot error:', err.code, err.message);
+        }
       );
     } catch (err) {
-      console.error('[SharedStore] Failed to attach Firestore listeners:', err);
+      console.error('[SharedStore] Failed to attach Firestore listener:', err);
     }
   });
 
   return () => {
     isUnsubscribed = true;
-    unsubscribeLandlord();
-    unsubscribeTenant();
+    unsubscribeFirestore();
   };
 };
 
 /**
  * Saves or updates a single agreement atomically in Firestore.
- * Uses the agreement's id as the Firestore document ID so reads always match.
  */
 export const saveAgreementToSharedStore = async (agreement) => {
   if (!agreement || !agreement.id) {
@@ -182,10 +120,10 @@ export const saveAgreementToSharedStore = async (agreement) => {
   const normalized = normalizeAgreementForStorage(agreement, agreement.id);
   if (!normalized) return null;
 
-  console.log('CREATING AGREEMENT', {
+  console.log('SAVING AGREEMENT TO FIRESTORE', {
+    id: normalized.id,
     landlordWallet: normalized.landlordWallet,
     tenantWallet: normalized.tenantWallet,
-    id: normalized.id,
     status: normalized.status,
   });
 
@@ -197,9 +135,8 @@ export const saveAgreementToSharedStore = async (agreement) => {
 
   try {
     const { doc, setDoc } = await import('firebase/firestore');
-    const docRef = doc(db, 'agreements', normalized.id);
-    await setDoc(docRef, normalized, { merge: true });
-    console.log(`[Firestore] ✅ Saved agreement ${normalized.id} to Firestore`);
+    await setDoc(doc(db, 'agreements', normalized.id), normalized, { merge: true });
+    console.log(`[Firestore] ✅ Saved agreement ${normalized.id}`);
   } catch (err) {
     console.error(`[Firestore] ❌ Save failed for ${normalized.id}:`, err.code, err.message);
   }
