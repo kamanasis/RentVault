@@ -121,17 +121,22 @@ This guarantees 100% transparency, preventing retroactive record tampering.
 <div align="center">
 
 ### 1. Wallet Connected & Escrow Dashboard
-![Wallet Connected & Escrow Dashboard](./screenshots/1_wallet_connected.png)
+<img width="1676" height="991" alt="image" src="https://github.com/user-attachments/assets/b2d18c99-636b-4fbb-94f3-ccec52930e82" />
+<img width="841" height="1078" alt="image" src="https://github.com/user-attachments/assets/8c7a63e5-cf86-4378-a239-4e764207a07f" />
+
+
 
 <br />
 
 ### 2. Deposit Escrow Funds
-![Deposit Escrow Funds](./screenshots/2_deposit_escrow.png)
+<img width="1391" height="1072" alt="image" src="https://github.com/user-attachments/assets/19e30c07-ff7c-4d84-a362-6c92c05cdbab" />
+
 
 <br />
 
 ### 3. Soroban Transaction Execution
-![Soroban Transaction Execution](./screenshots/3_soroban_tx.png)
+<img width="1198" height="871" alt="image" src="https://github.com/user-attachments/assets/641a17b3-aaa8-457d-8d26-a50914c5047b" />
+
 
 <br />
 
@@ -141,18 +146,20 @@ This guarantees 100% transparency, preventing retroactive record tampering.
 <br />
 
 ### 5. Utility Settlement Portal
-![Utility Settlement Portal](./screenshots/5_utility_settlement.png)
+<img width="1635" height="995" alt="image" src="https://github.com/user-attachments/assets/9c592687-784d-45e8-b1c3-4923f9f513dd" />
+
 
 <br />
 
 ### 6. Escrow Refund Completed
-![Escrow Refund Completed](.<img width="1398" height="1078" alt="Screenshot 2026-08-12 124233" src="https://github.com/user-attachments/assets/00d22fad-469f-4f38-8bda-a10fa9023c81" />
-)
+<img width="1398" height="1078" alt="Screenshot 2026-08-12 124233" src="https://github.com/user-attachments/assets/00d22fad-469f-4f38-8bda-a10fa9023c81" />
+
 
 <br />
 
 ### 7. Complete Event History & Activity Feed
-![Complete Event History & Activity Feed](./screenshots/7_activity_feed.png)
+<img width="872" height="1078" alt="image" src="https://github.com/user-attachments/assets/33a26e89-1426-41de-8829-a13fa163a998" />
+
 
 </div>
 
