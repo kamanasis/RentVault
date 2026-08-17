@@ -63,16 +63,21 @@ export const AgreementProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   /**
-   * Subscribe to ALL agreements in Firestore via a single global real-time listener.
-   * This is the same architecture that was working before.
-   * The listener is started once and runs for the lifetime of the session.
-   * Role-based filtering (landlord vs tenant view) is done by the UI, not here.
+   * Subscribe to agreements where the connected wallet is either landlord or tenant.
+   * This uses targeted dual-queries to prevent exposing unrelated users' agreements.
+   * The listener restarts automatically whenever the connected wallet address changes.
    */
   useEffect(() => {
-    console.log('[AgreementContext] Starting global Firestore subscription...');
+    if (!address) {
+      setAgreements([]);
+      setLoading(false);
+      return;
+    }
+
+    console.log(`[AgreementContext] Starting targeted Firestore subscription for: ${address}`);
     setLoading(true);
 
-    const unsubscribe = subscribeToSharedAgreements((firestoreList) => {
+    const unsubscribe = subscribeToSharedAgreements(address, (firestoreList) => {
       const migrated = migrateAgreementsList(firestoreList);
       console.log(`[AgreementContext] Received ${migrated.length} agreements from Firestore`);
       setAgreements(migrated);
@@ -80,10 +85,10 @@ export const AgreementProvider = ({ children }) => {
     });
 
     return () => {
-      console.log('[AgreementContext] Cleaning up Firestore subscription');
+      console.log(`[AgreementContext] Cleaning up Firestore subscription for: ${address}`);
       unsubscribe();
     };
-  }, []); // Run once — global listener, not wallet-specific
+  }, [address]);
 
   /**
    * Central lifecycle state machine — advances an agreement to a new status

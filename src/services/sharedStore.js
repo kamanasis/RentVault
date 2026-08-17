@@ -65,38 +65,57 @@ export const normalizeAgreementForStorage = (data, docId) => {
 };
 
 /**
- * Subscribes to ALL agreements in Firestore via a single global onSnapshot.
- * This is the most reliable approach — no wallet-specific queries needed.
- * The UI (AgreementContext) handles role-based filtering from the full list.
- * Returns an unsubscribe function.
+ * Subscribes to targeted agreements in Firestore using dual queries.
+ * Only fetches agreements where the connected wallet is the landlord OR the tenant.
+ * Fixes the privacy leak associated with global 'collection' listeners.
  */
-export const subscribeToSharedAgreements = (onUpdateCallback) => {
+export const subscribeToSharedAgreements = (walletAddress, onUpdateCallback) => {
   let isUnsubscribed = false;
-  let unsubscribeFirestore = () => {};
+  let unsubLandlord = () => {};
+  let unsubTenant = () => {};
+
+  const normalizedWallet = normalizeWallet(walletAddress);
+  if (!normalizedWallet) return () => {};
 
   getFirestoreDb().then(async (db) => {
     if (!db || isUnsubscribed) return;
 
     try {
-      const { collection, onSnapshot } = await import('firebase/firestore');
+      const { collection, query, where, onSnapshot } = await import('firebase/firestore');
       const agreementsCol = collection(db, 'agreements');
 
-      unsubscribeFirestore = onSnapshot(
-        agreementsCol,
-        (snapshot) => {
-          if (isUnsubscribed) return;
+      const qLandlord = query(agreementsCol, where('landlordWallet', '==', normalizedWallet));
+      const qTenant = query(agreementsCol, where('tenantWallet', '==', normalizedWallet));
 
-          const agreements = snapshot.docs
-            .map((docSnap) => normalizeAgreementForStorage(docSnap.data(), docSnap.id))
-            .filter(Boolean);
+      // In-memory cache to merge results from both queries and deduplicate by ID
+      const resultsMap = new Map();
 
-          console.log(`[Firestore] Global snapshot received: ${agreements.length} total agreements`);
-          onUpdateCallback(agreements);
-        },
-        (err) => {
-          console.error('[SharedStore] Firestore global snapshot error:', err.code, err.message);
-        }
+      const processSnapshot = (snapshot, role) => {
+        if (isUnsubscribed) return;
+        
+        snapshot.docs.forEach(docSnap => {
+          const agreement = normalizeAgreementForStorage(docSnap.data(), docSnap.id);
+          if (agreement) {
+            resultsMap.set(agreement.id, agreement);
+          }
+        });
+
+        // Convert map to array and trigger update
+        const mergedAgreements = Array.from(resultsMap.values());
+        console.log(`[Firestore] Targeted snapshot update (${role}): ${mergedAgreements.length} agreements`);
+        onUpdateCallback(mergedAgreements);
+      };
+
+      unsubLandlord = onSnapshot(qLandlord, 
+        (snapshot) => processSnapshot(snapshot, 'landlord_query'),
+        (err) => console.error('[SharedStore] Firestore landlord snapshot error:', err)
       );
+
+      unsubTenant = onSnapshot(qTenant, 
+        (snapshot) => processSnapshot(snapshot, 'tenant_query'),
+        (err) => console.error('[SharedStore] Firestore tenant snapshot error:', err)
+      );
+
     } catch (err) {
       console.error('[SharedStore] Failed to attach Firestore listener:', err);
     }
@@ -104,7 +123,8 @@ export const subscribeToSharedAgreements = (onUpdateCallback) => {
 
   return () => {
     isUnsubscribed = true;
-    unsubscribeFirestore();
+    unsubLandlord();
+    unsubTenant();
   };
 };
 
