@@ -1,13 +1,31 @@
 import * as StellarSdk from '@stellar/stellar-sdk';
 import { signTransaction } from '@stellar/freighter-api';
-import { SOROBAN_CONTRACT_ID, HORIZON_URL, SOROBAN_RPC_URL, NETWORK_PASSPHRASE, horizonServer } from './escrowContract';
+import { 
+  SOROBAN_CONTRACT_ID, 
+  NETWORK_PASSPHRASE, 
+  sorobanServer, 
+  horizonServer,
+  encodeLockDepositParams,
+  encodeReleaseDepositParams 
+} from './escrowContract';
 
-/**
- * Get configured Soroban Escrow Contract ID from environment variable or fallback
- */
 export const getSorobanContractId = () => {
   return SOROBAN_CONTRACT_ID;
 };
+
+async function pollTransactionStatus(hash) {
+  let statusResponse;
+  let attempts = 0;
+  while (attempts < 20) {
+    statusResponse = await sorobanServer.getTransaction(hash);
+    if (statusResponse.status !== 'NOT_FOUND') {
+      return statusResponse;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    attempts++;
+  }
+  throw new Error('Transaction confirmation timeout.');
+}
 
 /**
  * Execute Soroban Escrow Deposit lock transaction on Stellar Testnet
@@ -16,57 +34,49 @@ export const depositEscrowContract = async (
   { agreementId, tenantAddress, landlordAddress, depositAmount, utilityReserve },
   onProgress
 ) => {
-  const contractId = getSorobanContractId();
   const totalAmount = parseFloat(depositAmount || 0) + parseFloat(utilityReserve || 0);
-
-  console.log(`[Soroban Service] Depositing ${totalAmount} XLM for agreement ${agreementId} to Contract ID: ${contractId}`);
+  console.log(`[Soroban Service] Depositing ${totalAmount} XLM for agreement ${agreementId} to Contract ID: ${SOROBAN_CONTRACT_ID}`);
 
   if (!tenantAddress || !landlordAddress || totalAmount <= 0) {
-    throw new Error('Invalid escrow parameters. Missing wallet addresses or deposit amount <= 0.');
-  }
-
-  if (!StellarSdk.StrKey.isValidEd25519PublicKey(tenantAddress)) {
-    throw new Error('Invalid tenant Stellar public key format.');
+    throw new Error('Invalid escrow parameters.');
   }
 
   try {
-    // Stage 1: Preparing transaction
+    // Stage 1: Preparing transaction & Simulation
     if (onProgress) onProgress('preparing');
 
-    // 1. Fetch tenant source account from Horizon RPC
     const sourceAccount = await horizonServer.loadAccount(tenantAddress);
-
-    // 2. Fetch base fee and construct transaction
-    const fee = await horizonServer.fetchBaseFee();
+    
+    const invokeParams = encodeLockDepositParams({
+      agreementId,
+      tenantAddress,
+      landlordAddress,
+      totalAmount,
+    });
 
     const transaction = new StellarSdk.TransactionBuilder(sourceAccount, {
-      fee: fee.toString(),
+      fee: '1000', // Base fee before simulation
       networkPassphrase: NETWORK_PASSPHRASE,
     })
-      .addOperation(
-        StellarSdk.Operation.payment({
-          destination: landlordAddress.startsWith('G') 
-            ? landlordAddress 
-            : 'GB7X42F098A190B38812TESTNETRENTVAULTKEY99',
-          asset: StellarSdk.Asset.native(),
-          amount: totalAmount.toFixed(7),
-        })
-      )
+      .addOperation(StellarSdk.Operation.invokeHostFunction(invokeParams))
       .setTimeout(30)
       .build();
 
-    const unsignedXdr = transaction.toXDR();
-    console.log('[Soroban Service] Unsigned Transaction XDR created:', unsignedXdr);
+    const simResult = await sorobanServer.simulateTransaction(transaction);
+    if (StellarSdk.rpc.Api.isSimulationError(simResult)) {
+        throw new Error(`Simulation failed: ${simResult.error}`);
+    }
+
+    const assembledTx = StellarSdk.rpc.assembleTransaction(transaction, simResult).build();
+    const unsignedXdr = assembledTx.toXDR();
 
     // Stage 2: Awaiting Freighter Signature
     if (onProgress) onProgress('signing');
-    console.log('[Soroban Service] Requesting Freighter contract signature...');
-
+    
     const signRes = await signTransaction(unsignedXdr, {
       network: 'TESTNET',
       networkPassphrase: NETWORK_PASSPHRASE,
     });
-    console.log('[Soroban Service] Freighter sign result:', signRes);
 
     let signedXdr = '';
     if (typeof signRes === 'string') {
@@ -82,40 +92,38 @@ export const depositEscrowContract = async (
       throw new Error('Transaction signing was cancelled by user.');
     }
 
-    // Stage 3: Submitting to Stellar Testnet
+    // Stage 3: Submitting to Soroban
     if (onProgress) onProgress('submitting');
-    console.log('[Soroban Service] Submitting signed XDR to Stellar Testnet RPC...');
+    
+    const transactionToSubmit = StellarSdk.TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
+    const submitResult = await sorobanServer.sendTransaction(transactionToSubmit);
 
-    const transactionToSubmit = StellarSdk.TransactionBuilder.fromXDR(
-      signedXdr,
-      NETWORK_PASSPHRASE
-    );
+    if (submitResult.status === 'ERROR') {
+      throw new Error(`Transaction submission failed`);
+    }
 
     // Stage 4: Confirming On-Chain
     if (onProgress) onProgress('confirming');
-    const result = await horizonServer.submitTransaction(transactionToSubmit);
-    console.log('[Soroban Service] Escrow deposit transaction confirmed on-chain!', result);
+    
+    const statusResponse = await pollTransactionStatus(submitResult.hash);
 
-    // Stage 5: Success
-    if (onProgress) onProgress('success');
-
-    return {
-      success: true,
-      hash: result.hash,
-      ledger: result.ledger,
-      amountLocked: totalAmount,
-      contractId: contractId,
-      timestamp: new Date().toISOString(),
-    };
-  } catch (err) {
-    console.error('[Soroban Service Error]:', err);
-    if (onProgress) onProgress('failed');
-    const horizonErrorData = err?.response?.data?.extras?.result_codes;
-    if (horizonErrorData) {
-      const codeStr = JSON.stringify(horizonErrorData);
-      throw new Error(`Soroban Contract Execution Error: ${codeStr}`);
+    if (statusResponse.status === 'SUCCESS') {
+      if (onProgress) onProgress('success');
+      return {
+        success: true,
+        hash: submitResult.hash,
+        ledger: statusResponse.latestLedger,
+        amountLocked: totalAmount,
+        contractId: SOROBAN_CONTRACT_ID,
+        timestamp: new Date().toISOString(),
+      };
+    } else {
+      throw new Error(`Transaction failed on-chain: ${JSON.stringify(statusResponse.resultMetaXdr)}`);
     }
-    throw new Error(err?.message || 'Failed to submit Soroban escrow contract deposit transaction.');
+  } catch (err) {
+    console.error('[Soroban Lock Error]', err);
+    if (onProgress) onProgress('failed');
+    throw new Error(err?.message || 'Failed to execute deposit transaction.');
   }
 };
 
@@ -126,36 +134,81 @@ export const releaseEscrowContract = async (
   { agreementId, tenantAddress, landlordAddress, refundAmount },
   onProgress
 ) => {
-  const contractId = getSorobanContractId();
   const amountToRefund = parseFloat(refundAmount || 0);
-
   console.log(`[Soroban Service] Releasing ${amountToRefund} XLM for agreement ${agreementId}`);
 
   try {
     if (onProgress) onProgress('preparing');
 
-    // Simulate/Execute on-chain release transaction confirmation
+    // Releaser is assumed to be the landlord based on RentVault logic
+    const sourceAccount = await horizonServer.loadAccount(landlordAddress);
+    
+    const invokeParams = encodeReleaseDepositParams({
+      agreementId,
+      releaserAddress: landlordAddress,
+    });
+
+    const transaction = new StellarSdk.TransactionBuilder(sourceAccount, {
+      fee: '1000',
+      networkPassphrase: NETWORK_PASSPHRASE,
+    })
+      .addOperation(StellarSdk.Operation.invokeHostFunction(invokeParams))
+      .setTimeout(30)
+      .build();
+
+    const simResult = await sorobanServer.simulateTransaction(transaction);
+    if (StellarSdk.rpc.Api.isSimulationError(simResult)) {
+        throw new Error(`Simulation failed: ${simResult.error}`);
+    }
+
+    const assembledTx = StellarSdk.rpc.assembleTransaction(transaction, simResult).build();
+    const unsignedXdr = assembledTx.toXDR();
+
     if (onProgress) onProgress('signing');
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    const signRes = await signTransaction(unsignedXdr, {
+      network: 'TESTNET',
+      networkPassphrase: NETWORK_PASSPHRASE,
+    });
+
+    let signedXdr = '';
+    if (typeof signRes === 'string') {
+      signedXdr = signRes;
+    } else if (signRes && signRes.error) {
+      throw new Error(`Freighter signing rejected: ${signRes.error}`);
+    } else {
+      signedXdr = signRes.signedTxXdr || signRes.signedTransaction || signRes.xdr;
+    }
+
+    if (!signedXdr || signedXdr.trim() === '') {
+      throw new Error('Transaction signing was cancelled by user.');
+    }
 
     if (onProgress) onProgress('submitting');
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    
+    const transactionToSubmit = StellarSdk.TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
+    const submitResult = await sorobanServer.sendTransaction(transactionToSubmit);
+
+    if (submitResult.status === 'ERROR') {
+      throw new Error(`Transaction submission failed`);
+    }
 
     if (onProgress) onProgress('confirming');
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    
+    const statusResponse = await pollTransactionStatus(submitResult.hash);
 
-    if (onProgress) onProgress('success');
-
-    const mockHash = `9f71c42e88b1092a${Date.now().toString(16)}`;
-
-    return {
-      success: true,
-      hash: mockHash,
-      ledger: 4892011,
-      refundAmount: amountToRefund,
-      contractId: contractId,
-      timestamp: new Date().toISOString(),
-    };
+    if (statusResponse.status === 'SUCCESS') {
+      if (onProgress) onProgress('success');
+      return {
+        success: true,
+        hash: submitResult.hash,
+        ledger: statusResponse.latestLedger,
+        refundAmount: amountToRefund,
+        contractId: SOROBAN_CONTRACT_ID,
+        timestamp: new Date().toISOString(),
+      };
+    } else {
+      throw new Error(`Release transaction failed on-chain`);
+    }
   } catch (err) {
     console.error('[Soroban Release Error]:', err);
     if (onProgress) onProgress('failed');
@@ -163,9 +216,6 @@ export const releaseEscrowContract = async (
   }
 };
 
-/**
- * Compute total locked escrow XLM across active contracts
- */
 export const calculateTotalLockedEscrow = (agreementsList = []) => {
   return agreementsList
     .filter(
