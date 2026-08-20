@@ -23,7 +23,7 @@ import { SOROBAN_CONTRACT_ID, sorobanServer } from './escrowContract';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-/** Poll every 5 seconds. Stellars ledger closes every ~5s. */
+/** Poll every 5 seconds. Stellar ledger closes every ~5s. */
 const POLL_INTERVAL_MS = 5000;
 
 /** Max consecutive RPC failures before backing off. */
@@ -40,6 +40,18 @@ const PROCESSED_IDS_STORAGE_KEY = 'rv_soroban_processed_event_ids';
 
 /** Maximum size of the processed-ID set persisted to localStorage. */
 const MAX_PROCESSED_IDS = 500;
+
+/**
+ * The ledger at which the RentVault escrow contract was first deployed.
+ * On first run (no stored cursor), the listener scans from this ledger
+ * so that ALL historical events from this contract are detected, including
+ * the proven real event at ledger 4242581
+ * (tx: 2d6758e2adc05dff2f563c454034304873889d4781a114dc5d9fa69501b83593).
+ *
+ * The Soroban Testnet RPC retains events for a rolling window of ~100k ledgers
+ * (~7 days). Events older than that window are no longer accessible.
+ */
+const CONTRACT_DEPLOY_LEDGER = 4242500;
 
 // ─── Topic Decoding ───────────────────────────────────────────────────────────
 
@@ -214,13 +226,33 @@ export function startSorobanEventListener({ onEvent, onError, startLedger } = {}
           limit: 20,
         };
       } else {
-        // First run: get the current latest ledger and poll from there (live-only)
-        // If startLedger was explicitly provided, use it
-        let ledgerToStart = startLedger;
-        if (!ledgerToStart) {
+        // First run: no stored cursor, so determine the best start ledger.
+        // We scan from CONTRACT_DEPLOY_LEDGER (not just latestLedger-10)
+        // so that ALL historical events from this contract deployment are
+        // detected on startup — including events that occurred before the
+        // current browser session started.
+        //
+        // If the RPC rejects CONTRACT_DEPLOY_LEDGER as outside the retention
+        // window, the error handler will catch and retry; in practice the
+        // Testnet RPC retains events for ~7 days.
+        let ledgerToStart = startLedger || CONTRACT_DEPLOY_LEDGER;
+
+        // Clamp to within the RPC's retention window if we can
+        try {
           const latest = await sorobanServer.getLatestLedger();
-          // Start from a few ledgers back to catch any very recent events
-          ledgerToStart = Math.max(1, latest.sequence - 10);
+          // If the deploy ledger is more than 100k ledgers ago, start from
+          // the oldest accessible ledger instead (100k ledger safety margin)
+          const oldestSafe = Math.max(1, latest.sequence - 100_000);
+          if (ledgerToStart < oldestSafe) {
+            console.warn(
+              `[SorobanEvents] CONTRACT_DEPLOY_LEDGER ${ledgerToStart} is outside ` +
+              `the RPC retention window. Starting from ${oldestSafe}.`
+            );
+            ledgerToStart = oldestSafe;
+          }
+        } catch {
+          // If we can't reach the RPC now, keep the deploy ledger as-is;
+          // the poll() error handler will handle the retry.
         }
 
         queryOptions = {
@@ -231,7 +263,7 @@ export function startSorobanEventListener({ onEvent, onError, startLedger } = {}
               contractIds: [SOROBAN_CONTRACT_ID],
             },
           ],
-          limit: 20,
+          limit: 50,
         };
       }
 
@@ -276,12 +308,13 @@ export function startSorobanEventListener({ onEvent, onError, startLedger } = {}
         const lastEvent = events[events.length - 1];
         cursor = lastEvent.id;
         saveCursor(cursor);
-      } else if (!cursor && result.latestLedger) {
-        // No events yet — advance cursor by storing a synthetic position
-        // so next poll uses cursor-based paging (more efficient)
-        // We'll set cursor based on the latest ledger to avoid re-scanning old ledgers
-        // This is a no-op if events is empty; just re-poll startLedger next time
-        // Actually: leave cursor null and advance startLedger on next iteration
+      } else if (!cursor) {
+        // No events returned on this poll, cursor is still null.
+        // Keep startLedger-based polling on the next cycle — this is correct
+        // because the next call will re-use CONTRACT_DEPLOY_LEDGER until
+        // at least one event is found and a real cursor is established.
+        // This avoids infinite re-scanning of very old ledgers: once a cursor
+        // is saved, all subsequent polls use cursor-based paging.
       }
 
     } catch (err) {
@@ -367,13 +400,22 @@ export async function fetchHistoricalEvents(fromLedger) {
 /**
  * Clears the locally stored cursor and processed-ID dedup set.
  * Use this if you want the listener to re-scan from scratch.
+ *
+ * Callable from browser DevTools console:
+ *   window.resetSorobanCursor()
  */
 export function resetEventCursor() {
   try {
     localStorage.removeItem(CURSOR_STORAGE_KEY);
     localStorage.removeItem(PROCESSED_IDS_STORAGE_KEY);
-    console.log('[SorobanEvents] Cursor and processed-ID set cleared.');
+    console.log('[SorobanEvents] Cursor and processed-ID set cleared. Reload the page to re-scan from CONTRACT_DEPLOY_LEDGER.');
   } catch {
     // ignore
   }
+}
+
+// Expose to browser window for convenient DevTools testing.
+// Usage in console: window.resetSorobanCursor()
+if (typeof window !== 'undefined') {
+  window.resetSorobanCursor = resetEventCursor;
 }
