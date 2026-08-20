@@ -12,6 +12,15 @@ import { WrongNetworkModal } from './components/wallet/WrongNetworkModal';
 import { SwitchWalletModal } from './components/wallet/SwitchWalletModal';
 import { Skeleton } from './components/ui/Skeleton';
 import { Loader2 } from 'lucide-react';
+import { useSorobanEvents } from './hooks/useSorobanEvents';
+
+// Zero-render bridge: mounts the Soroban event polling loop inside the
+// provider tree so it has access to AgreementContext + ToastContext + WalletContext.
+function SorobanEventBridge() {
+  useSorobanEvents({ enabled: true });
+  return null;
+}
+
 
 // Lazy Loaded Page Components for Code-Splitting & Speed
 const Landing = lazy(() => import('./pages/Landing').then(m => ({ default: m.Landing })));
@@ -43,6 +52,8 @@ export function App() {
         <AgreementProvider>
           <ToastProvider>
             <BrowserRouter>
+              {/* Level 2C: starts the Soroban blockchain event polling loop */}
+              <SorobanEventBridge />
               <div className="flex flex-col min-h-screen bg-background text-text-primary selection:bg-primary selection:text-white">
                 <Navbar />
                 <WalletErrorBanner />
