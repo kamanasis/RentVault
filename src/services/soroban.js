@@ -58,7 +58,7 @@ export const depositEscrowContract = async (
       fee: '1000', // Base fee before simulation
       networkPassphrase: NETWORK_PASSPHRASE,
     })
-      .addOperation(StellarSdk.Operation.invokeHostFunction(invokeParams))
+      .addOperation(StellarSdk.Operation.invokeContractFunction(invokeParams))
       .setTimeout(30)
       .build();
 
@@ -152,7 +152,7 @@ export const releaseEscrowContract = async (
       fee: '1000',
       networkPassphrase: NETWORK_PASSPHRASE,
     })
-      .addOperation(StellarSdk.Operation.invokeHostFunction(invokeParams))
+      .addOperation(StellarSdk.Operation.invokeContractFunction(invokeParams))
       .setTimeout(30)
       .build();
 
