@@ -23,6 +23,33 @@ RentVault is a decentralized rental deposit escrow platform powered by **Stellar
 
 ---
 
+## 🚀 Deployed Stellar Testnet Contract
+
+- **Network**: Stellar Testnet
+- **Contract ID**: `CB2YAY734VGBLC4B3KGCDFSLS5JWKRCLIW4NM77VFLH32Q6JPEYLHADF`
+- **Contract Explorer**: [Stellar Lab Contract Link](https://lab.stellar.org/r/testnet/contract/CB2YAY734VGBLC4B3KGCDFSLS5JWKRCLIW4NM77VFLH32Q6JPEYLHADF)
+- **Successful Transaction**: [Stellar Expert Explorer Transaction Link](https://stellar.expert/explorer/testnet/tx/2d6758e2adc05dff2f563c454034304873889d4781a114dc5d9fa69501b83593)
+
+### Verification status
+
+| Item | Status |
+|---|---|
+| Soroban contract deployed | ✅ |
+| Network | Stellar Testnet |
+| Contract ID | `CB2YAY734VGBLC4B3KGCDFSLS5JWKRCLIW4NM77VFLH32Q6JPEYLHADF` |
+| Frontend contract invocation | ✅ |
+| Real Testnet transaction | ✅ |
+| Soroban event detected | ✅ |
+| Real-time event integration | ✅ |
+
+---
+
+## 🔗 On-Chain Verification
+
+The RentVault escrow smart contract is deployed on Stellar Testnet. Evaluators can independently verify the contract deployment on Stellar Lab and inspect a successful live deposit transaction using the links above. The frontend interacts directly with the on-chain contract state and listens to Soroban smart contract events in real-time, matching transaction metadata directly with the ledger's emitted topics.
+
+---
+
 ## 🚨 Problem Statement
 
 Traditional rental deposit management is plagued by friction, mistrust, and opaque bookkeeping. Key challenges include:
