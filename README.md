@@ -23,9 +23,10 @@ RentVault is a decentralized rental deposit escrow platform powered by **Stellar
 
 ---
 
-## 🚀 Deployed Stellar Testnet Contract
+## 🚀 Deployed Application & Stellar Testnet Contract
 
-- **Network**: Stellar Testnet
+- **Live Application URL**: [https://rent-vault-pi.vercel.app](https://rent-vault-pi.vercel.app)
+- **Stellar Network**: Stellar Testnet
 - **Contract ID**: `CB2YAY734VGBLC4B3KGCDFSLS5JWKRCLIW4NM77VFLH32Q6JPEYLHADF`
 - **Contract Explorer**: [Stellar Lab Contract Link](https://lab.stellar.org/r/testnet/contract/CB2YAY734VGBLC4B3KGCDFSLS5JWKRCLIW4NM77VFLH32Q6JPEYLHADF)
 - **Successful Transaction**: [Stellar Expert Explorer Transaction Link](https://stellar.expert/explorer/testnet/tx/2d6758e2adc05dff2f563c454034304873889d4781a114dc5d9fa69501b83593)
