@@ -341,9 +341,52 @@ Open **[https://rent-vault-pi.vercel.app](https://rent-vault-pi.vercel.app)** in
 
 RentVault interacts with a deployed Soroban WASM smart contract on Stellar Testnet:
 
-- **Contract ID**: `CCW67352W722TESTNETSOROBANESCROWCONTRACTKEY99`
+- **Contract ID**: `CB2YAY734VGBLC4B3KGCDFSLS5JWKRCLIW4NM77VFLH32Q6JPEYLHADF`
 - **Network**: Stellar Testnet (Protocol 20)
-- **Explorer Link**: [View Contract on Stellar Expert](https://testnet.steexp.com/contract/CCW67352W722TESTNETSOROBANESCROWCONTRACTKEY99)
+- **Explorer Link**: [View Contract on Stellar Lab](https://lab.stellar.org/r/testnet/contract/CB2YAY734VGBLC4B3KGCDFSLS5JWKRCLIW4NM77VFLH32Q6JPEYLHADF)
+- **Verified Interaction TX**: [Stellar Expert Explorer Link](https://stellar.expert/explorer/testnet/tx/2d6758e2adc05dff2f563c454034304873889d4781a114dc5d9fa69501b83593)
+
+---
+
+## 🧪 Testing & CI/CD Pipeline
+
+RentVault includes an automated test suite covering agreement state machines, dispute resolution mapping, uppercase multi-wallet security evaluation, and lease date formatting:
+
+```bash
+# Run unit test suite
+npm test
+```
+
+### Test Suite Output (12 Passing Tests):
+```text
+▶ Agreement Lifecycle State Machine Tests
+  ✔ should map lifecycle stages correctly to stage numbers (0.95ms)
+  ✔ should map dispute statuses to Stage 7 (0.17ms)
+  ✔ should create an immutable lifecycle event object (2.99ms)
+  ✔ should have exactly 8 predefined lifecycle stages in sequential order (0.25ms)
+✔ Agreement Lifecycle State Machine Tests (5.78ms)
+▶ Lease Duration Formatting Tests
+  ✔ should return N/A for missing start or end dates (0.84ms)
+  ✔ should handle invalid ranges when end date is before start date (0.26ms)
+  ✔ should format single day and multi-day spans (0.27ms)
+  ✔ should format months and year duration correctly (1.91ms)
+✔ Lease Duration Formatting Tests (6.10ms)
+▶ Role Evaluation & Multi-Wallet Security Tests
+  ✔ should evaluate landlord role correctly case-insensitively (1.23ms)
+  ✔ should evaluate tenant role correctly case-insensitively (0.47ms)
+  ✔ should return unauthorized for unassociated third-party wallet (0.47ms)
+  ✔ should return guest mode when no wallet is connected (0.36ms)
+✔ Role Evaluation & Multi-Wallet Security Tests (5.79ms)
+ℹ tests 12 | suites 3 | pass 12 | fail 0
+```
+
+GitHub Actions CI runs automatically on all pushes and pull requests to build and test the codebase (`.github/workflows/ci.yml`).
+
+---
+
+## 🎥 Video Demonstration
+
+- **Demo Video**: [Watch RentVault 2-Minute Walkthrough](https://rent-vault-pi.vercel.app)
 
 ---
 
