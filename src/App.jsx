@@ -10,6 +10,7 @@ import { WalletErrorBanner } from './components/wallet/WalletErrorBanner';
 import { FreighterInstallModal } from './components/wallet/FreighterInstallModal';
 import { WrongNetworkModal } from './components/wallet/WrongNetworkModal';
 import { SwitchWalletModal } from './components/wallet/SwitchWalletModal';
+import { MultiWalletModal } from './components/wallet/MultiWalletModal';
 import { Skeleton } from './components/ui/Skeleton';
 import { Loader2 } from 'lucide-react';
 import { useSorobanEvents } from './hooks/useSorobanEvents';
@@ -93,6 +94,7 @@ export function App() {
                 <Footer />
 
                 {/* Wallet Modals */}
+                <MultiWalletModal />
                 <FreighterInstallModal />
                 <WrongNetworkModal />
                 <SwitchWalletModal />

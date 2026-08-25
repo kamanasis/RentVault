@@ -100,7 +100,7 @@ export const WalletButton = ({
       `}
     >
       <Wallet className="w-5 h-5 text-white flex-shrink-0" />
-      <span className="tracking-wide">Connect Freighter Wallet</span>
+      <span className="tracking-wide">Connect Stellar Wallet</span>
     </motion.button>
   );
 };

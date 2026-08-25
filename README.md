@@ -78,9 +78,54 @@ Building a rental deposit escrow platform on **Stellar** and **Soroban WASM Smar
 
 ---
 
+## 🥋 Level 2 - Yellow Belt Submission Compliance Matrix
+
+RentVault fulfills **all** criteria required for the **Rise In / Stellar Journey to Mastery: Level 2 - Yellow Belt Submission**:
+
+| Level 2 Requirement | Status | Technical Implementation & Verification Reference |
+| :--- | :---: | :--- |
+| **Multi-Wallet Integration (StellarWalletsKit)** | ✅ | Supported options: **Freighter**, **xBull**, **Albedo**, **Hana**, **LOBSTR**, and **Developer Demo Wallet** ([MultiWalletModal](#-multi-wallet-support)) |
+| **3 Error Types Handled & Visible** | ✅ | **1. `WALLET_NOT_FOUND`** (Extension missing notice + install link)<br/>**2. `USER_REJECTED`** (Signature/connection cancellation retry flow)<br/>**3. `INSUFFICIENT_BALANCE`** (Balance check + 1-click Friendbot funding) |
+| **Contract Deployed on Testnet** | ✅ | `CB2YAY734VGBLC4B3KGCDFSLS5JWKRCLIW4NM77VFLH32Q6JPEYLHADF` ([Stellar Lab Contract Explorer](https://lab.stellar.org/r/testnet/contract/CB2YAY734VGBLC4B3KGCDFSLS5JWKRCLIW4NM77VFLH32Q6JPEYLHADF)) |
+| **Contract Called from Frontend** | ✅ | Invokes `lock_deposit` and `release_deposit` via `@stellar/stellar-sdk` & `@stellar/freighter-api` with verified parameter encoding |
+| **Transaction Status Visible** | ✅ | 4-stage visual execution (`Preparing` ➔ `Signing` ➔ `Submitting` ➔ `Confirmed`) via [`TransactionProgress.jsx`](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/src/components/wallet/TransactionProgress.jsx) |
+| **Real-Time Event Integration** | ✅ | Background Soroban topic polling daemon streaming `(Symbol("escrow"), Symbol("locked"/"release"))` events via [`sorobanEvents.js`](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/src/services/sorobanEvents.js) |
+| **1-2+ Weeks Consistent Development** | ✅ | **75+ meaningful commits spanning August 5 to August 25** (3 weeks of active engineering and feature iteration) |
+| **Live Deployed Demo** | ✅ | [https://rent-vault-pi.vercel.app](https://rent-vault-pi.vercel.app) |
+| **Verified Testnet Transaction Hash** | ✅ | [`2d6758e2adc05dff2f563c454034304873889d4781a114dc5d9fa69501b83593`](https://stellar.expert/explorer/testnet/tx/2d6758e2adc05dff2f563c454034304873889d4781a114dc5d9fa69501b83593) |
+
+---
+
+## 🛡️ 3 Handled Error Types & UI Recovery Flows
+
+RentVault implements explicit, user-friendly handling for the three mandatory Web3 error scenarios:
+
+```text
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                             ERROR HANDLING ENGINE                                │
+├────────────────────────┬────────────────────────────────┬────────────────────────┤
+│ Error Type             │ Trigger Condition              │ UI Resolution Action   │
+├────────────────────────┼────────────────────────────────┼────────────────────────┤
+│ 1. WALLET_NOT_FOUND    │ Browser extension not detected │ Direct download button │
+│                        │ (e.g. Freighter, xBull)        │ + switch to Demo mode  │
+├────────────────────────┼────────────────────────────────┼────────────────────────┤
+│ 2. USER_REJECTED       │ User cancels/denies signature  │ Polite retry prompt    │
+│                        │ or authorization modal         │ with zero state reset  │
+├────────────────────────┼────────────────────────────────┼────────────────────────┤
+│ 3. INSUFFICIENT_BALANCE│ Account XLM < required deposit │ 1-Click Friendbot test │
+│                        │ amount + Stellar base reserve  │ account funding (+10k) │
+└────────────────────────┴────────────────────────────────┴────────────────────────┘
+```
+
+1. **`WALLET_NOT_FOUND`**: Triggered when a user selects a browser wallet that isn't installed. RentVault displays a custom modal with one-click install links to the Chrome/Firefox stores or allows switching to the instant Developer Sandbox.
+2. **`USER_REJECTED`**: Triggered when a user rejects the Freighter signature prompt or closes the popup. The dApp catches the rejection, informs the user with a dismissable badge, and leaves the agreement in a safe retry state.
+3. **`INSUFFICIENT_BALANCE`**: Evaluated prior to smart contract invocation. If available XLM is insufficient for the deposit plus Stellar base reserve (1 XLM), the transaction is blocked with an informative warning and an instant **Fund via Friendbot (+10,000 XLM)** button.
+
+---
+
 ## 🥋 Level 4 - Green Belt Submission Checklist & Proofs
 
-RentVault satisfies **all** requirements for the **Rise In / Stellar Journey to Mastery: Level 4 - Green Belt Submission**:
+RentVault also satisfies **all** requirements for the **Rise In / Stellar Journey to Mastery: Level 4 - Green Belt Submission**:
 
 | Submission Requirement | Status | Verification Reference |
 | :--- | :---: | :--- |
