@@ -76,6 +76,20 @@ Building a rental deposit escrow platform on **Stellar** and **Soroban WASM Smar
 | **🔐 Freighter Wallet Auth** | Seamless browser extension authentication without raw private key exposure. | Non-custodial, user-friendly Web3 onboarding for landlords and tenants alike. |
 | **🌱 Enterprise Scalability** | Low-latency, energy-efficient, enterprise-grade blockchain infrastructure. | Sustainable platform capable of scaling to thousands of concurrent rental agreements globally. |
 
+## 🥋 Level 1 - White Belt Submission Compliance Matrix
+
+RentVault fulfills **all** criteria required for the **Rise In / Stellar Journey to Mastery: Level 1 - White Belt Submission**:
+
+| Level 1 Requirement | Status | Technical Implementation & Verification Reference |
+| :--- | :---: | :--- |
+| **Freighter Wallet Integration** | ✅ | Non-custodial connection, public key parsing via `getAddress()`, and network detection via `getNetwork()` ([WalletContext.jsx](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/src/context/WalletContext.jsx)) |
+| **Stellar Testnet & Horizon API** | ✅ | Live XLM balance polling via Horizon RPC `server.loadAccount()` (`https://horizon-testnet.stellar.org`) |
+| **Friendbot Testnet Account Funding** | ✅ | 1-Click testnet account funding (+10,000 XLM) via Stellar Friendbot API ([stellar.js](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/src/services/stellar.js)) |
+| **Native XLM Payment Execution** | ✅ | Builds, signs via Freighter, and broadcasts native XLM payment operations with 100 stroop base fee ([SendPayment.jsx](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/src/pages/SendPayment.jsx)) |
+| **Transaction History Ledger** | ✅ | Displays real-time Horizon payment operations, timestamps, and direct links to Stellar Expert Explorer ([Transactions.jsx](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/src/pages/Transactions.jsx)) |
+| **Clean Setup & Documentation** | ✅ | Complete step-by-step installation, testnet onboarding, and local running guide in README |
+| **Live Deployed Application** | ✅ | [https://rent-vault-pi.vercel.app](https://rent-vault-pi.vercel.app) |
+
 ---
 
 ## 🥋 Level 2 - Yellow Belt Submission Compliance Matrix
