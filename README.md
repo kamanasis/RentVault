@@ -77,57 +77,6 @@ Building a rental deposit escrow platform on **Stellar** and **Soroban WASM Smar
 | **🔐 Freighter Wallet Auth** | Seamless browser extension authentication without raw private key exposure. | Non-custodial, user-friendly Web3 onboarding for landlords and tenants alike. |
 | **🌱 Enterprise Scalability** | Low-latency, energy-efficient, enterprise-grade blockchain infrastructure. | Sustainable platform capable of scaling to thousands of concurrent rental agreements globally. |
 
-## 🥋 Level 1 - White Belt Submission Compliance Matrix
-
-RentVault fulfills **all** criteria required for the **Rise In / Stellar Journey to Mastery: Level 1 - White Belt Submission**:
-
-| Level 1 Requirement | Status | Technical Implementation & Verification Reference |
-| :--- | :---: | :--- |
-| **Freighter Wallet Integration** | ✅ | Non-custodial connection, public key parsing via `getAddress()`, and network detection via `getNetwork()` ([WalletContext.jsx](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/src/context/WalletContext.jsx)) |
-| **Stellar Testnet & Horizon API** | ✅ | Live XLM balance polling via Horizon RPC `server.loadAccount()` (`https://horizon-testnet.stellar.org`) |
-| **Friendbot Testnet Account Funding** | ✅ | 1-Click testnet account funding (+10,000 XLM) via Stellar Friendbot API ([stellar.js](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/src/services/stellar.js)) |
-| **Native XLM Payment Execution** | ✅ | Builds, signs via Freighter, and broadcasts native XLM payment operations with 100 stroop base fee ([SendPayment.jsx](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/src/pages/SendPayment.jsx)) |
-| **Transaction History Ledger** | ✅ | Displays real-time Horizon payment operations, timestamps, and direct links to Stellar Expert Explorer ([Transactions.jsx](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/src/pages/Transactions.jsx)) |
-| **Clean Setup & Documentation** | ✅ | Complete step-by-step installation, testnet onboarding, and local running guide in README |
-| **Live Deployed Application** | ✅ | [https://rent-vault-pi.vercel.app](https://rent-vault-pi.vercel.app) |
-
----
-
-## 🥋 Level 2 - Yellow Belt Submission Compliance Matrix
-
-RentVault fulfills **all** criteria required for the **Rise In / Stellar Journey to Mastery: Level 2 - Yellow Belt Submission**:
-
-| Level 2 Requirement | Status | Technical Implementation & Verification Reference |
-| :--- | :---: | :--- |
-| **Multi-Wallet Integration (StellarWalletsKit)** | ✅ | Supported options: **Freighter**, **xBull**, **Albedo**, **Hana**, **LOBSTR**, and **Developer Demo Wallet** ([MultiWalletModal](#-multi-wallet-support)) |
-| **3 Error Types Handled & Visible** | ✅ | **1. `WALLET_NOT_FOUND`** (Extension missing notice + install link)<br/>**2. `USER_REJECTED`** (Signature/connection cancellation retry flow)<br/>**3. `INSUFFICIENT_BALANCE`** (Balance check + 1-click Friendbot funding) |
-| **Contract Deployed on Testnet** | ✅ | `CB2YAY734VGBLC4B3KGCDFSLS5JWKRCLIW4NM77VFLH32Q6JPEYLHADF` ([Stellar Lab Contract Explorer](https://lab.stellar.org/r/testnet/contract/CB2YAY734VGBLC4B3KGCDFSLS5JWKRCLIW4NM77VFLH32Q6JPEYLHADF)) |
-| **Contract Called from Frontend** | ✅ | Invokes `lock_deposit` and `release_deposit` via `@stellar/stellar-sdk` & `@stellar/freighter-api` with verified parameter encoding |
-| **Transaction Status Visible** | ✅ | 4-stage visual execution (`Preparing` ➔ `Signing` ➔ `Submitting` ➔ `Confirmed`) via [`TransactionProgress.jsx`](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/src/components/wallet/TransactionProgress.jsx) |
-| **Real-Time Event Integration** | ✅ | Background Soroban topic polling daemon streaming `(Symbol("escrow"), Symbol("locked"/"release"))` events via [`sorobanEvents.js`](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/src/services/sorobanEvents.js) |
-| **1-2+ Weeks Consistent Development** | ✅ | **75+ meaningful commits spanning August 5 to August 25** (3 weeks of active engineering and feature iteration) |
-| **Live Deployed Demo** | ✅ | [https://rent-vault-pi.vercel.app](https://rent-vault-pi.vercel.app) |
-| **Verified Testnet Transaction Hash** | ✅ | [`2d6758e2adc05dff2f563c454034304873889d4781a114dc5d9fa69501b83593`](https://stellar.expert/explorer/testnet/tx/2d6758e2adc05dff2f563c454034304873889d4781a114dc5d9fa69501b83593) |
-
----
-
-## 🥋 Level 3 - Orange / Green Belt Submission Compliance Matrix
-
-RentVault fulfills **all 10** advanced technical criteria for the **Rise In / Stellar Journey to Mastery: Level 3 Submission**:
-
-| # | Level 3 Technical Requirement | Status | Architecture & Implementation Reference |
-| :-: | :--- | :---: | :--- |
-| **1** | **Advanced Smart Contract Development** | ✅ | Rust WebAssembly contract implementing `RentVaultEscrow` with authorization guards & state storage ([contracts/escrow/src/lib.rs](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/contracts/escrow/src/lib.rs)) |
-| **2** | **Inter-Contract Communication** | ✅ | Invokes the **Stellar Asset Contract (SAC)** via `token::Client` at `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC` for native escrow token transfers |
-| **3** | **Event Streaming & Real-Time Updates** | ✅ | Emits `(Symbol("escrow"), Symbol("locked"/"release"))` topics with background RPC streaming ([sorobanEvents.js](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/src/services/sorobanEvents.js)) |
-| **4** | **CI/CD Pipeline Setup** | ✅ | Active GitHub Actions pipeline ([.github/workflows/ci.yml](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/.github/workflows/ci.yml)) running dependencies, 20 unit tests, and production build |
-| **5** | **Smart Contract Deployment Workflow** | ✅ | Standardized build workflow via [`contracts/escrow/Makefile`](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/contracts/escrow/Makefile) and npm script `npm run build:contract` |
-| **6** | **Mobile Responsive Frontend** | ✅ | Touch-friendly layouts ($\ge 44\text{px}$ targets), mobile navigation drawer, and viewport-adaptive modals |
-| **7** | **Error Handling & Loading States** | ✅ | 3 explicit error handlers (`WALLET_NOT_FOUND`, `USER_REJECTED`, `INSUFFICIENT_BALANCE`) + shimmer skeletons |
-| **8** | **Writing Tests for Contracts & Frontend** | ✅ | **20 automated unit tests** across 5 test suites (`npm test`) + Soroban contract tests ([test.rs](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/contracts/escrow/src/test.rs)) |
-| **9** | **Production-Ready Architecture** | ✅ | Decoupled services layer, 8-stage state machine, Firestore realtime cloud sync, and ErrorBoundary protection |
-| **10**| **Documentation & Demo Presentation** | ✅ | Complete architectural documentation, Mermaid diagrams, explorer links, and 2-minute demo video |
-
 ---
 
 ## 🔄 Inter-Contract Communication Architecture
