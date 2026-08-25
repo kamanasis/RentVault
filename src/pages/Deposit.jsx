@@ -21,14 +21,26 @@ import {
   ArrowLeft, 
   Wallet, 
   ShieldCheck, 
-  AlertCircle 
+  AlertCircle,
+  Sparkles,
+  RefreshCw
 } from 'lucide-react';
 
 export const Deposit = () => {
   const { id = 'RV-2026-001' } = useParams();
   const navigate = useNavigate();
   const { getAgreementById, depositEscrow } = useAgreements();
-  const { connected, address, network, xlmBalance, rawBalance, refreshBalance } = useWallet();
+  const { 
+    connected, 
+    address, 
+    network, 
+    xlmBalance, 
+    rawBalance, 
+    refreshBalance, 
+    fundTestnetAccount, 
+    openWalletModal,
+    loading: walletLoading 
+  } = useWallet();
 
   const agreement = getAgreementById(id);
 
@@ -233,6 +245,27 @@ export const Deposit = () => {
                 <span className="text-hero font-extrabold text-primary-glow">{totalRequired} XLM</span>
               </div>
             </div>
+
+            {/* Insufficient Balance Inline Resolution Alert */}
+            {connected && roleInfo.isTenant && rawBalance < (totalRequired + 1.0) && (
+              <div className="p-4 bg-warning/10 border border-warning/30 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-warning text-xs">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span>
+                    Your balance (<strong>{xlmBalance} XLM</strong>) is lower than required (<strong>{totalRequired + 1.0} XLM</strong> incl. base reserve).
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={fundTestnetAccount}
+                  disabled={walletLoading}
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-success text-white font-semibold text-xs hover:bg-success/90 transition-all cursor-pointer flex-shrink-0 shadow-sm"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{walletLoading ? 'Funding...' : 'Fund via Friendbot (+10,000 XLM)'}</span>
+                </button>
+              </div>
+            )}
 
             {/* Form Actions */}
             <div className="pt-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">

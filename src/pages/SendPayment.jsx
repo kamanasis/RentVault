@@ -11,12 +11,21 @@ import { WalletButton } from '../components/wallet/WalletButton';
 import { NetworkBadge } from '../components/wallet/NetworkBadge';
 import { useWallet } from '../context/WalletContext';
 import { sendTestPayment } from '../services/stellar';
-import { Send, Wallet, ArrowLeft, RotateCcw, Coins, ShieldCheck } from 'lucide-react';
+import { Send, Wallet, ArrowLeft, RotateCcw, Coins, ShieldCheck, Sparkles, AlertCircle } from 'lucide-react';
 import * as StellarSdk from '@stellar/stellar-sdk';
 
 export const SendPayment = () => {
   const navigate = useNavigate();
-  const { connected, address, network, xlmBalance, rawBalance, refreshBalance } = useWallet();
+  const { 
+    connected, 
+    address, 
+    network, 
+    xlmBalance, 
+    rawBalance, 
+    refreshBalance, 
+    fundTestnetAccount, 
+    loading: walletLoading 
+  } = useWallet();
 
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
@@ -153,6 +162,27 @@ export const SendPayment = () => {
               Testnet
             </span>
           </div>
+
+          {/* Low Balance Alert with 1-Click Friendbot Action */}
+          {connected && rawBalance < 2.0 && (
+            <div className="p-4 bg-warning/10 border border-warning/30 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-warning text-xs">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>
+                  Your account balance is low. Fund your wallet with 10,000 Testnet XLM to send test payments.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={fundTestnetAccount}
+                disabled={walletLoading}
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-success text-white font-semibold text-xs hover:bg-success/90 transition-all cursor-pointer flex-shrink-0 shadow-sm"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>{walletLoading ? 'Funding...' : 'Fund via Friendbot (+10,000 XLM)'}</span>
+              </button>
+            </div>
+          )}
 
           <form onSubmit={handleSendPayment} className="space-y-6">
             <InputField
