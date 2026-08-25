@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:contract": "cargo build --manifest-path contracts/escrow/Cargo.toml --target wasm32-unknown-unknown --release",
     "lint": "eslint .",
     "test": "node --test tests/*.test.js",
     "preview": "vite preview"
