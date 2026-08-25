@@ -8,6 +8,7 @@ RentVault is a decentralized rental deposit escrow platform powered by **Stellar
 
 [![Stellar Testnet](https://img.shields.io/badge/Stellar-Testnet%20Protocol%2020-blue?style=for-the-badge&logo=stellar)](https://stellar.org)
 [![Soroban Smart Contracts](https://img.shields.io/badge/Soroban-WASM%20Smart%20Contracts-purple?style=for-the-badge&logo=webassembly)](https://soroban.stellar.org)
+[![CI Pipeline](https://img.shields.io/github/actions/workflow/status/kamanasis/RentVault/ci.yml?branch=main&style=for-the-badge&logo=github-actions&label=CI%20Pipeline)](https://github.com/kamanasis/RentVault/actions)
 [![React](https://img.shields.io/badge/React-18.3.1-61DAFB?style=for-the-badge&logo=react)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.4.2-646CFF?style=for-the-badge&logo=vite)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3.4.1-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
