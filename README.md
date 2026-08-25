@@ -198,6 +198,40 @@ RentVault implements explicit, user-friendly handling for the three mandatory We
 2. **`USER_REJECTED`**: Triggered when a user rejects the Freighter signature prompt or closes the popup. The dApp catches the rejection, informs the user with a dismissable badge, and leaves the agreement in a safe retry state.
 3. **`INSUFFICIENT_BALANCE`**: Evaluated prior to smart contract invocation. If available XLM is insufficient for the deposit plus Stellar base reserve (1 XLM), the transaction is blocked with an informative warning and an instant **Fund via Friendbot (+10,000 XLM)** button.
 
+### 🔄 Web3 Error Handling & Self-Healing Decision Flow:
+
+```mermaid
+flowchart TD
+    Start([User Initiates Web3 Action]) --> CheckWallet{Wallet Extension<br/>Installed?}
+
+    %% Path 1: Missing Wallet
+    CheckWallet -- No --> E1[🔴 WALLET_NOT_FOUND]
+    E1 --> ModalChoice{User Chooses<br/>Option}
+    ModalChoice -->|Install Extension| ExtStore[Open Chrome/Firefox Store]
+    ModalChoice -->|Instant Sandbox| DevSandbox[Switch to Developer Sandbox Mode]
+    DevSandbox --> Start
+
+    %% Path 2: Check Balance
+    CheckWallet -- Yes --> BalanceCheck{Account Balance ><br/>Deposit + Fee Reserve?}
+    BalanceCheck -- No --> E3[🟡 INSUFFICIENT_BALANCE]
+    E3 --> FriendbotBanner[Display Inline Funding Banner]
+    FriendbotBanner --> ClickFund[Click Fund via Friendbot]
+    ClickFund --> FriendbotAPI[Friendbot API Injects +10,000 XLM]
+    FriendbotAPI --> HorizonRefresh[Horizon RPC Auto-Refreshes Balance]
+    HorizonRefresh --> BalanceCheck
+
+    %% Path 3: Signature Prompt
+    BalanceCheck -- Yes --> SignPrompt{User Signs Freighter<br/>Transaction Popup?}
+    SignPrompt -- Rejects/Closes --> E2[🟠 USER_REJECTED]
+    E2 --> PreserveState[Preserve Form State & Input Values]
+    PreserveState --> RetryPrompt[Show Dismissable Retry Badge]
+    RetryPrompt --> Start
+
+    %% Success
+    SignPrompt -- Confirmed --> Broadcast[Broadcast Signed XDR to Soroban RPC]
+    Broadcast --> LedgerInclusion[Confirmed on Stellar Ledger 🏛️]
+```
+
 ---
 
 ## 🥋 Level 4 - Green Belt Submission Checklist & Proofs
@@ -396,17 +430,117 @@ User
 
 ---
 
-## 🏗️ Architecture Diagram
+## 🏗️ End-to-End System Architecture & Interconnected Data Pathways
+
+The following diagram illustrates the complete interconnected data highway across wallets, frontend context engines, cloud synchronization, RPC gateways, and Soroban inter-contract execution:
 
 ```mermaid
-graph TD
-    A[Landlord Wallet] -->|Freighter API| B[RentVault Frontend]
-    C[Tenant Wallet] -->|Freighter API| B
-    B -->|Stellar SDK| D[Stellar SDK Layer]
-    B -->|Firestore Realtime| H[Firebase Cloud Store]
-    D -->|Horizon RPC| E[Stellar Horizon Server]
-    D -->|Soroban RPC| F[Soroban Smart Contract]
-    F -->|Consensus| G[Stellar Testnet Ledger]
+graph TB
+    %% Multi-Wallet Authentication Layer
+    subgraph Multi_Wallet_Layer ["🔑 Multi-Wallet Connectors (StellarWalletsKit)"]
+        W1["Freighter Extension"]
+        W2["xBull Wallet"]
+        W3["Albedo WebAuthn"]
+        W4["Hana Wallet"]
+        W5["LOBSTR Mobile"]
+        W6["Developer Sandbox"]
+    end
+
+    %% Client Frontend & Context Engine
+    subgraph Client_Engine ["⚡ RentVault React Client & State Machine Engine"]
+        WC["WalletContext<br/>(Session & Balance Polling)"]
+        AC["AgreementContext<br/>(8-Stage State Machine)"]
+        TC["ToastContext<br/>(Push Notifications)"]
+        EB["SorobanEventBridge<br/>(Event Dispatcher)"]
+        Views["React UI Views<br/>(Dashboard / Deposit / Settlement)"]
+    end
+
+    %% Cloud Realtime Sync Layer
+    subgraph Cloud_Layer ["☁️ Realtime Cloud Synchronization"]
+        FS[("Firebase Firestore<br/>onSnapshot Stream")]
+        BC["BroadcastChannel<br/>(Cross-Tab Sync)"]
+    end
+
+    %% Stellar Network RPC Layer
+    subgraph Stellar_RPC_Layer ["🌐 Stellar Testnet Protocol 20 Gateways"]
+        SDK["@stellar/stellar-sdk & Freighter API"]
+        HZ["Stellar Horizon RPC Server<br/>(https://horizon-testnet.stellar.org)"]
+        FB["Stellar Friendbot API<br/>(Instant +10k XLM Funding)"]
+        SR["Soroban RPC Server<br/>(https://soroban-testnet.stellar.org)"]
+    end
+
+    %% Smart Contract & Inter-Contract Layer
+    subgraph Smart_Contract_Layer ["📦 Soroban Smart Contract & Inter-Contract Vault"]
+        RV["RentVaultEscrow WASM Contract<br/>(CB2YAY734VGBLC4B3KGCDFSLS5JWKRCLIW4NM77VFLH32Q6JPEYLHADF)"]
+        SAC["🪙 Stellar Asset Contract SAC<br/>(CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC)"]
+        Storage[("Soroban Persistent Storage<br/>(EscrowState: Tenant, Landlord, Amount, Status)")]
+    end
+
+    %% Real-Time Event Loop
+    subgraph Realtime_Event_Loop ["📡 Real-Time Topic Event Feedback Loop"]
+        Poller["sorobanEvents.js<br/>(5s getEvents Topic Poller)"]
+        Decoder["ScVal Topic Decoder<br/>(escrow/locked, escrow/release)"]
+    end
+
+    %% Consensus Ledger
+    Ledger[("🏛️ Stellar Testnet Consensus Ledger<br/>(SCP 3-5s Finality)")]
+
+    %% Interconnections & Data Pathways
+    W1 & W2 & W3 & W4 & W5 & W6 -->|Cryptographic Auth| WC
+    WC -->|Active Address & XLM Balance| Views
+    AC <-->|Dual Realtime Sync| FS
+    AC <-->|Cross-Tab Updates| BC
+    Views -->|Action Triggers| AC
+    AC -->|Prepare Transaction| SDK
+
+    WC -->|Load Account & Payments| HZ
+    WC -->|1-Click Testnet Funding| FB
+    SDK -->|Simulate & Send Contract Tx| SR
+    SR -->|Execute Bytecode| RV
+
+    %% Inter-Contract Communication
+    RV -->|1. Inter-Contract Call: token::Client.transfer| SAC
+    SAC -->|2. Lock / Release Native XLM| Storage
+    RV -->|3. Publish Topic Events| Ledger
+    SAC -->|Settle Native Balance| Ledger
+
+    %% Event Poller Pathway
+    SR -->|4. getEvents Query| Poller
+    Poller -->|Raw ScVal Events| Decoder
+    Decoder -->|Dispatch Confirmation| EB
+    EB -->|Live Notification| TC
+    EB -->|Sync Agreement State| AC
+```
+
+---
+
+## 🔄 8-Stage Agreement Lifecycle State Machine Pathway
+
+RentVault manages rental escrow deposits through a deterministic 8-stage state machine:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Stage1_Draft: Landlord creates agreement
+    Stage1_Draft --> Stage2_Signed: Both parties sign with Stellar wallets
+    Stage2_Signed --> Stage3_DepositLocked: Tenant executes Soroban lock_deposit
+    Stage3_DepositLocked --> Stage4_ActiveTenancy: Move-in & Key handoff confirmed
+    Stage4_ActiveTenancy --> Stage5_InspectionPending: Lease duration reaches maturity
+    Stage5_InspectionPending --> Stage6_SettlementReview: Landlord inputs itemized utilities
+
+    state Stage6_SettlementReview {
+        [*] --> ReviewingDeductions
+        ReviewingDeductions --> TenantApproved: Tenant accepts deductions
+        ReviewingDeductions --> Stage7_Disputed: Tenant raises dispute
+    }
+
+    state Stage7_Disputed {
+        [*] --> CounterProposal
+        CounterProposal --> MutuallyResolved: Agreement reached on revised amounts
+    }
+
+    TenantApproved --> Stage8_SettledAndReleased: Soroban release_deposit executed
+    MutuallyResolved --> Stage8_SettledAndReleased: Soroban release_deposit executed
+    Stage8_SettledAndReleased --> [*]: Final settlement & on-chain receipt archived
 ```
 
 ---
