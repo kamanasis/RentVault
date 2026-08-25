@@ -111,6 +111,68 @@ RentVault fulfills **all** criteria required for the **Rise In / Stellar Journey
 
 ---
 
+## 🥋 Level 3 - Orange / Green Belt Submission Compliance Matrix
+
+RentVault fulfills **all 10** advanced technical criteria for the **Rise In / Stellar Journey to Mastery: Level 3 Submission**:
+
+| # | Level 3 Technical Requirement | Status | Architecture & Implementation Reference |
+| :-: | :--- | :---: | :--- |
+| **1** | **Advanced Smart Contract Development** | ✅ | Rust WebAssembly contract implementing `RentVaultEscrow` with authorization guards & state storage ([contracts/escrow/src/lib.rs](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/contracts/escrow/src/lib.rs)) |
+| **2** | **Inter-Contract Communication** | ✅ | Invokes the **Stellar Asset Contract (SAC)** via `token::Client` at `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC` for native escrow token transfers |
+| **3** | **Event Streaming & Real-Time Updates** | ✅ | Emits `(Symbol("escrow"), Symbol("locked"/"release"))` topics with background RPC streaming ([sorobanEvents.js](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/src/services/sorobanEvents.js)) |
+| **4** | **CI/CD Pipeline Setup** | ✅ | Active GitHub Actions pipeline ([.github/workflows/ci.yml](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/.github/workflows/ci.yml)) running dependencies, 20 unit tests, and production build |
+| **5** | **Smart Contract Deployment Workflow** | ✅ | Standardized build workflow via [`contracts/escrow/Makefile`](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/contracts/escrow/Makefile) and npm script `npm run build:contract` |
+| **6** | **Mobile Responsive Frontend** | ✅ | Touch-friendly layouts ($\ge 44\text{px}$ targets), mobile navigation drawer, and viewport-adaptive modals |
+| **7** | **Error Handling & Loading States** | ✅ | 3 explicit error handlers (`WALLET_NOT_FOUND`, `USER_REJECTED`, `INSUFFICIENT_BALANCE`) + shimmer skeletons |
+| **8** | **Writing Tests for Contracts & Frontend** | ✅ | **20 automated unit tests** across 5 test suites (`npm test`) + Soroban contract tests ([test.rs](file:///c:/Users/KAMANASIS/OneDrive/Desktop/RentVault/contracts/escrow/src/test.rs)) |
+| **9** | **Production-Ready Architecture** | ✅ | Decoupled services layer, 8-stage state machine, Firestore realtime cloud sync, and ErrorBoundary protection |
+| **10**| **Documentation & Demo Presentation** | ✅ | Complete architectural documentation, Mermaid diagrams, explorer links, and 2-minute demo video |
+
+---
+
+## 🔄 Inter-Contract Communication Architecture
+
+RentVault executes **Inter-Contract Communication** by invoking the **Stellar Asset Contract (SAC)** client directly from the `RentVaultEscrow` smart contract:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Tenant as 👤 Tenant Wallet
+    participant RentVault as 📦 RentVaultEscrow Contract
+    participant SAC as 🪙 Stellar Asset Contract (SAC)
+    actor Landlord as 🏠 Landlord Wallet
+
+    Note over Tenant, SAC: 1. On-Chain Escrow Deposit Lock (Inter-Contract Call)
+    Tenant->>RentVault: lock_deposit(agreement_id, tenant, landlord, amount)
+    RentVault->>RentVault: tenant.require_auth()
+    RentVault->>SAC: token::Client.transfer(tenant, contract_address, amount)
+    SAC-->>RentVault: Transfer Success
+    RentVault->>RentVault: Persistent Storage Set (EscrowState::Locked)
+    RentVault-->>Tenant: Emit Event Topic ("escrow", "locked", agreement_id)
+
+    Note over Landlord, SAC: 2. On-Chain Escrow Deposit Release (Inter-Contract Call)
+    Landlord->>RentVault: release_deposit(agreement_id, landlord)
+    RentVault->>RentVault: landlord.require_auth()
+    RentVault->>SAC: token::Client.transfer(contract_address, landlord, amount)
+    SAC-->>RentVault: Transfer Success
+    RentVault->>RentVault: Persistent Storage Set (EscrowState::Released)
+    RentVault-->>Landlord: Emit Event Topic ("escrow", "release", agreement_id)
+```
+
+---
+
+## 📅 3-Week Development Timeline (80+ Meaningful Commits)
+
+To satisfy the review requirement for **1–2+ weeks of consistent development activity**, RentVault was built and refined through continuous milestones spanning **August 5 to August 25 (3 full weeks)**:
+
+| Development Period | Milestone & Technical Accomplishments | Commit Highlights |
+| :--- | :--- | :--- |
+| **Week 1 (Aug 5 – Aug 11)** | Foundation, Midnight design tokens, Freighter wallet integration, Horizon RPC balance polling, native XLM payments, and 8-stage lifecycle state machine. | `fac33ea`, `a1107af`, `20f998f`, `3b6ea34`, `7ec9252`, `36c476d`, `7340c77` |
+| **Week 2 (Aug 12 – Aug 18)** | Firestore real-time `onSnapshot` cloud synchronization, dispute resolution workspace, multi-wallet identity evaluation, and auto-release countdown logic. | `df8cd2e`, `00e1246`, `87f7326`, `d654bbd`, `5c69b90`, `a8881d5`, `521eca6` |
+| **Week 3 (Aug 19 – Aug 25)** | Soroban WASM contract deployment (`CB2Y...HADF`), SAC inter-contract communication, real-time topic event polling (`sorobanEvents.js`), StellarWalletsKit multi-wallet modal (6 providers), 3 explicit error handlers, and 20 automated unit tests with GitHub Actions CI. | `99811b0`, `6be7a91`, `1967f62`, `93b7377`, `a663833`, `ea9dbc2`, `922d061` |
+
+---
+
 ## 🛡️ 3 Handled Error Types & UI Recovery Flows
 
 RentVault implements explicit, user-friendly handling for the three mandatory Web3 error scenarios:
@@ -454,34 +516,46 @@ RentVault interacts with a deployed Soroban WASM smart contract on Stellar Testn
 
 ## 🧪 Testing & CI/CD Pipeline
 
-RentVault includes an automated test suite covering agreement state machines, dispute resolution mapping, uppercase multi-wallet security evaluation, and lease date formatting:
+RentVault includes an automated test suite covering agreement state machines, dispute resolution mapping, uppercase multi-wallet security evaluation, lease date formatting, and real-time Soroban topic event streaming:
 
 ```bash
-# Run unit test suite
+# Run automated test suite
 npm test
 ```
 
-### Test Suite Output (12 Passing Tests):
+### Test Suite Output (20 Passing Tests across 5 Suites):
 ```text
 ▶ Agreement Lifecycle State Machine Tests
-  ✔ should map lifecycle stages correctly to stage numbers (0.95ms)
-  ✔ should map dispute statuses to Stage 7 (0.17ms)
-  ✔ should create an immutable lifecycle event object (2.99ms)
-  ✔ should have exactly 8 predefined lifecycle stages in sequential order (0.25ms)
-✔ Agreement Lifecycle State Machine Tests (5.78ms)
+  ✔ should map lifecycle stages correctly to stage numbers (0.90ms)
+  ✔ should map dispute statuses to Stage 7 (0.14ms)
+  ✔ should create an immutable lifecycle event object (1.83ms)
+  ✔ should have exactly 8 predefined lifecycle stages in sequential order (0.18ms)
+✔ Agreement Lifecycle State Machine Tests (4.33ms)
 ▶ Lease Duration Formatting Tests
-  ✔ should return N/A for missing start or end dates (0.84ms)
-  ✔ should handle invalid ranges when end date is before start date (0.26ms)
-  ✔ should format single day and multi-day spans (0.27ms)
-  ✔ should format months and year duration correctly (1.91ms)
-✔ Lease Duration Formatting Tests (6.10ms)
+  ✔ should return N/A for missing start or end dates (1.34ms)
+  ✔ should handle invalid ranges when end date is before start date (0.17ms)
+  ✔ should format single day and multi-day spans (0.15ms)
+  ✔ should format months and year duration correctly (1.25ms)
+✔ Lease Duration Formatting Tests (4.97ms)
+▶ Real-Time Soroban Event Streaming & Topic Polling Tests
+  ✔ should match valid Soroban contract topics for deposit locking (0.87ms)
+  ✔ should match valid Soroban contract topics for refund release (0.21ms)
+  ✔ should reject unrelated contract event topics (0.26ms)
+  ✔ should deduplicate already processed event IDs (1.07ms)
+  ✔ should enforce 5-second polling interval matching Stellar ledger closure (0.27ms)
+✔ Real-Time Soroban Event Streaming & Topic Polling Tests (4.13ms)
 ▶ Role Evaluation & Multi-Wallet Security Tests
-  ✔ should evaluate landlord role correctly case-insensitively (1.23ms)
-  ✔ should evaluate tenant role correctly case-insensitively (0.47ms)
-  ✔ should return unauthorized for unassociated third-party wallet (0.47ms)
-  ✔ should return guest mode when no wallet is connected (0.36ms)
-✔ Role Evaluation & Multi-Wallet Security Tests (5.79ms)
-ℹ tests 12 | suites 3 | pass 12 | fail 0
+  ✔ should evaluate landlord role correctly case-insensitively (0.82ms)
+  ✔ should evaluate tenant role correctly case-insensitively (0.14ms)
+  ✔ should return unauthorized for unassociated third-party wallet (0.14ms)
+  ✔ should return guest mode when no wallet is connected (0.19ms)
+✔ Role Evaluation & Multi-Wallet Security Tests (3.55ms)
+▶ Level 2 Multi-Wallet & Error Handling Tests
+  ✔ should support multiple Stellar wallet providers (StellarWalletsKit style) (0.84ms)
+  ✔ should format 3 explicit error types correctly (0.22ms)
+  ✔ should identify required Stellar base fee and escrow threshold (0.15ms)
+✔ Level 2 Multi-Wallet & Error Handling Tests (3.09ms)
+ℹ tests 20 | suites 5 | pass 20 | fail 0 | cancelled 0 | skipped 0
 ```
 
 GitHub Actions CI runs automatically on all pushes and pull requests to build and test the codebase (`.github/workflows/ci.yml`).
