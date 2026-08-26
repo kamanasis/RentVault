@@ -12,6 +12,8 @@ import { WrongNetworkModal } from './components/wallet/WrongNetworkModal';
 import { SwitchWalletModal } from './components/wallet/SwitchWalletModal';
 import { MultiWalletModal } from './components/wallet/MultiWalletModal';
 import { Skeleton } from './components/ui/Skeleton';
+import { ThreeBackground } from './components/ui/ThreeBackground';
+import { ScrollProgressBar } from './components/ui/ScrollProgressBar';
 import { Loader2 } from 'lucide-react';
 import { useSorobanEvents } from './hooks/useSorobanEvents';
 
@@ -55,7 +57,11 @@ export function App() {
             <BrowserRouter>
               {/* Level 2C: starts the Soroban blockchain event polling loop */}
               <SorobanEventBridge />
-              <div className="flex flex-col min-h-screen bg-background text-text-primary selection:bg-primary selection:text-white">
+              {/* Scroll-Linked Glowing Progress Bar */}
+              <ScrollProgressBar />
+              {/* Minimalist 3D Canvas Perspective Mesh Layer */}
+              <ThreeBackground />
+              <div className="flex flex-col min-h-screen relative z-10 bg-transparent text-text-primary selection:bg-primary selection:text-white">
                 <Navbar />
                 <WalletErrorBanner />
                 <div className="flex-1">
