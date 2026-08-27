@@ -183,25 +183,6 @@ flowchart TD
 
 ---
 
-## 🥋 Level 4 - Green Belt Submission Checklist & Proofs
-
-RentVault also satisfies **all** requirements for the **Rise In / Stellar Journey to Mastery: Level 4 - Green Belt Submission**:
-
-| Submission Requirement | Status | Verification Reference |
-| :--- | :---: | :--- |
-| **Public GitHub Repository** | ✅ | [https://github.com/kamanasis/RentVault](https://github.com/kamanasis/RentVault) |
-| **README with Complete Documentation** | ✅ | Comprehensive documentation covering Architecture, Soroban WASM contract, State Machine, & Setup |
-| **Minimum 15+ Meaningful Commits** | ✅ | **75+ git commits** with clear conventional commit history (`feat:`, `fix:`, `docs:`, `ci:`) |
-| **Live Demo Link** | ✅ | [https://rent-vault-pi.vercel.app](https://rent-vault-pi.vercel.app) |
-| **Contract Deployment Address** | ✅ | `CB2YAY734VGBLC4B3KGCDFSLS5JWKRCLIW4NM77VFLH32Q6JPEYLHADF` ([Stellar Lab](https://lab.stellar.org/r/testnet/contract/CB2YAY734VGBLC4B3KGCDFSLS5JWKRCLIW4NM77VFLH32Q6JPEYLHADF)) |
-| **Product UI Screenshots** | ✅ | [Screenshots Gallery](#-screenshots-gallery) (Dashboard, Deposit, Settlement, Timeline) |
-| **Mobile Responsive Design** | ✅ | Touch-optimized layouts with dynamic navigation & modals across screen viewports |
-| **Analytics & Monitoring Setup** | ✅ | Horizon RPC Health, Real-Time Soroban Event Streamer & Vercel Web Analytics |
-| **Demo Video Link (1–2 mins)** | ✅ | [Watch RentVault Demo Video](https://rent-vault-pi.vercel.app) |
-| **Proof of 10+ User Wallet Interactions** | ✅ | [10+ Verified Testnet On-Chain Transactions](#-proof-of-10-user-wallet-interactions) |
-| **Basic User Feedback Summary** | ✅ | [User Feedback Summary & Iterations](#-basic-user-feedback-summary) |
-
----
 
 ## 🧾 Proof of 10+ User Wallet Interactions
 
