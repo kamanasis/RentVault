@@ -129,43 +129,61 @@ export const Dashboard = () => {
           {/* Tier 1: Phase 4 Live XLM Balance Card */}
           <BalanceCard />
 
-          {/* Phase 2: Verified Onboarded Users & Interaction Ledger Card */}
-          <Card className="bg-gradient-to-r from-card via-surface/60 to-card border-cyan-500/30 p-5">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                  <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
-                    Verified User Onboarding Registry
-                  </span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-400/30">
-                    Production Verified
-                  </span>
+          {/* Quick Utility & Verification Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Quick Action 1: On-Chain Verified User Registry */}
+            <div 
+              onClick={() => setIsOnboardingRegistryOpen(true)}
+              className="bg-card/70 hover:bg-card border border-border/80 hover:border-cyan-500/40 rounded-2xl p-4 cursor-pointer transition-all duration-300 group shadow-sm flex items-center justify-between gap-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-400/20 text-cyan-400 flex items-center justify-center group-hover:scale-105 transition-transform flex-shrink-0">
+                  <Users className="w-5 h-5" />
                 </div>
-                <p className="text-xs text-text-secondary">
-                  Inspect cryptographic proof of 12 real user wallet interactions with Soroban escrow contracts on Stellar Testnet.
-                </p>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-xs font-bold text-text-primary group-hover:text-cyan-400 transition-colors">
+                      Verified On-Chain Ledger
+                    </h4>
+                    <span className="text-[9px] font-mono font-semibold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-400/30">
+                      12 Wallets
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-text-muted mt-0.5">
+                    Inspect cryptographic transaction proofs on Stellar Expert.
+                  </p>
+                </div>
               </div>
-
-              <div className="flex flex-wrap items-center gap-2.5">
-                <button
-                  onClick={() => setIsTelemetryOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/40 text-xs font-mono text-emerald-400 font-semibold transition-all cursor-pointer shadow-sm"
-                >
-                  <Activity className="w-4 h-4" />
-                  <span>Telemetry & RPC Status</span>
-                </button>
-
-                <button
-                  onClick={() => setIsOnboardingRegistryOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 text-xs font-mono text-cyan-400 font-semibold transition-all cursor-pointer shadow-sm"
-                >
-                  <Users className="w-4 h-4" />
-                  <span>View 10+ Onboarded Wallets</span>
-                </button>
-              </div>
+              <ArrowRight className="w-4 h-4 text-text-muted group-hover:text-cyan-400 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
             </div>
-          </Card>
+
+            {/* Quick Action 2: Live Network Health & Telemetry */}
+            <div 
+              onClick={() => setIsTelemetryOpen(true)}
+              className="bg-card/70 hover:bg-card border border-border/80 hover:border-emerald-500/40 rounded-2xl p-4 cursor-pointer transition-all duration-300 group shadow-sm flex items-center justify-between gap-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-400/20 text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform flex-shrink-0">
+                  <Activity className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-xs font-bold text-text-primary group-hover:text-emerald-400 transition-colors">
+                      Network Health & Telemetry
+                    </h4>
+                    <span className="flex items-center gap-1 text-[9px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-400/30">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Protocol 20
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-text-muted mt-0.5">
+                    Live Horizon ping, contract uptime, and ledger consensus.
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-text-muted group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+            </div>
+          </div>
 
           {/* Tier 1: Role-Filtered Agreements Grid or Onboarding */}
           {userAgreements.length === 0 ? (

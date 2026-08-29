@@ -46,29 +46,29 @@ export const Navbar = () => {
   return (
     <header className={`sticky top-0 z-50 transition-all duration-500 ${
       scrolled 
-        ? 'backdrop-blur-2xl bg-background/60 border-b border-white/[0.08] shadow-2xl shadow-black/30' 
-        : 'backdrop-blur-lg bg-gradient-to-b from-background/60 via-background/20 to-transparent border-b border-white/[0.04]'
+        ? 'backdrop-blur-2xl bg-background/70 border-b border-white/[0.08] shadow-2xl shadow-black/30' 
+        : 'backdrop-blur-lg bg-gradient-to-b from-background/70 via-background/30 to-transparent border-b border-white/[0.04]'
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between h-18 sm:h-20 gap-4">
           
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-glow rounded-2xl p-1.5 transition-all">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-primary via-primary-glow to-cyan-400 flex items-center justify-center text-white shadow-stellar group-hover:scale-105 group-hover:shadow-stellar-glow transition-all">
-              <Shield className="w-5 h-5" />
+          <Link to="/" className="flex items-center gap-2.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-glow rounded-2xl p-1 transition-all flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary via-primary-glow to-cyan-400 flex items-center justify-center text-white shadow-stellar group-hover:scale-105 group-hover:shadow-stellar-glow transition-all">
+              <Shield className="w-4.5 h-4.5" />
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-extrabold tracking-tight text-text-primary group-hover:text-primary-glow transition-colors">
+              <span className="text-lg font-extrabold tracking-tight text-text-primary group-hover:text-primary-glow transition-colors leading-tight">
                 RentVault
               </span>
-              <span className="text-[9px] uppercase tracking-widest text-cyan-400/80 font-mono font-semibold">
+              <span className="text-[8.5px] uppercase tracking-widest text-cyan-400/80 font-mono font-semibold">
                 Stellar Escrow
               </span>
             </div>
           </Link>
 
           {/* Desktop Nav Links Floating Capsule */}
-          <nav aria-label="Main Navigation" className="hidden md:flex items-center gap-1 bg-surface/30 hover:bg-surface/45 px-3.5 py-1.5 rounded-full border border-white/[0.08] shadow-lg shadow-black/20 backdrop-blur-xl transition-all">
+          <nav aria-label="Main Navigation" className="hidden lg:flex items-center gap-1 bg-surface/40 hover:bg-surface/60 px-3.5 py-1.5 rounded-full border border-white/[0.08] shadow-lg shadow-black/20 backdrop-blur-xl transition-all">
             {navLinks.map((link, idx) => {
               if (link.external) {
                 return (
@@ -77,7 +77,7 @@ export const Navbar = () => {
                     href={link.href}
                     target="_blank"
                     rel="noreferrer"
-                    className="px-4 py-2 rounded-full text-caption font-medium text-text-secondary hover:text-text-primary hover:bg-white/[0.06] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-glow"
+                    className="px-3 py-1.5 rounded-full text-caption font-medium text-text-secondary hover:text-text-primary hover:bg-white/[0.06] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-glow"
                   >
                     {link.name}
                   </a>
@@ -88,7 +88,7 @@ export const Navbar = () => {
                   <Link
                     key={idx}
                     to={link.href}
-                    className={`px-4 py-2 rounded-full text-caption font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-glow ${
+                    className={`px-3 py-1.5 rounded-full text-caption font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-glow ${
                       location.pathname === link.href 
                         ? 'bg-gradient-to-r from-primary to-primary-glow text-white font-bold shadow-stellar' 
                         : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.06]'
@@ -102,7 +102,7 @@ export const Navbar = () => {
                 <a
                   key={idx}
                   href={link.href}
-                  className="px-4 py-2 rounded-full text-caption font-medium text-text-secondary hover:text-text-primary hover:bg-white/[0.06] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-glow"
+                  className="px-3 py-1.5 rounded-full text-caption font-medium text-text-secondary hover:text-text-primary hover:bg-white/[0.06] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-glow"
                 >
                   {link.name}
                 </a>
@@ -111,38 +111,26 @@ export const Navbar = () => {
           </nav>
 
           {/* Right Header Controls */}
-          <div className="hidden md:flex items-center gap-2.5">
-            {/* Quick Access Control Capsule */}
-            <div className="flex items-center gap-1.5 p-1 rounded-full bg-surface/30 border border-white/[0.06] backdrop-blur-xl">
-              {/* Phase 3: Telemetry & Monitoring Quick Trigger */}
+          <div className="hidden md:flex items-center gap-2.5 flex-shrink-0">
+            {/* Quick Live System Status & Community Buttons */}
+            <div className="flex items-center gap-1 bg-surface/30 p-1 rounded-full border border-white/[0.06] backdrop-blur-xl">
               <button
                 onClick={() => setTelemetryOpen(true)}
-                title="System Telemetry & Network Monitoring"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono text-emerald-400 hover:bg-white/[0.06] transition-all cursor-pointer"
+                title="System Telemetry & Network Status"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-mono text-emerald-400 hover:bg-emerald-400/10 transition-all cursor-pointer"
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 <Activity className="w-3.5 h-3.5" />
-                <span className="hidden lg:inline">Telemetry</span>
+                <span className="hidden xl:inline">Telemetry</span>
               </button>
 
-              {/* Phase 2: 10+ Onboarded Users Ledger Quick Trigger */}
-              <button
-                onClick={() => setRegistryOpen(true)}
-                title="10+ Onboarded Users & Verified Ledger"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono text-cyan-400 hover:bg-white/[0.06] transition-all cursor-pointer"
-              >
-                <Users className="w-3.5 h-3.5" />
-                <span className="hidden lg:inline">Users</span>
-              </button>
-
-              {/* Phase 1: User Feedback Quick Trigger */}
               <button
                 onClick={() => setFeedbackSummaryOpen(true)}
-                title="User Feedback & Ratings"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono text-amber-400 hover:bg-white/[0.06] transition-all cursor-pointer"
+                title="User Reviews & Feedback"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-mono text-amber-400 hover:bg-amber-400/10 transition-all cursor-pointer"
               >
                 <MessageSquare className="w-3.5 h-3.5" />
-                <span className="hidden lg:inline">Feedback</span>
+                <span className="hidden xl:inline">Reviews</span>
               </button>
             </div>
 

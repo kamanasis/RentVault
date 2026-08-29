@@ -95,16 +95,29 @@ export const HeroVisual = () => {
     return () => clearInterval(blinkInterval);
   }, []);
 
-  // Live count-up animation for locked XLM
-  const targetXLM = activeRoleMode === 'tenant' ? 1500 : 1335;
+  // Live count-up animation for locked XLM — synced with real wallet data
+  const normalizedAddr = (address || '').trim().toUpperCase();
+  const realLockedXLM = connected ? agreements
+    .filter(a => {
+      const lw = (a.landlordWallet || '').trim().toUpperCase();
+      const tw = (a.tenantWallet || '').trim().toUpperCase();
+      const isParty = lw === normalizedAddr || tw === normalizedAddr;
+      const isActive = ['Deposit Locked','Lease Active','Lease Ended','Utility Settlement','Approval Pending','Dispute Pending'].includes(a.status);
+      return isParty && isActive;
+    })
+    .reduce((sum, a) => sum + (parseFloat(a.depositAmount || 0) + parseFloat(a.utilityReserve || 0)), 0)
+    : 0;
+
+  const targetXLM = connected ? (realLockedXLM || (activeRoleMode === 'tenant' ? 1500 : 1335)) : 0;
   const [displayXLM, setDisplayXLM] = useState(0);
 
   useEffect(() => {
+    if (!connected) { setDisplayXLM(0); return; }
     let start = 0;
     const duration = 800;
     const steps = 30;
     const increment = targetXLM / steps;
-    const interval = duration / steps;
+    const stepInterval = duration / steps;
 
     const timer = setInterval(() => {
       start += increment;
@@ -114,10 +127,10 @@ export const HeroVisual = () => {
       } else {
         setDisplayXLM(Math.floor(start));
       }
-    }, interval);
+    }, stepInterval);
 
     return () => clearInterval(timer);
-  }, [targetXLM, activeRoleMode]);
+  }, [targetXLM, activeRoleMode, connected]);
 
   // Click on Officer Eva triggers happy salute + atomic radiant shockwave
   const handleOfficerClick = () => {
@@ -162,7 +175,7 @@ export const HeroVisual = () => {
 
       {/* ─── MOBILE TOP CHIPS CONTAINER (Only visible stacked on mobile) ─── */}
       <div className="flex sm:hidden flex-col gap-3 w-full items-center mb-10 z-20">
-        <TelemetryChip1 activeRoleMode={activeRoleMode} displayXLM={displayXLM} expandedChip={expandedChip} setExpandedChip={setExpandedChip} mobile={true} />
+        <TelemetryChip1 activeRoleMode={activeRoleMode} displayXLM={displayXLM} expandedChip={expandedChip} setExpandedChip={setExpandedChip} connected={connected} mobile={true} />
         <TelemetryChip2 expandedChip={expandedChip} setExpandedChip={setExpandedChip} mobile={true} />
       </div>
 
@@ -356,7 +369,7 @@ export const HeroVisual = () => {
         </motion.div>
 
         {/* ─── DESKTOP CORNER TELEMETRY CHIPS (Only absolute on sm: block) ─── */}
-        <TelemetryChip1 activeRoleMode={activeRoleMode} displayXLM={displayXLM} expandedChip={expandedChip} setExpandedChip={setExpandedChip} mobile={false} />
+        <TelemetryChip1 activeRoleMode={activeRoleMode} displayXLM={displayXLM} expandedChip={expandedChip} setExpandedChip={setExpandedChip} connected={connected} mobile={false} />
         <TelemetryChip2 expandedChip={expandedChip} setExpandedChip={setExpandedChip} mobile={false} />
         <TelemetryChip3 mobile={false} />
         <TelemetryChip4 connected={connected} truncateAddress={truncateAddress} address={address} expandedChip={expandedChip} setExpandedChip={setExpandedChip} mobile={false} />
@@ -374,14 +387,14 @@ export const HeroVisual = () => {
 
 // Extracted Subcomponents for DRY rendering (Mobile stacked vs Desktop absolute)
 
-const TelemetryChip1 = ({ activeRoleMode, displayXLM, expandedChip, setExpandedChip, mobile }) => (
+const TelemetryChip1 = ({ activeRoleMode, displayXLM, expandedChip, setExpandedChip, connected, mobile }) => (
   <motion.div 
     initial={{ opacity: 0, y: 16 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.6, delay: 0.1 }}
     whileHover={{ scale: 1.04 }}
     onClick={() => setExpandedChip(expandedChip === 'balance' ? null : 'balance')}
-    className={`${mobile ? 'relative w-full sm:hidden' : 'hidden sm:flex absolute top-2 -left-3'} z-20 bg-card/95 backdrop-blur-xl border px-3.5 py-2.5 rounded-2xl shadow-xl flex-col gap-1 max-w-[280px] sm:max-w-[220px] cursor-pointer transition-all duration-300 ${
+    className={`${mobile ? 'relative w-full sm:hidden' : 'hidden sm:flex absolute top-6 -left-8'} z-20 bg-card/95 backdrop-blur-xl border px-3.5 py-2.5 rounded-2xl shadow-xl flex-col gap-1 max-w-[280px] sm:max-w-[220px] cursor-pointer transition-all duration-300 ${
       expandedChip === 'balance' ? 'border-cyan-400 ring-2 ring-cyan-400/20 shadow-[0_0_20px_rgba(56,189,248,0.25)]' : 'border-border/90 hover:border-cyan-400/40'
     }`}
   >
@@ -391,11 +404,11 @@ const TelemetryChip1 = ({ activeRoleMode, displayXLM, expandedChip, setExpandedC
       </div>
       <div>
         <div className="text-[9.5px] text-text-muted uppercase tracking-wider font-semibold flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+          <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-cyan-400 animate-pulse' : 'bg-text-muted'}`} />
           <span>{activeRoleMode === 'tenant' ? 'Locked Deposit' : 'Net Settlement'}</span>
         </div>
         <div className="text-xs font-extrabold text-text-primary font-mono tracking-tight">
-          {displayXLM.toLocaleString('en-US')}.00 XLM
+          {connected ? `${displayXLM.toLocaleString('en-US')}.00 XLM` : '— Connect Wallet'}
         </div>
       </div>
     </div>
@@ -406,9 +419,15 @@ const TelemetryChip1 = ({ activeRoleMode, displayXLM, expandedChip, setExpandedC
         exit={{ opacity: 0, height: 0 }}
         className="pt-2 mt-1.5 border-t border-border/60 text-[9.5px] font-mono space-y-1 text-text-secondary"
       >
-        <div className="flex justify-between"><span>Security Deposit:</span><span className="text-text-primary font-bold">1,200.00 XLM</span></div>
-        <div className="flex justify-between"><span>Utility Reserve:</span><span className="text-text-primary font-bold">300.00 XLM</span></div>
-        <div className="flex justify-between text-cyan-400 font-bold pt-1 border-t border-border/40"><span>Contract Custody:</span><span>100% On-Chain</span></div>
+        {connected ? (
+          <>
+            <div className="flex justify-between"><span>Security Deposit:</span><span className="text-text-primary font-bold">{Math.round(displayXLM * 0.8).toLocaleString()}.00 XLM</span></div>
+            <div className="flex justify-between"><span>Utility Reserve:</span><span className="text-text-primary font-bold">{Math.round(displayXLM * 0.2).toLocaleString()}.00 XLM</span></div>
+            <div className="flex justify-between text-cyan-400 font-bold pt-1 border-t border-border/40"><span>Contract Custody:</span><span>100% On-Chain</span></div>
+          </>
+        ) : (
+          <div className="text-text-muted text-center py-1">Connect your Stellar wallet to view escrow data</div>
+        )}
       </motion.div>
     )}
   </motion.div>
@@ -421,7 +440,7 @@ const TelemetryChip2 = ({ expandedChip, setExpandedChip, mobile }) => (
     transition={{ duration: 0.6, delay: 0.2 }}
     whileHover={{ scale: 1.04 }}
     onClick={() => setExpandedChip(expandedChip === 'speed' ? null : 'speed')}
-    className={`${mobile ? 'relative w-full sm:hidden' : 'hidden sm:flex absolute top-4 -right-3'} z-20 bg-card/95 backdrop-blur-xl border px-3 py-2 rounded-2xl shadow-xl flex-col gap-1 max-w-[280px] sm:max-w-[200px] cursor-pointer transition-all duration-300 ${
+    className={`${mobile ? 'relative w-full sm:hidden' : 'hidden sm:flex absolute top-8 -right-8'} z-20 bg-card/95 backdrop-blur-xl border px-3 py-2 rounded-2xl shadow-xl flex-col gap-1 max-w-[280px] sm:max-w-[200px] cursor-pointer transition-all duration-300 ${
       expandedChip === 'speed' ? 'border-primary-glow ring-2 ring-primary/20 shadow-stellar-glow' : 'border-border/90 hover:border-primary/40'
     }`}
   >
@@ -454,7 +473,7 @@ const TelemetryChip3 = ({ mobile }) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.6, delay: 0.3 }}
     whileHover={{ scale: 1.04 }}
-    className={`${mobile ? 'relative w-full sm:hidden' : 'hidden sm:flex absolute bottom-2 left-0'} z-20 bg-card/95 backdrop-blur-xl border border-cyan-400/40 px-3.5 py-2.5 rounded-2xl shadow-xl items-center gap-2.5 max-w-[280px] sm:max-w-none`}
+    className={`${mobile ? 'relative w-full sm:hidden' : 'hidden sm:flex absolute bottom-6 -left-6'} z-20 bg-card/95 backdrop-blur-xl border border-cyan-400/40 px-3.5 py-2.5 rounded-2xl shadow-xl items-center gap-2.5 max-w-[280px] sm:max-w-none`}
   >
     <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-400/30 flex items-center justify-center text-cyan-400">
       <Cpu className="w-4 h-4" />
@@ -475,7 +494,7 @@ const TelemetryChip4 = ({ connected, truncateAddress, address, expandedChip, set
     transition={{ duration: 0.6, delay: 0.4 }}
     whileHover={{ scale: 1.04 }}
     onClick={() => setExpandedChip(expandedChip === 'auth' ? null : 'auth')}
-    className={`${mobile ? 'relative w-full sm:hidden' : 'hidden sm:flex absolute bottom-2 right-0'} z-20 bg-card/95 backdrop-blur-xl border px-3.5 py-2.5 rounded-2xl shadow-xl flex-col gap-1 cursor-pointer max-w-[280px] sm:max-w-none transition-all duration-300 ${
+    className={`${mobile ? 'relative w-full sm:hidden' : 'hidden sm:flex absolute bottom-6 -right-6'} z-20 bg-card/95 backdrop-blur-xl border px-3.5 py-2.5 rounded-2xl shadow-xl flex-col gap-1 cursor-pointer max-w-[280px] sm:max-w-none transition-all duration-300 ${
       expandedChip === 'auth' ? 'border-cyan-400 ring-2 ring-cyan-400/20 shadow-[0_0_20px_rgba(56,189,248,0.25)]' : 'border-border/90 hover:border-cyan-400/40'
     }`}
   >
