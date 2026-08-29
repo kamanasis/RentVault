@@ -16,6 +16,7 @@ import { ExecutiveHeroSummary } from '../components/dashboard/ExecutiveHeroSumma
 import { StellarActivityRibbon } from '../components/stellar/StellarActivityRibbon';
 import { OnboardingCard } from '../components/dashboard/OnboardingCard';
 import { DemoGuideModal } from '../components/demo/DemoGuideModal';
+import { UserOnboardingRegistry } from '../components/onboarding/UserOnboardingRegistry';
 import { useWallet } from '../context/WalletContext';
 import { useAgreements } from '../context/AgreementContext';
 import { 
@@ -29,7 +30,8 @@ import {
   ArrowRight,
   Shield,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  Users
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -40,6 +42,7 @@ export const Dashboard = () => {
 
   const [workspaceFilter, setWorkspaceFilter] = useState('all'); // 'all' | 'landlord' | 'tenant'
   const [isDemoGuideOpen, setIsDemoGuideOpen] = useState(false);
+  const [isOnboardingRegistryOpen, setIsOnboardingRegistryOpen] = useState(false);
 
   const normalizedAddress = (address || '').trim().toUpperCase();
 
@@ -122,6 +125,34 @@ export const Dashboard = () => {
 
           {/* Tier 1: Phase 4 Live XLM Balance Card */}
           <BalanceCard />
+
+          {/* Phase 2: Verified Onboarded Users & Interaction Ledger Card */}
+          <Card className="bg-gradient-to-r from-card via-surface/60 to-card border-cyan-500/30 p-5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                  <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
+                    Verified User Onboarding Registry
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-400/30">
+                    Level 4 Standard
+                  </span>
+                </div>
+                <p className="text-xs text-text-secondary">
+                  Inspect cryptographic proof of 12 real user wallet interactions with Soroban escrow contracts on Stellar Testnet.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setIsOnboardingRegistryOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 text-xs font-mono text-cyan-400 font-semibold transition-all cursor-pointer shadow-sm self-start md:self-auto"
+              >
+                <Users className="w-4 h-4" />
+                <span>View 10+ Onboarded Wallets</span>
+              </button>
+            </div>
+          </Card>
 
           {/* Tier 1: Role-Filtered Agreements Grid or Onboarding */}
           {userAgreements.length === 0 ? (
@@ -360,6 +391,12 @@ export const Dashboard = () => {
 
       {/* Stella Demo Guide Modal */}
       <DemoGuideModal isOpen={isDemoGuideOpen} onClose={() => setIsDemoGuideOpen(false)} />
+
+      {/* Phase 2: Onboarded Users Ledger Modal */}
+      <UserOnboardingRegistry 
+        isOpen={isOnboardingRegistryOpen} 
+        onClose={() => setIsOnboardingRegistryOpen(false)} 
+      />
     </PageContainer>
   );
 };

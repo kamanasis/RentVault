@@ -3,9 +3,10 @@ import { Link, useLocation } from 'react-router-dom';
 import { WalletButton } from '../wallet/WalletButton';
 import { NetworkBadge } from '../wallet/NetworkBadge';
 import { useWallet } from '../../context/WalletContext';
-import { Shield, Menu, X, MessageSquare } from 'lucide-react';
+import { Shield, Menu, X, MessageSquare, Users } from 'lucide-react';
 import { FeedbackSummaryModal } from '../feedback/FeedbackSummaryModal';
 import { UserFeedbackModal } from '../feedback/UserFeedbackModal';
+import { UserOnboardingRegistry } from '../onboarding/UserOnboardingRegistry';
 
 export const Navbar = () => {
   const location = useLocation();
@@ -16,6 +17,9 @@ export const Navbar = () => {
   // Phase 1: User Feedback Engine Modals State
   const [feedbackSummaryOpen, setFeedbackSummaryOpen] = useState(false);
   const [submitFeedbackOpen, setSubmitFeedbackOpen] = useState(false);
+
+  // Phase 2: Onboarded Users & Interaction Ledger Modal State
+  const [registryOpen, setRegistryOpen] = useState(false);
 
   const isHome = location.pathname === '/';
 
@@ -103,12 +107,22 @@ export const Navbar = () => {
           </nav>
 
           {/* Right Header Controls */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2.5">
+            {/* Phase 2: 10+ Onboarded Users Ledger Quick Trigger */}
+            <button
+              onClick={() => setRegistryOpen(true)}
+              title="10+ Onboarded Users & Verified Ledger"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono text-cyan-400 bg-surface/30 hover:bg-surface/60 border border-cyan-400/30 backdrop-blur-xl transition-all cursor-pointer shadow-sm"
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>10+ Users</span>
+            </button>
+
             {/* Phase 1: User Feedback Quick Trigger */}
             <button
               onClick={() => setFeedbackSummaryOpen(true)}
               title="User Feedback & Ratings"
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-mono text-amber-400 bg-surface/30 hover:bg-surface/60 border border-amber-400/30 backdrop-blur-xl transition-all cursor-pointer shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono text-amber-400 bg-surface/30 hover:bg-surface/60 border border-amber-400/30 backdrop-blur-xl transition-all cursor-pointer shadow-sm"
             >
               <MessageSquare className="w-3.5 h-3.5" />
               <span>Feedback</span>
@@ -137,14 +151,21 @@ export const Navbar = () => {
             <NetworkBadge network={network || 'TESTNET'} />
           </div>
 
-          {/* Phase 1: User Feedback Mobile Button */}
-          <div className="py-1 border-b border-border/40">
+          {/* Quick Triggers in Mobile Menu */}
+          <div className="grid grid-cols-2 gap-2 py-1 border-b border-border/40">
+            <button
+              onClick={() => { setMobileMenuOpen(false); setRegistryOpen(true); }}
+              className="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-surface/40 border border-border/50 text-xs font-mono text-cyan-400"
+            >
+              <Users className="w-4 h-4" />
+              <span>10+ Users</span>
+            </button>
             <button
               onClick={() => { setMobileMenuOpen(false); setFeedbackSummaryOpen(true); }}
-              className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl bg-surface/40 border border-border/50 text-xs font-mono text-amber-400"
+              className="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-surface/40 border border-border/50 text-xs font-mono text-amber-400"
             >
               <MessageSquare className="w-4 h-4" />
-              <span>User Feedback & Reviews</span>
+              <span>Feedback</span>
             </button>
           </div>
 
@@ -179,6 +200,12 @@ export const Navbar = () => {
         isOpen={submitFeedbackOpen} 
         onClose={() => setSubmitFeedbackOpen(false)} 
         onSuccess={() => setFeedbackSummaryOpen(true)}
+      />
+
+      {/* Phase 2: Onboarded Users Ledger Modal */}
+      <UserOnboardingRegistry 
+        isOpen={registryOpen} 
+        onClose={() => setRegistryOpen(false)} 
       />
     </header>
   );
