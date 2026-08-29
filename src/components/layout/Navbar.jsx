@@ -3,10 +3,11 @@ import { Link, useLocation } from 'react-router-dom';
 import { WalletButton } from '../wallet/WalletButton';
 import { NetworkBadge } from '../wallet/NetworkBadge';
 import { useWallet } from '../../context/WalletContext';
-import { Shield, Menu, X, MessageSquare, Users } from 'lucide-react';
+import { Shield, Menu, X, MessageSquare, Users, Activity } from 'lucide-react';
 import { FeedbackSummaryModal } from '../feedback/FeedbackSummaryModal';
 import { UserFeedbackModal } from '../feedback/UserFeedbackModal';
 import { UserOnboardingRegistry } from '../onboarding/UserOnboardingRegistry';
+import { TelemetryAnalyticsModal } from '../monitoring/TelemetryAnalyticsModal';
 
 export const Navbar = () => {
   const location = useLocation();
@@ -20,6 +21,9 @@ export const Navbar = () => {
 
   // Phase 2: Onboarded Users & Interaction Ledger Modal State
   const [registryOpen, setRegistryOpen] = useState(false);
+
+  // Phase 3: Telemetry & Monitoring Dashboard Modal State
+  const [telemetryOpen, setTelemetryOpen] = useState(false);
 
   const isHome = location.pathname === '/';
 
@@ -108,25 +112,39 @@ export const Navbar = () => {
 
           {/* Right Header Controls */}
           <div className="hidden md:flex items-center gap-2.5">
-            {/* Phase 2: 10+ Onboarded Users Ledger Quick Trigger */}
-            <button
-              onClick={() => setRegistryOpen(true)}
-              title="10+ Onboarded Users & Verified Ledger"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono text-cyan-400 bg-surface/30 hover:bg-surface/60 border border-cyan-400/30 backdrop-blur-xl transition-all cursor-pointer shadow-sm"
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>10+ Users</span>
-            </button>
+            {/* Quick Access Control Capsule */}
+            <div className="flex items-center gap-1.5 p-1 rounded-full bg-surface/30 border border-white/[0.06] backdrop-blur-xl">
+              {/* Phase 3: Telemetry & Monitoring Quick Trigger */}
+              <button
+                onClick={() => setTelemetryOpen(true)}
+                title="System Telemetry & Network Monitoring"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono text-emerald-400 hover:bg-white/[0.06] transition-all cursor-pointer"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <Activity className="w-3.5 h-3.5" />
+                <span className="hidden lg:inline">Telemetry</span>
+              </button>
 
-            {/* Phase 1: User Feedback Quick Trigger */}
-            <button
-              onClick={() => setFeedbackSummaryOpen(true)}
-              title="User Feedback & Ratings"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono text-amber-400 bg-surface/30 hover:bg-surface/60 border border-amber-400/30 backdrop-blur-xl transition-all cursor-pointer shadow-sm"
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>Feedback</span>
-            </button>
+              {/* Phase 2: 10+ Onboarded Users Ledger Quick Trigger */}
+              <button
+                onClick={() => setRegistryOpen(true)}
+                title="10+ Onboarded Users & Verified Ledger"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono text-cyan-400 hover:bg-white/[0.06] transition-all cursor-pointer"
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span className="hidden lg:inline">Users</span>
+              </button>
+
+              {/* Phase 1: User Feedback Quick Trigger */}
+              <button
+                onClick={() => setFeedbackSummaryOpen(true)}
+                title="User Feedback & Ratings"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono text-amber-400 hover:bg-white/[0.06] transition-all cursor-pointer"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span className="hidden lg:inline">Feedback</span>
+              </button>
+            </div>
 
             <NetworkBadge network={network || 'TESTNET'} />
             <WalletButton pulse={!connected} />
@@ -152,19 +170,26 @@ export const Navbar = () => {
           </div>
 
           {/* Quick Triggers in Mobile Menu */}
-          <div className="grid grid-cols-2 gap-2 py-1 border-b border-border/40">
+          <div className="grid grid-cols-3 gap-2 py-2 border-b border-border/40">
+            <button
+              onClick={() => { setMobileMenuOpen(false); setTelemetryOpen(true); }}
+              className="flex flex-col items-center justify-center p-2 rounded-xl bg-surface/40 border border-border/50 text-[10.5px] font-mono text-emerald-400"
+            >
+              <Activity className="w-4 h-4 mb-1" />
+              <span>Telemetry</span>
+            </button>
             <button
               onClick={() => { setMobileMenuOpen(false); setRegistryOpen(true); }}
-              className="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-surface/40 border border-border/50 text-xs font-mono text-cyan-400"
+              className="flex flex-col items-center justify-center p-2 rounded-xl bg-surface/40 border border-border/50 text-[10.5px] font-mono text-cyan-400"
             >
-              <Users className="w-4 h-4" />
+              <Users className="w-4 h-4 mb-1" />
               <span>10+ Users</span>
             </button>
             <button
               onClick={() => { setMobileMenuOpen(false); setFeedbackSummaryOpen(true); }}
-              className="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-surface/40 border border-border/50 text-xs font-mono text-amber-400"
+              className="flex flex-col items-center justify-center p-2 rounded-xl bg-surface/40 border border-border/50 text-[10.5px] font-mono text-amber-400"
             >
-              <MessageSquare className="w-4 h-4" />
+              <MessageSquare className="w-4 h-4 mb-1" />
               <span>Feedback</span>
             </button>
           </div>
@@ -206,6 +231,12 @@ export const Navbar = () => {
       <UserOnboardingRegistry 
         isOpen={registryOpen} 
         onClose={() => setRegistryOpen(false)} 
+      />
+
+      {/* Phase 3: Telemetry & Monitoring Modal */}
+      <TelemetryAnalyticsModal 
+        isOpen={telemetryOpen} 
+        onClose={() => setTelemetryOpen(false)} 
       />
     </header>
   );

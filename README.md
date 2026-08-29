@@ -614,11 +614,11 @@ npm test
   ✔ should return unauthorized for unassociated third-party wallet (0.14ms)
   ✔ should return guest mode when no wallet is connected (0.19ms)
 ✔ Role Evaluation & Multi-Wallet Security Tests (3.55ms)
-▶ Level 2 Multi-Wallet & Error Handling Tests
+▶ Multi-Wallet & Web3 Error Handling Tests
   ✔ should support multiple Stellar wallet providers (StellarWalletsKit style) (0.84ms)
   ✔ should format 3 explicit error types correctly (0.22ms)
   ✔ should identify required Stellar base fee and escrow threshold (0.15ms)
-✔ Level 2 Multi-Wallet & Error Handling Tests (3.09ms)
+✔ Multi-Wallet & Web3 Error Handling Tests (3.09ms)
 ℹ tests 20 | suites 5 | pass 20 | fail 0 | cancelled 0 | skipped 0
 ```
 

@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { WALLET_OPTIONS, ERROR_CODES } from '../src/utils/walletProviders.js';
 
-describe('Level 2 Multi-Wallet & Error Handling Tests', () => {
+describe('Multi-Wallet & Web3 Error Handling Tests', () => {
   it('should support multiple Stellar wallet providers (StellarWalletsKit style)', () => {
     const ids = WALLET_OPTIONS.map(w => w.id);
     assert.ok(ids.includes('freighter'), 'Must support Freighter wallet');

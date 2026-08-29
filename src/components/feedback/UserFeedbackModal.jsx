@@ -115,7 +115,7 @@ export const UserFeedbackModal = ({ isOpen, onClose, onSuccess }) => {
                   <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
                     <span>Submit User Feedback</span>
                     <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-primary/15 text-primary-glow border border-primary/30">
-                      Level 4 Requirement
+                      Community Review
                     </span>
                   </h3>
                   <p className="text-xs text-text-muted">

@@ -69,7 +69,7 @@ export const FeedbackSummaryModal = ({ isOpen, onClose, onOpenSubmitModal }) => 
               <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
                 <span>User Feedback & Sentiment Report</span>
                 <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-400/30">
-                  Mandatory Level 4 Proof
+                  Verified User Feedback
                 </span>
               </h3>
               <p className="text-xs text-text-muted">

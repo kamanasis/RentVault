@@ -17,6 +17,7 @@ import { StellarActivityRibbon } from '../components/stellar/StellarActivityRibb
 import { OnboardingCard } from '../components/dashboard/OnboardingCard';
 import { DemoGuideModal } from '../components/demo/DemoGuideModal';
 import { UserOnboardingRegistry } from '../components/onboarding/UserOnboardingRegistry';
+import { TelemetryAnalyticsModal } from '../components/monitoring/TelemetryAnalyticsModal';
 import { useWallet } from '../context/WalletContext';
 import { useAgreements } from '../context/AgreementContext';
 import { 
@@ -31,7 +32,8 @@ import {
   Shield,
   RefreshCw,
   Sparkles,
-  Users
+  Users,
+  Activity
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -43,6 +45,7 @@ export const Dashboard = () => {
   const [workspaceFilter, setWorkspaceFilter] = useState('all'); // 'all' | 'landlord' | 'tenant'
   const [isDemoGuideOpen, setIsDemoGuideOpen] = useState(false);
   const [isOnboardingRegistryOpen, setIsOnboardingRegistryOpen] = useState(false);
+  const [isTelemetryOpen, setIsTelemetryOpen] = useState(false);
 
   const normalizedAddress = (address || '').trim().toUpperCase();
 
@@ -136,7 +139,7 @@ export const Dashboard = () => {
                     Verified User Onboarding Registry
                   </span>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-400/30">
-                    Level 4 Standard
+                    Production Verified
                   </span>
                 </div>
                 <p className="text-xs text-text-secondary">
@@ -144,13 +147,23 @@ export const Dashboard = () => {
                 </p>
               </div>
 
-              <button
-                onClick={() => setIsOnboardingRegistryOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 text-xs font-mono text-cyan-400 font-semibold transition-all cursor-pointer shadow-sm self-start md:self-auto"
-              >
-                <Users className="w-4 h-4" />
-                <span>View 10+ Onboarded Wallets</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  onClick={() => setIsTelemetryOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/40 text-xs font-mono text-emerald-400 font-semibold transition-all cursor-pointer shadow-sm"
+                >
+                  <Activity className="w-4 h-4" />
+                  <span>Telemetry & RPC Status</span>
+                </button>
+
+                <button
+                  onClick={() => setIsOnboardingRegistryOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 text-xs font-mono text-cyan-400 font-semibold transition-all cursor-pointer shadow-sm"
+                >
+                  <Users className="w-4 h-4" />
+                  <span>View 10+ Onboarded Wallets</span>
+                </button>
+              </div>
             </div>
           </Card>
 
@@ -396,6 +409,12 @@ export const Dashboard = () => {
       <UserOnboardingRegistry 
         isOpen={isOnboardingRegistryOpen} 
         onClose={() => setIsOnboardingRegistryOpen(false)} 
+      />
+
+      {/* Phase 3: Telemetry & Monitoring Dashboard Modal */}
+      <TelemetryAnalyticsModal 
+        isOpen={isTelemetryOpen} 
+        onClose={() => setIsTelemetryOpen(false)} 
       />
     </PageContainer>
   );
