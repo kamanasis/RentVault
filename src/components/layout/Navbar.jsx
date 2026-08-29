@@ -3,13 +3,19 @@ import { Link, useLocation } from 'react-router-dom';
 import { WalletButton } from '../wallet/WalletButton';
 import { NetworkBadge } from '../wallet/NetworkBadge';
 import { useWallet } from '../../context/WalletContext';
-import { Shield, Menu, X } from 'lucide-react';
+import { Shield, Menu, X, MessageSquare } from 'lucide-react';
+import { FeedbackSummaryModal } from '../feedback/FeedbackSummaryModal';
+import { UserFeedbackModal } from '../feedback/UserFeedbackModal';
 
 export const Navbar = () => {
   const location = useLocation();
   const { connected, network } = useWallet();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  // Phase 1: User Feedback Engine Modals State
+  const [feedbackSummaryOpen, setFeedbackSummaryOpen] = useState(false);
+  const [submitFeedbackOpen, setSubmitFeedbackOpen] = useState(false);
 
   const isHome = location.pathname === '/';
 
@@ -97,7 +103,17 @@ export const Navbar = () => {
           </nav>
 
           {/* Right Header Controls */}
-          <div className="hidden md:flex items-center gap-3.5">
+          <div className="hidden md:flex items-center gap-3">
+            {/* Phase 1: User Feedback Quick Trigger */}
+            <button
+              onClick={() => setFeedbackSummaryOpen(true)}
+              title="User Feedback & Ratings"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-mono text-amber-400 bg-surface/30 hover:bg-surface/60 border border-amber-400/30 backdrop-blur-xl transition-all cursor-pointer shadow-sm"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Feedback</span>
+            </button>
+
             <NetworkBadge network={network || 'TESTNET'} />
             <WalletButton pulse={!connected} />
           </div>
@@ -121,6 +137,17 @@ export const Navbar = () => {
             <NetworkBadge network={network || 'TESTNET'} />
           </div>
 
+          {/* Phase 1: User Feedback Mobile Button */}
+          <div className="py-1 border-b border-border/40">
+            <button
+              onClick={() => { setMobileMenuOpen(false); setFeedbackSummaryOpen(true); }}
+              className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl bg-surface/40 border border-border/50 text-xs font-mono text-amber-400"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>User Feedback & Reviews</span>
+            </button>
+          </div>
+
           <nav aria-label="Mobile Navigation" className="flex flex-col gap-2">
             {navLinks.map((link, idx) => (
               <a
@@ -141,6 +168,18 @@ export const Navbar = () => {
           </div>
         </div>
       )}
+
+      {/* Phase 1: Feedback Modals */}
+      <FeedbackSummaryModal 
+        isOpen={feedbackSummaryOpen} 
+        onClose={() => setFeedbackSummaryOpen(false)} 
+        onOpenSubmitModal={() => setSubmitFeedbackOpen(true)}
+      />
+      <UserFeedbackModal 
+        isOpen={submitFeedbackOpen} 
+        onClose={() => setSubmitFeedbackOpen(false)} 
+        onSuccess={() => setFeedbackSummaryOpen(true)}
+      />
     </header>
   );
 };
