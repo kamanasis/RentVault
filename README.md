@@ -1,6 +1,6 @@
 <div align="center">
 
-# RentVault
+# 🏠 RentVault
 
 ### Decentralized Rental Deposit Escrow Platform built on Stellar & Soroban
 
@@ -481,6 +481,8 @@ stateDiagram-v2
 RentVault/
 ├── vercel.json                              # Vercel SPA routing rewrite configuration
 ├── index.html                               # OpenGraph, Twitter tags, & SEO metadata
+├── contracts/
+│   └── escrow/src/lib.rs                    # Soroban WASM Rust escrow smart contract
 ├── src/
 │   ├── components/
 │   │   ├── agreements/                      # AgreementCard, AgreementTimeline, AgreementSummary
@@ -489,10 +491,13 @@ RentVault/
 │   │   ├── dashboard/                       # ExecutiveHeroSummary, OnboardingCard
 │   │   ├── demo/                            # DemoGuideModal (Stella presentation navigator)
 │   │   ├── escrow/                          # EscrowStatusCard, FundingProgress, EscrowFundingDetailsCard
+│   │   ├── feedback/                        # UserFeedbackModal, FeedbackSummaryModal
 │   │   ├── forms/                           # InputField, SelectField
-│   │   ├── landing/                         # HeroVisual, FeatureGrid
+│   │   ├── landing/                         # HeroVisual (Officer Eva), FeatureGrid
 │   │   ├── layout/                          # Navbar, Footer, PageContainer, Section
 │   │   ├── lifecycle/                       # LeaseStatusCard, TenantReviewPanel, DisputeResolutionPanel, RaiseDisputeModal, RefundConfirmationCard
+│   │   ├── monitoring/                      # TelemetryAnalyticsModal (Horizon & Soroban RPC health)
+│   │   ├── onboarding/                      # UserOnboardingRegistry (10+ wallet ledger)
 │   │   ├── roles/                           # RoleBadge, AgreementRoleHeader, WalletMismatchNotice
 │   │   ├── status/                          # StatusBadge, AgreementStatusBadge
 │   │   ├── stellar/                         # StellarActivityRibbon, TrustBadgeGroup
@@ -516,6 +521,7 @@ RentVault/
 │   │   └── Transactions.jsx                 # Horizon API transaction history
 │   ├── services/
 │   │   ├── escrowContract.js                # Soroban contract RPC configuration & parameter encoding
+│   │   ├── feedbackStore.js                 # Feedback persistence with seed review data
 │   │   ├── sharedStore.js                   # Firebase Firestore realtime onSnapshot & BroadcastChannel engine
 │   │   ├── soroban.js                       # Contract invocation & transaction status polling
 │   │   └── stellar.js                       # Native XLM testnet payment submission
@@ -659,6 +665,10 @@ GitHub Actions CI runs automatically on all pushes and pull requests to build an
 - [x] **Phase 9.2**: Unified Agreement Lifecycle State Machine Engine
 - [x] **Phase 9.3**: Real-Time Cross-Browser Cloud Persistence via Firestore `onSnapshot`
 - [x] **Phase 9.4**: Production-Grade Settlement Dispute Resolution Workspace
+- [x] **Phase 10**: In-App User Feedback Engine & CSAT Reporting
+- [x] **Phase 10.1**: Verified 10+ User Onboarding & Wallet Interaction Ledger
+- [x] **Phase 10.2**: Production Telemetry & Network Health Monitoring Dashboard
+- [x] **Phase 10.3**: Hero Section Polish, Wallet Sync & UI Refinement
 
 ---
 
