@@ -8,6 +8,8 @@ import {
   deleteAgreementFromSharedStore,
   normalizeWallet,
 } from '../services/sharedStore';
+import { trackEvent } from '../services/analytics';
+import { captureError } from '../services/monitoring';
 
 const AgreementContext = createContext();
 
@@ -212,6 +214,7 @@ export const AgreementProvider = ({ children }) => {
     });
 
     await saveAgreementToSharedStore(newAgreement);
+    trackEvent('agreement_created', { agreementId: newId, depositAmount: newAgreement.depositAmount });
     return newAgreement;
   };
 
@@ -220,6 +223,7 @@ export const AgreementProvider = ({ children }) => {
   const raiseSettlementDispute = async (id, disputeData) => {
     const target = agreements.find((a) => a.id === id);
     if (!target) return;
+    trackEvent('settlement_disputed', { agreementId: id });
 
     const actor = normalizeWallet(address) || target.tenantWallet;
     const disputeObj = {
@@ -356,6 +360,7 @@ export const AgreementProvider = ({ children }) => {
   const depositEscrow = async (id, txData) => {
     const target = agreements.find((a) => a.id === id);
     const total = target ? (target.depositAmount || 0) + (target.utilityReserve || 0) : 0;
+    trackEvent('deposit_confirmed', { agreementId: id, amount: total, txHash: txData?.hash });
 
     await advanceAgreementStatus(id, 'Deposit Locked', {
       type: 'ESCROW_DEPOSIT_LOCKED',
@@ -374,6 +379,7 @@ export const AgreementProvider = ({ children }) => {
 
   const activateLease = async (id) => {
     const target = agreements.find((a) => a.id === id);
+    trackEvent('lease_activated', { agreementId: id });
     await advanceAgreementStatus(id, 'Lease Active', {
       type: 'LEASE_ACTIVATED',
       actor: normalizeWallet(address) || target?.landlordWallet,
@@ -385,6 +391,7 @@ export const AgreementProvider = ({ children }) => {
   const endLease = async (id, actorAddress = '') => {
     const target = agreements.find((a) => a.id === id);
     const actor = normalizeWallet(actorAddress || address) || target?.landlordWallet || '';
+    trackEvent('lease_ended', { agreementId: id });
     await advanceAgreementStatus(id, 'Lease Ended', {
       type: 'LEASE_ENDED',
       actor,
@@ -403,6 +410,8 @@ export const AgreementProvider = ({ children }) => {
     const other = parseFloat(deductionsData.other || 0);
     const totalDeduction = electricity + water + internet + maintenance + other;
     const finalRefundAmount = Math.max(0, totalEscrow - totalDeduction);
+
+    trackEvent('settlement_submitted', { agreementId: id, totalDeduction });
 
     await advanceAgreementStatus(id, 'Utility Settlement', {
       type: 'UTILITY_SETTLEMENT_SUBMITTED',
@@ -426,6 +435,7 @@ export const AgreementProvider = ({ children }) => {
     }
 
     const actor = normalizeWallet(address) || target.tenantWallet;
+    trackEvent('settlement_approved', { agreementId: id });
     await advanceAgreementStatus(id, 'Settlement Approved', {
       type: 'TENANT_SETTLEMENT_APPROVED',
       actor,
@@ -451,6 +461,8 @@ export const AgreementProvider = ({ children }) => {
     const txHash = txData?.hash || null;
     const txLedger = txData?.ledger || null;
     const refundVal = target?.finalRefundAmount !== undefined ? target.finalRefundAmount : (target?.depositAmount || 0);
+
+    trackEvent('refund_confirmed', { agreementId: id, refundAmount: refundVal, hasTxHash: !!txHash });
 
     await advanceAgreementStatus(id, 'Refund Completed', {
       type: 'REFUND_COMPLETED',

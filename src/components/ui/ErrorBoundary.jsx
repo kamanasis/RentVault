@@ -4,6 +4,7 @@ import { Card } from '../cards/Card';
 import { PrimaryButton } from '../buttons/PrimaryButton';
 import { SecondaryButton } from '../buttons/SecondaryButton';
 import { AlertTriangle, RotateCcw, Home } from 'lucide-react';
+import { captureError } from '../../services/monitoring';
 
 export class ErrorBoundary extends Component {
   constructor(props) {
@@ -17,6 +18,10 @@ export class ErrorBoundary extends Component {
 
   componentDidCatch(error, errorInfo) {
     console.error('[RentVault ErrorBoundary caught exception]:', error, errorInfo);
+    captureError(error, {
+      category: 'REACT_ERROR_BOUNDARY',
+      componentStack: errorInfo?.componentStack?.slice(0, 1000),
+    });
   }
 
   handleReset = () => {

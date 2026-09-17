@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useWallet } from '../../context/WalletContext';
 import { saveFeedbackEntry } from '../../services/feedbackStore';
+import { trackEvent } from '../../services/analytics';
 
 export const UserFeedbackModal = ({ isOpen, onClose, onSuccess }) => {
   const { connected, address, truncateAddress } = useWallet();
@@ -33,21 +34,21 @@ export const UserFeedbackModal = ({ isOpen, onClose, onSuccess }) => {
     'Wallet Onboarding'
   ];
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!comment.trim()) return;
+    if (!comment.trim() || submitting) return;
 
     setSubmitting(true);
-    setTimeout(() => {
-      saveFeedbackEntry({
+    try {
+      await saveFeedbackEntry({
         name: connected ? `Stellar User (${truncateAddress(address)})` : 'Web3 Tester',
         role,
-        wallet: address || 'GUEST_EVALUATOR_KEY',
+        wallet: address || null,
         rating,
         category,
         comment: comment.trim(),
       });
-      setSubmitting(false);
+      trackEvent('user_feedback_submitted', { role, category, rating });
       setSubmitted(true);
 
       if (onSuccess) onSuccess();
@@ -56,7 +57,11 @@ export const UserFeedbackModal = ({ isOpen, onClose, onSuccess }) => {
         setComment('');
         onClose();
       }, 1600);
-    }, 400);
+    } catch {
+      // Handled inside saveFeedbackEntry
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;

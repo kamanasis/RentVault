@@ -1,8 +1,9 @@
 import React from 'react';
 import { Card } from '../cards/Card';
 import { PrimaryButton } from '../buttons/PrimaryButton';
-import { ShieldCheck, Plus, Wallet, FileText, Lock, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Plus, Wallet, FileText, Lock, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { trackEvent } from '../../services/analytics';
 
 export const OnboardingCard = () => {
   const navigate = useNavigate();
@@ -13,6 +14,11 @@ export const OnboardingCard = () => {
     { num: '3', title: 'Share With Tenant', desc: 'Provide agreement link to tenant', icon: ShieldCheck },
     { num: '4', title: 'Lock Deposit', desc: 'Lock funds in Soroban smart contract', icon: Lock },
   ];
+
+  const handleStart = () => {
+    trackEvent('onboarding_cta_clicked');
+    navigate('/agreements/new');
+  };
 
   return (
     <Card className="p-8 bg-gradient-to-br from-card via-surface to-card border border-primary/40 text-center space-y-6 shadow-stellar-glow">
@@ -27,6 +33,12 @@ export const OnboardingCard = () => {
         <p className="text-body text-text-secondary">
           RentVault locks security deposits into Soroban smart contract vaults on Stellar, ensuring instant auto-refunds and verifiable utility settlements.
         </p>
+      </div>
+
+      {/* Testnet Safety & Non-Custodial Assurance Badge */}
+      <div className="max-w-xl mx-auto p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center gap-2 text-xs font-mono text-cyan-400">
+        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+        <span>Stellar Testnet Only • Zero Real-World Funds Required • Non-Custodial Smart Contract</span>
       </div>
 
       {/* 4 Steps Grid */}
@@ -51,7 +63,7 @@ export const OnboardingCard = () => {
       </div>
 
       <div className="pt-4 border-t border-border/60 flex justify-center">
-        <PrimaryButton icon={Plus} onClick={() => navigate('/agreements/new')}>
+        <PrimaryButton icon={Plus} onClick={handleStart}>
           Create First Agreement Now
         </PrimaryButton>
       </div>

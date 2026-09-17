@@ -1,24 +1,38 @@
 import React from 'react';
 import { Card } from '../cards/Card';
 import { Coins, FileCheck, ShieldCheck } from 'lucide-react';
+import { useAgreements } from '../../context/AgreementContext';
 
 export const TrustMetrics = () => {
+  let agreements = [];
+  try {
+    const ctx = useAgreements();
+    agreements = ctx?.agreements || [];
+  } catch {
+    agreements = [];
+  }
+
+  const totalAgreements = agreements.length;
+  const lockedXlm = agreements
+    .filter((a) => a.status === 'Deposit Locked' || a.status === 'Lease Active' || a.status === 'Settlement Proposed')
+    .reduce((sum, a) => sum + (parseFloat(a.fundedAmount || a.depositAmount) || 0), 0);
+
   const metrics = [
     {
-      title: '250+ XLM Protected',
-      subtitle: 'Secured across Soroban escrow vaults',
+      title: totalAgreements > 0 ? `${lockedXlm.toLocaleString()} XLM Protected` : '0 XLM Escrowed',
+      subtitle: 'Secured in Soroban WASM contract vaults',
       icon: Coins,
       accent: 'text-primary-glow',
     },
     {
-      title: '12 Agreements Created',
-      subtitle: 'Digital rental contracts on Stellar Testnet',
+      title: totalAgreements > 0 ? `${totalAgreements} Digital Agreements` : '0 Agreements Created',
+      subtitle: 'Decentralized contracts on Stellar Testnet',
       icon: FileCheck,
       accent: 'text-success',
     },
     {
-      title: '100% On-Chain Transparency',
-      subtitle: 'Verifiable transactions on Horizon API',
+      title: '100% Non-Custodial',
+      subtitle: 'Direct tenant-to-contract authorization',
       icon: ShieldCheck,
       accent: 'text-warning',
     },

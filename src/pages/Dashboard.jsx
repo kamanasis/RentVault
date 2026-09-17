@@ -18,6 +18,7 @@ import { OnboardingCard } from '../components/dashboard/OnboardingCard';
 import { DemoGuideModal } from '../components/demo/DemoGuideModal';
 import { UserOnboardingRegistry } from '../components/onboarding/UserOnboardingRegistry';
 import { TelemetryAnalyticsModal } from '../components/monitoring/TelemetryAnalyticsModal';
+import { trackEvent } from '../services/analytics';
 import { useWallet } from '../context/WalletContext';
 import { useAgreements } from '../context/AgreementContext';
 import { 
@@ -47,7 +48,15 @@ export const Dashboard = () => {
   const [isOnboardingRegistryOpen, setIsOnboardingRegistryOpen] = useState(false);
   const [isTelemetryOpen, setIsTelemetryOpen] = useState(false);
 
+  useEffect(() => {
+    trackEvent('dashboard_viewed');
+  }, []);
+
   const normalizedAddress = (address || '').trim().toUpperCase();
+
+  const verifiedOnChainCount = agreements.filter(
+    (a) => a.txHash || a.fundingTxHash || a.refundTxHash
+  ).length;
 
   // Role-filtered agreement sets for connected wallet
   const landlordAgreements = agreements.filter(
@@ -146,7 +155,7 @@ export const Dashboard = () => {
                       Verified On-Chain Ledger
                     </h4>
                     <span className="text-[9px] font-mono font-semibold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-400/30">
-                      12 Wallets
+                      {verifiedOnChainCount > 0 ? `${verifiedOnChainCount} Verified TXs` : 'Audit Ledger'}
                     </span>
                   </div>
                   <p className="text-[11px] text-text-muted mt-0.5">

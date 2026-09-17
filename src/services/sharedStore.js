@@ -13,7 +13,7 @@ const firebaseConfig = {
 let firebaseApp = null;
 let firestoreDb = null;
 
-const getFirestoreDb = async () => {
+export const getFirestoreDb = async () => {
   if (firestoreDb) return firestoreDb;
   try {
     const { initializeApp, getApps, getApp } = await import('firebase/app');

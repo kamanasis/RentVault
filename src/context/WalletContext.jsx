@@ -7,6 +7,8 @@ import {
   getNetwork
 } from '@stellar/freighter-api';
 import { fetchAccountBalance, fetchAccountTransactions, fundAccountWithFriendbot } from '../services/stellar';
+import { trackEvent } from '../services/analytics';
+import { captureError } from '../services/monitoring';
 
 const WalletContext = createContext();
 
@@ -184,6 +186,7 @@ export const WalletProvider = ({ children }) => {
   // Connect with specific wallet option
   const connectWithWallet = async (walletId = 'freighter') => {
     console.log(`[RentVault Wallet] Connecting via provider: ${walletId}...`);
+    trackEvent('wallet_connect_started', { walletId });
     setLoading(true);
     setError(null);
     setErrorState(null);
@@ -212,6 +215,7 @@ export const WalletProvider = ({ children }) => {
       setBalanceUpdatedAt(now);
       setTransactions([]);
       setLoading(false);
+      trackEvent('wallet_connected', { walletId: 'demo', network: 'TESTNET' });
       return { success: true, address: demoAddr };
     }
 
@@ -295,10 +299,13 @@ export const WalletProvider = ({ children }) => {
         }
 
         await Promise.all([fetchBalance(pubKey), fetchTransactions(pubKey, 10)]);
+        trackEvent('wallet_connected', { walletId: 'freighter', network: currentNet });
         return { success: true, address: pubKey };
       } catch (err) {
         console.error('[RentVault Wallet Error] Connection failed:', err);
         const msg = err?.message || 'Failed to connect Freighter wallet.';
+        captureError(err, { category: 'WALLET_CONNECT_ERROR', walletId: 'freighter' });
+        trackEvent('wallet_connection_failed', { walletId: 'freighter', error: msg });
         if (!errorState) {
           if (msg.toLowerCase().includes('reject') || msg.toLowerCase().includes('cancel') || msg.toLowerCase().includes('denied')) {
             setCategorizedError('USER_REJECTED', 'Connection Request Denied', 'User cancelled or rejected the connection prompt.');
@@ -392,6 +399,7 @@ export const WalletProvider = ({ children }) => {
   // Disconnect Flow
   const disconnectWallet = () => {
     console.log('[RentVault Wallet] Disconnecting wallet session...');
+    trackEvent('wallet_disconnect');
     setConnected(false);
     setAddress('');
     setNetwork('');
