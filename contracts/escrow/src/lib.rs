@@ -1,7 +1,7 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, token, Address, Env, String, Symbol,
+    contract, contractimpl, contracttype, symbol_short, token, Address, Env, String,
 };
 
 #[contracttype]
@@ -100,3 +100,6 @@ impl RentVaultEscrow {
             .publish((symbol_short!("escrow"), symbol_short!("release")), agreement_id);
     }
 }
+
+#[cfg(test)]
+mod test;

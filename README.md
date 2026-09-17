@@ -584,51 +584,96 @@ RentVault interacts with a deployed Soroban WASM smart contract on Stellar Testn
 
 ---
 
-## 🧪 Testing & CI/CD Pipeline
+## 🧪 Testing, Quality Assurance & CI/CD Pipeline
 
-RentVault includes an automated test suite covering agreement state machines, dispute resolution mapping, uppercase multi-wallet security evaluation, lease date formatting, and real-time Soroban topic event streaming:
+RentVault features an end-to-end automated testing architecture combining Rust Soroban smart contract unit tests with Node.js native frontend test suites (47 tests in total):
 
 ```bash
-# Run automated test suite
+# Run all frontend automated test suites (39 tests across 9 suites)
 npm test
+
+# Run Soroban smart contract test suite (8 unit tests)
+npm run test:contract
+
+# Compile Soroban WASM smart contract binary
+npm run build:contract
+
+# Run ESLint static code analysis
+npm run lint
+
+# Build production bundle
+npm run build
 ```
 
-### Test Suite Output (20 Passing Tests across 5 Suites):
+### 1. Smart Contract Test Suite (`contracts/escrow/src/test.rs`)
+The Soroban escrow contract is tested natively using Soroban SDK Rust test environment with mock Stellar Asset Contract instances:
+- **`test_enum_variants_and_contract_registration`**: Verifies `DataKey` enum variants, contract registration, and initial mock client setup.
+- **`test_data_structures`**: Asserts deterministic serialization/deserialization of `EscrowRecord` and `EscrowState` (`Locked`, `Released`, `Disputed`).
+- **`test_zero_amount_deposit_rejected`**: Validates panic enforcement when attempting to lock zero deposit tokens.
+- **`test_negative_amount_deposit_rejected`**: Validates panic enforcement when attempting to lock negative amounts.
+- **`test_duplicate_agreement_id_rejected`**: Confirms that an agreement ID cannot be deposited or overwritten more than once.
+- **`test_nonexistent_agreement_release_rejected`**: Ensures release cannot be invoked for agreements with no locked funds.
+- **`test_unauthorized_release_caller_rejected`**: Ensures non-landlord addresses cannot trigger deposit release.
+- **`test_double_release_rejected`**: Prevents double-spending by rejecting secondary release calls on already released escrows.
+
 ```text
-▶ Agreement Lifecycle State Machine Tests
-  ✔ should map lifecycle stages correctly to stage numbers (0.90ms)
-  ✔ should map dispute statuses to Stage 7 (0.14ms)
-  ✔ should create an immutable lifecycle event object (1.83ms)
-  ✔ should have exactly 8 predefined lifecycle stages in sequential order (0.18ms)
-✔ Agreement Lifecycle State Machine Tests (4.33ms)
-▶ Lease Duration Formatting Tests
-  ✔ should return N/A for missing start or end dates (1.34ms)
-  ✔ should handle invalid ranges when end date is before start date (0.17ms)
-  ✔ should format single day and multi-day spans (0.15ms)
-  ✔ should format months and year duration correctly (1.25ms)
-✔ Lease Duration Formatting Tests (4.97ms)
-▶ Real-Time Soroban Event Streaming & Topic Polling Tests
-  ✔ should match valid Soroban contract topics for deposit locking (0.87ms)
-  ✔ should match valid Soroban contract topics for refund release (0.21ms)
-  ✔ should reject unrelated contract event topics (0.26ms)
-  ✔ should deduplicate already processed event IDs (1.07ms)
-  ✔ should enforce 5-second polling interval matching Stellar ledger closure (0.27ms)
-✔ Real-Time Soroban Event Streaming & Topic Polling Tests (4.13ms)
-▶ Role Evaluation & Multi-Wallet Security Tests
-  ✔ should evaluate landlord role correctly case-insensitively (0.82ms)
-  ✔ should evaluate tenant role correctly case-insensitively (0.14ms)
-  ✔ should return unauthorized for unassociated third-party wallet (0.14ms)
-  ✔ should return guest mode when no wallet is connected (0.19ms)
-✔ Role Evaluation & Multi-Wallet Security Tests (3.55ms)
-▶ Multi-Wallet & Web3 Error Handling Tests
-  ✔ should support multiple Stellar wallet providers (StellarWalletsKit style) (0.84ms)
-  ✔ should format 3 explicit error types correctly (0.22ms)
-  ✔ should identify required Stellar base fee and escrow threshold (0.15ms)
-✔ Multi-Wallet & Web3 Error Handling Tests (3.09ms)
-ℹ tests 20 | suites 5 | pass 20 | fail 0 | cancelled 0 | skipped 0
+running 8 tests
+test test::test_data_structures ... ok
+test test::test_duplicate_agreement_id_rejected - should panic ... ok
+test test::test_enum_variants_and_contract_registration ... ok
+test test::test_negative_amount_deposit_rejected - should panic ... ok
+test test::test_nonexistent_agreement_release_rejected - should panic ... ok
+test test::test_unauthorized_release_caller_rejected - should panic ... ok
+test test::test_double_release_rejected - should panic ... ok
+test test::test_zero_amount_deposit_rejected - should panic ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 ```
 
-GitHub Actions CI runs automatically on all pushes and pull requests to build and test the codebase (`.github/workflows/ci.yml`).
+### 2. Frontend Test Suites (39 Passing Tests across 9 Suites)
+The frontend testing suite runs on Node's native test runner (`node:test`) for instant execution (210ms) without heavy Jest/Babel overhead:
+- **`tests/lifecycle.test.js`**: 8-stage state machine transitions, dispute mapping, and immutable event schemas.
+- **`tests/leaseDuration.test.js`**: Multi-day/month duration calculations, leap years, and edge-case date range validations.
+- **`tests/sorobanEvents.test.js`**: Real-time topic matching (`"escrow"`, `"locked"`, `"release"`), deduplication caches, and 5s polling intervals.
+- **`tests/roles.test.js`**: Case-insensitive Stellar public key matching, role evaluation (Landlord, Tenant, Guest, Unauthorized).
+- **`tests/walletErrors.test.js`**: `WALLET_NOT_FOUND`, `USER_REJECTED`, `INSUFFICIENT_BALANCE` error parsing and recovery flows.
+- **`tests/validation.test.js`**: Stellar address regex checks, security deposit constraints, and rent validation rules.
+- **`tests/autoRelease.test.js`**: Grace period math (7d, 14d, 30d presets), countdown timers, and expired dispute auto-finalization.
+- **`tests/settlement.test.js`**: Deduction math, itemized utility calculation, deposit refund clamping, and dispute state updates.
+- **`tests/executiveSummary.test.js`**: Health metrics aggregation, CSAT calculation, and escrow portfolio telemetry.
+
+```text
+✔ Agreement Lifecycle State Machine Tests (4.13ms)
+✔ Lease Duration Formatting Tests (4.67ms)
+✔ Real-Time Soroban Event Streaming & Topic Polling Tests (3.89ms)
+✔ Role Evaluation & Multi-Wallet Security Tests (3.42ms)
+✔ Multi-Wallet & Web3 Error Handling Tests (3.02ms)
+✔ Rental Agreement Validation Tests (3.78ms)
+✔ Executive Summary & Portfolio Metrics Tests (4.21ms)
+✔ Auto-Release Countdown & Preset Tests (3.65ms)
+✔ Settlement Engine & Dispute Resolution Tests (4.18ms)
+
+ℹ tests 39 | suites 9 | pass 39 | fail 0 | cancelled 0 | skipped 0 | todo 0
+```
+
+### 3. Continuous Integration Pipeline (`.github/workflows/ci.yml`)
+Every push and pull request to `main` triggers automated GitHub Actions checks:
+1. **Toolchain Setup**: Configures Node.js 20 & Rust stable with the `wasm32-unknown-unknown` compilation target.
+2. **Dependency Cache**: `npm ci` with cached package lockfiles for fast runs.
+3. **Smart Contract Verification**: Executes `cargo test` on Soroban contracts (8 tests).
+4. **WASM Compilation**: Compiles the release WebAssembly binary (`rentvault_escrow.wasm`).
+5. **Code Style & Linting**: Runs ESLint with zero-tolerance for breaking syntax or unhandled errors.
+6. **Frontend Verification**: Executes all 39 frontend unit test suites.
+7. **Production Build**: Compiles Vite production bundle to ensure zero build regressions.
+
+---
+
+### 4. Zero Secrets & Environment Hygiene
+RentVault adheres to strict Web3 security standards:
+- **No Secret Keys in Source**: All secret keys (`S...`), testnet seeds, or credentials are strictly excluded.
+- **Public Keys Only**: Only testnet public keys (`G...`) and deployed contract IDs (`C...`) are present in client configs.
+- **Freighter Non-Custodial Signing**: Private keys never touch browser memory; all signatures are performed inside the Freighter wallet extension.
+
 
 ---
 
@@ -669,6 +714,7 @@ GitHub Actions CI runs automatically on all pushes and pull requests to build an
 - [x] **Phase 10.1**: Verified 10+ User Onboarding & Wallet Interaction Ledger
 - [x] **Phase 10.2**: Production Telemetry & Network Health Monitoring Dashboard
 - [x] **Phase 10.3**: Hero Section Polish, Wallet Sync & UI Refinement
+- [x] **Phase 11 (Level 4 Stage 3)**: Smart Contract Test Suite (8 Rust Tests), WASM Compilation Pipeline, 39 Frontend Tests, and Full CI/CD Automation
 
 ---
 
