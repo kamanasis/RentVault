@@ -68,6 +68,7 @@ export const AgreementDetails = () => {
   const [copiedShareLink, setCopiedShareLink] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
+  const [isEndingLease, setIsEndingLease] = useState(false);
 
   const copyToClipboard = (text, setCopiedState) => {
     if (!text) return;
@@ -245,12 +246,20 @@ export const AgreementDetails = () => {
               {roleInfo.isLandlord ? (
                 <PrimaryButton 
                   icon={Zap} 
-                  onClick={() => {
-                    endLease(agreement.id);
-                    navigate(`/agreements/${agreement.id}/settlement`);
+                  disabled={isEndingLease}
+                  onClick={async () => {
+                    if (isEndingLease) return;
+                    setIsEndingLease(true);
+                    try {
+                      await endLease(agreement.id);
+                      navigate(`/agreements/${agreement.id}/settlement`);
+                    } catch (err) {
+                      console.error('[AgreementDetails] End lease error:', err);
+                      setIsEndingLease(false);
+                    }
                   }}
                 >
-                  Trigger Lease End & Settlement
+                  {isEndingLease ? 'Ending Lease...' : 'Trigger Lease End & Settlement'}
                 </PrimaryButton>
               ) : (
                 <PrimaryButton icon={Calendar} onClick={() => navigate(`/agreements/${agreement.id}/timeline`)}>

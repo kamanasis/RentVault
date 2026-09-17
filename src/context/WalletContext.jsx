@@ -210,23 +210,7 @@ export const WalletProvider = ({ children }) => {
       setRawBalance(10000);
       setIsUnfunded(false);
       setBalanceUpdatedAt(now);
-      setTransactions([
-        {
-          id: 'demo-tx-1',
-          hash: '8f92a10e2b4c129d39f4011029419082001',
-          direction: 'received',
-          type: 'payment',
-          amount: '10,000.00',
-          asset: 'XLM',
-          counterparty: 'GAAXFRIENDBOTSTLRKEY9901829',
-          sender: 'GAAXFRIENDBOTSTLRKEY9901829',
-          recipient: demoAddr,
-          timestamp: new Date().toISOString(),
-          status: 'confirmed',
-          fee: '100 stroops',
-          ledger: '682941',
-        }
-      ]);
+      setTransactions([]);
       setLoading(false);
       return { success: true, address: demoAddr };
     }

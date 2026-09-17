@@ -20,6 +20,9 @@ export const TransactionProgress = ({
   stage = 'idle', // 'preparing' | 'signing' | 'submitting' | 'confirming' | 'success' | 'failed'
   errorMessage = '',
   txResult = null,
+  title = 'Executing Soroban Transaction',
+  successTitle = 'Transaction Confirmed Successfully',
+  successDescription = 'Operation confirmed on Stellar Testnet with consensus finality.',
   onRetry,
   onClose,
   className = '',
@@ -33,7 +36,7 @@ export const TransactionProgress = ({
     { key: 'signing', title: 'Awaiting Freighter Signature', desc: 'Please sign the contract prompt in Freighter', icon: Key },
     { key: 'submitting', title: 'Submitting to Stellar', desc: 'Transmitting signed XDR to Testnet validators', icon: Send },
     { key: 'confirming', title: 'Confirming On-Chain', desc: 'Awaiting Soroban consensus ledger finality', icon: ShieldCheck },
-    { key: 'success', title: 'Escrow Locked Successfully', desc: 'Security deposit safely locked in Soroban vault', icon: CheckCircle2 },
+    { key: 'success', title: successTitle, desc: successDescription, icon: CheckCircle2 },
   ];
 
   const getStageIndex = () => {
@@ -94,14 +97,14 @@ export const TransactionProgress = ({
                 {stage === 'failed' 
                   ? 'Transaction Failed' 
                   : stage === 'success' 
-                  ? 'Escrow Locked Successfully' 
-                  : 'Executing Soroban Transaction'}
+                  ? successTitle 
+                  : title}
               </h3>
               <p className="text-caption text-text-secondary mt-0.5">
                 {stage === 'failed' 
                   ? 'The transaction could not be completed on Stellar Testnet.' 
                   : stage === 'success' 
-                  ? 'Funds are locked in the Soroban smart contract vault.' 
+                  ? successDescription 
                   : 'Please do not close your browser while transaction executes.'}
               </p>
             </div>

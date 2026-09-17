@@ -15,8 +15,8 @@ export const EscrowFundingDetailsCard = ({ agreement }) => {
   const deductionVal = agreement.totalDeduction || 0;
   const refundVal = agreement.finalRefundAmount !== undefined ? agreement.finalRefundAmount : Math.max(0, totalEscrow - deductionVal);
 
-  const hash = agreement.refundTxHash || agreement.txHash || '8f92a10e2b4c129d39f4011029419082001';
-  const explorerUrl = `https://testnet.steexp.com/tx/${hash}`;
+  const hash = agreement.refundTxHash || agreement.txHash || null;
+  const explorerUrl = hash ? `https://testnet.steexp.com/tx/${hash}` : null;
 
   const copyText = (text, setCopied) => {
     if (!text) return;
@@ -74,16 +74,22 @@ export const EscrowFundingDetailsCard = ({ agreement }) => {
           <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40 font-sans">
             <span className="text-text-muted">Refund Transaction Hash:</span>
             <div className="flex items-center gap-2 font-mono">
-              <span className="text-primary-glow font-semibold truncate max-w-[140px] sm:max-w-[220px]">
-                {hash}
-              </span>
-              <button
-                onClick={() => copyText(hash, setCopiedHash)}
-                className="p-1 rounded bg-surface hover:bg-surface-hover border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
-                aria-label="Copy hash"
-              >
-                {copiedHash ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
-              </button>
+              {hash ? (
+                <>
+                  <span className="text-primary-glow font-semibold truncate max-w-[140px] sm:max-w-[220px]">
+                    {hash}
+                  </span>
+                  <button
+                    onClick={() => copyText(hash, setCopiedHash)}
+                    className="p-1 rounded bg-surface hover:bg-surface-hover border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+                    aria-label="Copy hash"
+                  >
+                    {copiedHash ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </>
+              ) : (
+                <span className="text-text-muted italic text-xs font-sans">Settlement Confirmed</span>
+              )}
             </div>
           </div>
 
@@ -95,17 +101,19 @@ export const EscrowFundingDetailsCard = ({ agreement }) => {
           </div>
         </div>
 
-        <div className="pt-1 text-right">
-          <a
-            href={explorerUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs text-primary-glow hover:underline font-semibold cursor-pointer"
-          >
-            <span>View on Stellar Expert Explorer</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-        </div>
+        {explorerUrl && (
+          <div className="pt-1 text-right">
+            <a
+              href={explorerUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs text-primary-glow hover:underline font-semibold cursor-pointer"
+            >
+              <span>View on Stellar Expert Explorer</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        )}
       </Card>
     );
   }

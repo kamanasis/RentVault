@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { getStageNumber, createLifecycleEvent, LIFECYCLE_STAGES } from '../src/utils/agreementLifecycle.js';
+import { getStageNumber, createLifecycleEvent, generateDemoEventHistory, LIFECYCLE_STAGES } from '../src/utils/agreementLifecycle.js';
 
 describe('Agreement Lifecycle State Machine Tests', () => {
   it('should map lifecycle stages correctly to stage numbers', () => {
@@ -10,6 +10,8 @@ describe('Agreement Lifecycle State Machine Tests', () => {
     assert.strictEqual(getStageNumber('lease_active'), 4);
     assert.strictEqual(getStageNumber('lease_ended'), 5);
     assert.strictEqual(getStageNumber('utility_settlement'), 6);
+    assert.strictEqual(getStageNumber('Settlement Approved'), 6);
+    assert.strictEqual(getStageNumber('settlement_approved'), 6);
     assert.strictEqual(getStageNumber('dispute_resolution'), 7);
     assert.strictEqual(getStageNumber('refund_completed'), 8);
   });
@@ -42,6 +44,20 @@ describe('Agreement Lifecycle State Machine Tests', () => {
     assert.ok(event.timestamp);
   });
 
+  it('should preserve null txHash when no transaction has occurred (anti-hallucination rule)', () => {
+    const events = generateDemoEventHistory({
+      id: 'RV-TEST-99',
+      status: 'Deposit Locked',
+      depositAmount: 1200,
+      utilityReserve: 200,
+      txHash: null,
+    });
+
+    const depositEvent = events.find(e => e.type === 'ESCROW_DEPOSIT_LOCKED');
+    assert.ok(depositEvent);
+    assert.strictEqual(depositEvent.txHash, null);
+  });
+
   it('should have exactly 8 predefined lifecycle stages in sequential order', () => {
     assert.strictEqual(LIFECYCLE_STAGES.length, 8);
     LIFECYCLE_STAGES.forEach((stage, idx) => {
@@ -49,3 +65,4 @@ describe('Agreement Lifecycle State Machine Tests', () => {
     });
   });
 });
+

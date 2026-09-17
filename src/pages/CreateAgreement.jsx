@@ -14,7 +14,7 @@ import * as StellarSdk from '@stellar/stellar-sdk';
 export const CreateAgreement = () => {
   const navigate = useNavigate();
   const { createAgreement } = useAgreements();
-  const { address } = useWallet();
+  const { address, connected } = useWallet();
 
   const [formData, setFormData] = useState({
     propertyName: '',
@@ -31,12 +31,17 @@ export const CreateAgreement = () => {
   });
 
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }));
+    }
+    if (submitError) {
+      setSubmitError(null);
     }
   };
 
@@ -90,10 +95,22 @@ export const CreateAgreement = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!connected || !address) {
+      setSubmitError('Please connect your Freighter wallet before creating an agreement.');
+      return;
+    }
     if (!validateForm()) return;
 
-    const newAgreement = await createAgreement(formData);
-    navigate(`/agreements/${newAgreement.id}`);
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      const newAgreement = await createAgreement(formData);
+      navigate(`/agreements/${newAgreement.id}`);
+    } catch (err) {
+      console.error('[CreateAgreement Error]:', err);
+      setSubmitError(err?.message || 'Failed to create agreement.');
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -112,6 +129,13 @@ export const CreateAgreement = () => {
       </div>
 
       <Card>
+        {submitError && (
+          <div className="mb-6 p-4 bg-error/15 border border-error/40 rounded-2xl text-xs text-error font-mono flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 flex-shrink-0" />
+            <span>{submitError}</span>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Section 1: Property Information */}
           <div className="space-y-4">
@@ -305,11 +329,16 @@ export const CreateAgreement = () => {
 
           {/* Form Actions */}
           <div className="pt-4 border-t border-border flex flex-col sm:flex-row items-center justify-end gap-4">
-            <SecondaryButton onClick={() => navigate('/agreements')} className="w-full sm:w-auto">
+            <SecondaryButton onClick={() => navigate('/agreements')} className="w-full sm:w-auto" disabled={isSubmitting}>
               Cancel
             </SecondaryButton>
-            <PrimaryButton type="submit" icon={ShieldCheck} className="w-full sm:w-auto min-w-[180px]">
-              Generate Agreement ID
+            <PrimaryButton 
+              type="submit" 
+              icon={ShieldCheck} 
+              disabled={isSubmitting || !connected} 
+              className="w-full sm:w-auto min-w-[180px]"
+            >
+              {isSubmitting ? 'Creating Agreement...' : !connected ? 'Connect Wallet First' : 'Generate Agreement ID'}
             </PrimaryButton>
           </div>
         </form>

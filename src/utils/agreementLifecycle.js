@@ -27,6 +27,9 @@ export const getStageNumber = (status) => {
   ) {
     return 7;
   }
+  if (status === 'Settlement Approved' || status === 'settlement_approved') {
+    return 6;
+  }
 
   const found = LIFECYCLE_STAGES.find((s) => s.status === status || s.key === status);
   return found ? found.stage : 1;
@@ -94,6 +97,7 @@ export const generateDemoEventHistory = (agreement) => {
     agreement.status === 'Lease Active' ||
     agreement.status === 'Lease Ended' ||
     agreement.status === 'Utility Settlement' ||
+    agreement.status === 'Settlement Approved' ||
     agreement.status === 'dispute_open' ||
     agreement.status === 'dispute_landlord_response' ||
     agreement.status === 'dispute_tenant_response' ||
@@ -105,7 +109,7 @@ export const generateDemoEventHistory = (agreement) => {
       type: 'ESCROW_DEPOSIT_LOCKED',
       status: 'Deposit Locked',
       actor: tenant,
-      txHash: agreement.txHash || '8f92a10e2b4c129d39f4011029419082001',
+      txHash: agreement.txHash || null,
       timestamp: agreement.depositConfirmedAt || createdAt,
       metadata: { amount: (agreement.depositAmount || 0) + (agreement.utilityReserve || 0) },
     }));
@@ -116,6 +120,7 @@ export const generateDemoEventHistory = (agreement) => {
     agreement.status === 'Lease Active' ||
     agreement.status === 'Lease Ended' ||
     agreement.status === 'Utility Settlement' ||
+    agreement.status === 'Settlement Approved' ||
     agreement.status === 'dispute_open' ||
     agreement.status === 'dispute_landlord_response' ||
     agreement.status === 'dispute_tenant_response' ||
@@ -136,6 +141,7 @@ export const generateDemoEventHistory = (agreement) => {
   if (
     agreement.status === 'Lease Ended' ||
     agreement.status === 'Utility Settlement' ||
+    agreement.status === 'Settlement Approved' ||
     agreement.status === 'dispute_open' ||
     agreement.status === 'dispute_landlord_response' ||
     agreement.status === 'dispute_tenant_response' ||
@@ -155,6 +161,7 @@ export const generateDemoEventHistory = (agreement) => {
   // Stage 6
   if (
     agreement.status === 'Utility Settlement' ||
+    agreement.status === 'Settlement Approved' ||
     agreement.status === 'dispute_open' ||
     agreement.status === 'dispute_landlord_response' ||
     agreement.status === 'dispute_tenant_response' ||
@@ -193,7 +200,7 @@ export const generateDemoEventHistory = (agreement) => {
       type: 'REFUND_COMPLETED',
       status: 'Refund Completed',
       actor: tenant,
-      txHash: agreement.refundTxHash || '9f71c42e88b1092a8771a2',
+      txHash: agreement.refundTxHash || null,
       timestamp: agreement.refundApprovedAt || createdAt,
       metadata: { refundedAmount: agreement.finalRefundAmount || agreement.depositAmount },
     }));

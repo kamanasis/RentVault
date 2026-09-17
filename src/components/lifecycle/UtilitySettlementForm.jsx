@@ -16,6 +16,7 @@ export const UtilitySettlementForm = ({ agreement }) => {
   const [other, setOther] = useState('0.00');
   const [notes, setNotes] = useState('Final utility settlement for August occupancy.');
   const [error, setError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!agreement) return null;
 
@@ -33,21 +34,31 @@ export const UtilitySettlementForm = ({ agreement }) => {
   const finalRefund = Math.max(0, totalEscrow - totalDeduction);
   const isExceeded = totalDeduction > totalEscrow;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isExceeded) {
-      setError(`Total deductions (${totalDeduction.toFixed(2)} XLM) cannot exceed available escrow balance (${totalEscrow} XLM).`);
+    if (isExceeded || isSubmitting) {
+      if (isExceeded) {
+        setError(`Total deductions (${totalDeduction.toFixed(2)} XLM) cannot exceed available escrow balance (${totalEscrow} XLM).`);
+      }
       return;
     }
     setError(null);
-    submitUtilitySettlement(agreement.id, {
-      electricity: numElec,
-      water: numWater,
-      internet: numNet,
-      maintenance: numMaint,
-      other: numOther,
-      notes,
-    });
+    setIsSubmitting(true);
+    try {
+      await submitUtilitySettlement(agreement.id, {
+        electricity: numElec,
+        water: numWater,
+        internet: numNet,
+        maintenance: numMaint,
+        other: numOther,
+        notes,
+      });
+    } catch (err) {
+      console.error('[UtilitySettlementForm] Error:', err);
+      setError(err?.message || 'Failed to submit utility settlement.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -175,8 +186,8 @@ export const UtilitySettlementForm = ({ agreement }) => {
         </div>
 
         <div className="pt-2 flex justify-end gap-3">
-          <PrimaryButton type="submit" icon={CheckCircle2} disabled={isExceeded}>
-            Submit Settlement to Tenant
+          <PrimaryButton type="submit" icon={CheckCircle2} disabled={isExceeded || isSubmitting}>
+            {isSubmitting ? 'Submitting Settlement...' : 'Submit Settlement to Tenant'}
           </PrimaryButton>
         </div>
       </form>

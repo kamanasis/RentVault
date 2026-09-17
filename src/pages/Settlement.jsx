@@ -42,7 +42,7 @@ export const Settlement = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-border">
         <div>
           <button
-            onClick={() => navigate(`/agreement/${agreement.id}`)}
+            onClick={() => navigate(`/agreements/${agreement.id}`)}
             className="inline-flex items-center gap-1.5 text-caption font-medium text-text-secondary hover:text-text-primary transition-colors cursor-pointer mb-2"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Agreement Details

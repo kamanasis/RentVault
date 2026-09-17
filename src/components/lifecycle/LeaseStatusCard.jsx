@@ -11,10 +11,35 @@ import { useNavigate } from 'react-router-dom';
 export const LeaseStatusCard = ({ agreement, isLandlord }) => {
   const navigate = useNavigate();
   const { activateLease, endLease } = useAgreements();
+  const [isProcessing, setIsProcessing] = React.useState(false);
 
   if (!agreement) return null;
 
   const status = agreement.status;
+
+  const handleActivate = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    try {
+      await activateLease(agreement.id);
+    } catch (err) {
+      console.error('[LeaseStatusCard] Activate lease error:', err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleEndLease = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    try {
+      await endLease(agreement.id);
+      navigate(`/agreements/${agreement.id}/settlement`);
+    } catch (err) {
+      console.error('[LeaseStatusCard] End lease error:', err);
+      setIsProcessing(false);
+    }
+  };
 
   if (status === 'Deposit Locked') {
     return (
@@ -42,9 +67,10 @@ export const LeaseStatusCard = ({ agreement, isLandlord }) => {
           <div className="pt-2 flex justify-end">
             <PrimaryButton 
               icon={Play} 
-              onClick={() => activateLease(agreement.id)}
+              onClick={handleActivate}
+              disabled={isProcessing}
             >
-              Activate Lease Period
+              {isProcessing ? 'Activating Lease Period...' : 'Activate Lease Period'}
             </PrimaryButton>
           </div>
         )}
@@ -89,12 +115,10 @@ export const LeaseStatusCard = ({ agreement, isLandlord }) => {
           <div className="pt-2 flex justify-end">
             <PrimaryButton 
               icon={ArrowRight} 
-              onClick={() => {
-                endLease(agreement.id);
-                navigate(`/agreements/${agreement.id}/settlement`);
-              }}
+              onClick={handleEndLease}
+              disabled={isProcessing}
             >
-              Trigger Lease End & Settlement
+              {isProcessing ? 'Ending Lease Period...' : 'Trigger Lease End & Settlement'}
             </PrimaryButton>
           </div>
         )}

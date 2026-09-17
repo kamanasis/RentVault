@@ -129,7 +129,10 @@ export const AgreementProvider = ({ children }) => {
    * The global onSnapshot listener ensures all browsers receive it immediately.
    */
   const createAgreement = async (formData) => {
-    const landlordAddr = normalizeWallet(address) || 'GB7X42F098A190B38812TESTNETRENTVAULTKEY99';
+    if (!address) {
+      throw new Error('Please connect your Freighter wallet before creating an agreement.');
+    }
+    const landlordAddr = normalizeWallet(address);
     const tenantAddr = normalizeWallet(formData.tenantWallet);
 
     const nextIndex = agreements.length + 1;
@@ -414,25 +417,55 @@ export const AgreementProvider = ({ children }) => {
     });
   };
 
-  const approveRefund = async (id) => {
+  const tenantApproveSettlement = async (id) => {
+    const target = agreements.find((a) => a.id === id);
+    if (!target) return;
+    if (target?.dispute && target.dispute.status !== 'resolved') {
+      console.warn(`[AgreementContext] Settlement approval locked for ${id}: active dispute in progress.`);
+      return;
+    }
+
+    const actor = normalizeWallet(address) || target.tenantWallet;
+    await advanceAgreementStatus(id, 'Settlement Approved', {
+      type: 'TENANT_SETTLEMENT_APPROVED',
+      actor,
+      metadata: {
+        totalDeduction: target.totalDeduction || 0,
+        finalRefundAmount: target.finalRefundAmount !== undefined ? target.finalRefundAmount : target.depositAmount,
+        note: 'Tenant approved utility settlement deductions. Escrow release authorized.',
+      },
+      updatedFields: {
+        settlementApprovedByTenant: true,
+        settlementApprovedAt: new Date().toISOString(),
+      },
+    });
+  };
+
+  const approveRefund = async (id, txData = null) => {
     const target = agreements.find((a) => a.id === id);
     if (target?.dispute && target.dispute.status !== 'resolved') {
       console.warn(`[AgreementContext] Refund locked for ${id}: active dispute in progress.`);
       return;
     }
 
-    const mockRefundHash = `9f71c42e88b1092a${Date.now().toString(16)}`;
+    const txHash = txData?.hash || null;
+    const txLedger = txData?.ledger || null;
     const refundVal = target?.finalRefundAmount !== undefined ? target.finalRefundAmount : (target?.depositAmount || 0);
 
     await advanceAgreementStatus(id, 'Refund Completed', {
       type: 'REFUND_COMPLETED',
-      actor: normalizeWallet(address) || target?.tenantWallet,
-      txHash: mockRefundHash,
-      metadata: { refundVal },
+      actor: normalizeWallet(address) || target?.landlordWallet || target?.tenantWallet,
+      txHash: txHash,
+      metadata: { 
+        refundVal,
+        ledger: txLedger,
+        releasedAt: txData?.timestamp || new Date().toISOString(),
+      },
       updatedFields: {
         finalRefundAmount: refundVal,
         refundApprovedAt: new Date().toISOString(),
-        refundTxHash: mockRefundHash,
+        refundTxHash: txHash,
+        refundTxLedger: txLedger,
         fundedAmount: 0,
       },
     });
@@ -470,6 +503,7 @@ export const AgreementProvider = ({ children }) => {
         raiseSettlementDispute,
         respondToDisputeLandlord,
         respondToDisputeTenant,
+        tenantApproveSettlement,
         approveRefund,
         getAgreementById,
         updateAgreementStatus,

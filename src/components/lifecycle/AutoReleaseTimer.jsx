@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Clock, AlertTriangle, ShieldCheck, Plus, Zap } from 'lucide-react';
 import { useAgreements } from '../../context/AgreementContext';
@@ -29,6 +29,7 @@ export const AutoReleaseTimer = ({ agreement, onTimerExpire, isDisputed: isDispu
   const targetEndTimestamp = startTimestamp + (autoReleaseObj.milliseconds || 60000);
 
   const [msRemaining, setMsRemaining] = useState(() => Math.max(0, targetEndTimestamp - Date.now()));
+  const hasExpiredRef = useRef(false);
 
   useEffect(() => {
     if (isDisputed) return;
@@ -37,7 +38,8 @@ export const AutoReleaseTimer = ({ agreement, onTimerExpire, isDisputed: isDispu
       const rem = Math.max(0, targetEndTimestamp - Date.now());
       setMsRemaining(rem);
 
-      if (rem <= 0 && onTimerExpire) {
+      if (rem <= 0 && onTimerExpire && !hasExpiredRef.current) {
+        hasExpiredRef.current = true;
         onTimerExpire();
       }
     };
