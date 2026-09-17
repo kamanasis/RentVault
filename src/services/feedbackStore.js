@@ -7,8 +7,8 @@
  * Zero fake seed data. Empty state displays 0 feedback collected.
  */
 
-import { getFirestoreDb } from './sharedStore';
-import { captureError } from './monitoring';
+import { getFirestoreDb } from './sharedStore.js';
+import { captureError } from './monitoring.js';
 
 const LOCAL_STORAGE_KEY = 'rentvault_user_feedback_v2';
 
@@ -17,19 +17,47 @@ const LOCAL_STORAGE_KEY = 'rentvault_user_feedback_v2';
  */
 function sanitizeFeedbackInput(input = {}) {
   const ratingNum = Math.min(5, Math.max(1, Number(input.rating) || 5));
-  const rawComment = String(input.comment || '').trim();
-  const scrubbedComment = rawComment.replace(/S[A-Z0-9]{55}/g, '[REDACTED_SECRET_KEY]');
+  const easeNum = Math.min(5, Math.max(1, Number(input.easeOfUse) || ratingNum));
+  const cleanStr = (val) => String(val || '').trim().replace(/S[A-Z0-9]{55}/g, '[REDACTED_SECRET_KEY]');
+
+  const rawComment = cleanStr(input.comment);
+  const confusingPart = cleanStr(input.confusingPart);
+  const likedFeature = cleanStr(input.likedFeature);
+  const problemEncountered = cleanStr(input.problemEncountered);
+  const suggestion = cleanStr(input.suggestion);
+
+  // Derive priority based on severity or rating
+  let priority = input.priority;
+  if (!priority) {
+    if (problemEncountered.length > 0 || ratingNum <= 2) {
+      priority = 'HIGH';
+    } else if (confusingPart.length > 0 || ratingNum === 3) {
+      priority = 'MEDIUM';
+    } else {
+      priority = 'LOW';
+    }
+  }
 
   return {
     rating: ratingNum,
-    role: input.role === 'Landlord' ? 'Landlord' : 'Tenant',
+    easeOfUse: easeNum,
+    role: input.role === 'Landlord' ? 'Landlord' : input.role === 'Evaluator' ? 'Evaluator' : 'Tenant',
     category: input.category || 'General',
-    comment: scrubbedComment,
+    comment: rawComment,
+    confusingPart: confusingPart || null,
+    likedFeature: likedFeature || null,
+    problemEncountered: problemEncountered || null,
+    suggestion: suggestion || null,
+    status: input.status || 'PENDING_REVIEW', // PENDING_REVIEW | IN_PROGRESS | RESOLVED
+    priority, // HIGH | MEDIUM | LOW
+    resolutionNote: cleanStr(input.resolutionNote) || null,
+    improvementRef: cleanStr(input.improvementRef) || null,
     wallet: input.wallet && input.wallet.startsWith('G') ? input.wallet : null,
     agreementId: input.agreementId || null,
-    timestamp: new Date().toISOString(),
+    timestamp: input.timestamp || new Date().toISOString(),
   };
 }
+
 
 /**
  * Retrieve cached local feedback entries.
@@ -135,14 +163,19 @@ export function getFeedbackMetrics(feedbackList) {
   if (total === 0) {
     return {
       averageRating: 0,
+      averageEaseOfUse: 0,
       totalCount: 0,
       csatScore: 0,
       categoryCounts: {},
+      statusCounts: { PENDING_REVIEW: 0, IN_PROGRESS: 0, RESOLVED: 0 },
+      priorityCounts: { HIGH: 0, MEDIUM: 0, LOW: 0 },
     };
   }
 
   const sumRating = all.reduce((acc, item) => acc + (Number(item.rating) || 5), 0);
+  const sumEase = all.reduce((acc, item) => acc + (Number(item.easeOfUse) || Number(item.rating) || 5), 0);
   const averageRating = Number((sumRating / total).toFixed(1));
+  const averageEaseOfUse = Number((sumEase / total).toFixed(1));
 
   // CSAT: Percentage of 4 & 5-star ratings
   const satisfiedCount = all.filter((item) => Number(item.rating) >= 4).length;
@@ -154,10 +187,70 @@ export function getFeedbackMetrics(feedbackList) {
     return acc;
   }, {});
 
+  const statusCounts = all.reduce((acc, item) => {
+    const st = item.status || 'PENDING_REVIEW';
+    acc[st] = (acc[st] || 0) + 1;
+    return acc;
+  }, { PENDING_REVIEW: 0, IN_PROGRESS: 0, RESOLVED: 0 });
+
+  const priorityCounts = all.reduce((acc, item) => {
+    const pr = item.priority || 'LOW';
+    acc[pr] = (acc[pr] || 0) + 1;
+    return acc;
+  }, { HIGH: 0, MEDIUM: 0, LOW: 0 });
+
   return {
     totalCount: total,
     averageRating,
+    averageEaseOfUse,
     csatScore,
     categoryCounts,
+    statusCounts,
+    priorityCounts,
   };
 }
+
+/**
+ * Updates status, priority, or resolution notes for an existing feedback entry.
+ */
+export async function updateFeedbackStatus(id, updates = {}) {
+  const current = getLocalStoredFeedback();
+  const idx = current.findIndex((item) => item.id === id);
+  if (idx === -1) return null;
+
+  const cleanStr = (val) => String(val || '').trim().replace(/S[A-Z0-9]{55}/g, '[REDACTED_SECRET_KEY]');
+  const updatedItem = {
+    ...current[idx],
+    status: updates.status || current[idx].status,
+    priority: updates.priority || current[idx].priority,
+    resolutionNote: updates.resolutionNote !== undefined ? cleanStr(updates.resolutionNote) : current[idx].resolutionNote,
+    improvementRef: updates.improvementRef !== undefined ? cleanStr(updates.improvementRef) : current[idx].improvementRef,
+    updatedAt: new Date().toISOString(),
+  };
+
+  current[idx] = updatedItem;
+  try {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(current));
+  } catch (e) {
+    console.warn('[FeedbackStore] Local update failed:', e);
+  }
+
+  try {
+    const db = await getFirestoreDb();
+    if (db) {
+      const { doc, updateDoc } = await import('firebase/firestore');
+      await updateDoc(doc(db, 'feedback', id), {
+        status: updatedItem.status,
+        priority: updatedItem.priority,
+        resolutionNote: updatedItem.resolutionNote,
+        improvementRef: updatedItem.improvementRef,
+        updatedAt: updatedItem.updatedAt,
+      });
+    }
+  } catch (err) {
+    captureError(err, { category: 'FEEDBACK_STATUS_UPDATE_ERROR', entryId: id });
+  }
+
+  return updatedItem;
+}
+

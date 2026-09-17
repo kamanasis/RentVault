@@ -38,7 +38,7 @@ jobs:
       - name: Run Code Style & Linter Checks
         run: npm run lint
 
-      - name: Run Frontend Automated Test Suite (39 Unit Tests)
+      - name: Run Frontend Automated Test Suite (42 Unit Tests across 10 Suites)
         run: npm test
 
       - name: Build Production Web Application

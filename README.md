@@ -586,10 +586,10 @@ RentVault interacts with a deployed Soroban WASM smart contract on Stellar Testn
 
 ## 🧪 Testing, Quality Assurance & CI/CD Pipeline
 
-RentVault features an end-to-end automated testing architecture combining Rust Soroban smart contract unit tests with Node.js native frontend test suites (47 tests in total):
+RentVault features an end-to-end automated testing architecture combining Rust Soroban smart contract unit tests with Node.js native frontend test suites (50 tests in total):
 
 ```bash
-# Run all frontend automated test suites (39 tests across 9 suites)
+# Run all frontend automated test suites (42 tests across 10 suites)
 npm test
 
 # Run Soroban smart contract test suite (8 unit tests)
@@ -630,7 +630,7 @@ test test::test_zero_amount_deposit_rejected - should panic ... ok
 test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 ```
 
-### 2. Frontend Test Suites (39 Passing Tests across 9 Suites)
+### 2. Frontend Test Suites (42 Passing Tests across 10 Suites)
 The frontend testing suite runs on Node's native test runner (`node:test`) for instant execution (210ms) without heavy Jest/Babel overhead:
 - **`tests/lifecycle.test.js`**: 8-stage state machine transitions, dispute mapping, and immutable event schemas.
 - **`tests/leaseDuration.test.js`**: Multi-day/month duration calculations, leap years, and edge-case date range validations.
@@ -640,20 +640,22 @@ The frontend testing suite runs on Node's native test runner (`node:test`) for i
 - **`tests/validation.test.js`**: Stellar address regex checks, security deposit constraints, and rent validation rules.
 - **`tests/autoRelease.test.js`**: Grace period math (7d, 14d, 30d presets), countdown timers, and expired dispute auto-finalization.
 - **`tests/settlement.test.js`**: Deduction math, itemized utility calculation, deposit refund clamping, and dispute state updates.
+- **`tests/feedbackStore.test.js`**: Usability rating aggregation, ease-of-use scoring, CSAT metrics, and feedback status lifecycle.
 - **`tests/executiveSummary.test.js`**: Health metrics aggregation, CSAT calculation, and escrow portfolio telemetry.
 
 ```text
-✔ Agreement Lifecycle State Machine Tests (4.13ms)
-✔ Lease Duration Formatting Tests (4.67ms)
-✔ Real-Time Soroban Event Streaming & Topic Polling Tests (3.89ms)
-✔ Role Evaluation & Multi-Wallet Security Tests (3.42ms)
-✔ Multi-Wallet & Web3 Error Handling Tests (3.02ms)
-✔ Rental Agreement Validation Tests (3.78ms)
-✔ Executive Summary & Portfolio Metrics Tests (4.21ms)
-✔ Auto-Release Countdown & Preset Tests (3.65ms)
-✔ Settlement Engine & Dispute Resolution Tests (4.18ms)
+✔ Agreement Lifecycle State Machine Tests (8.41ms)
+✔ Product Analytics & Privacy Rules Tests (10.33ms)
+✔ Auto-Release Policy & Countdown Tests (8.31ms)
+✔ Lease Duration Formatting Tests (10.37ms)
+✔ Real-Time Soroban Event Streaming & Topic Polling Tests (6.20ms)
+✔ User Feedback Store & Analytics Tests (6.95ms)
+✔ Production Error Monitoring & Telemetry Tests (8.51ms)
+✔ Role Evaluation & Multi-Wallet Security Tests (3.19ms)
+✔ Utility Settlement & Financial Calculations Tests (3.39ms)
+✔ Multi-Wallet & Web3 Error Handling Tests (2.92ms)
 
-ℹ tests 39 | suites 9 | pass 39 | fail 0 | cancelled 0 | skipped 0 | todo 0
+ℹ tests 42 | suites 10 | pass 42 | fail 0 | cancelled 0 | skipped 0 | todo 0
 ```
 
 ### 3. Continuous Integration Pipeline (`.github/workflows/ci.yml`)
@@ -663,8 +665,19 @@ Every push and pull request to `main` triggers automated GitHub Actions checks:
 3. **Smart Contract Verification**: Executes `cargo test` on Soroban contracts (8 tests).
 4. **WASM Compilation**: Compiles the release WebAssembly binary (`rentvault_escrow.wasm`).
 5. **Code Style & Linting**: Runs ESLint with zero-tolerance for breaking syntax or unhandled errors.
-6. **Frontend Verification**: Executes all 39 frontend unit test suites.
+6. **Frontend Verification**: Executes all 42 frontend unit test suites across 10 suites.
 7. **Production Build**: Compiles Vite production bundle to ensure zero build regressions.
+
+---
+
+### 4. Level 4 Real-User Validation & Feedback Framework
+RentVault provides a comprehensive, privacy-preserving validation framework in [`docs/user-validation/`](./docs/user-validation/):
+- **Onboarding Guide ([`docs/user-validation/onboarding-guide.md`](./docs/user-validation/onboarding-guide.md))**: Step-by-step testnet guide for real testers.
+- **Feedback Template ([`docs/user-validation/feedback-template.md`](./docs/user-validation/feedback-template.md))**: Standardized evaluation protocol with ease-of-use and diagnostic fields.
+- **Feedback Analysis ([`docs/user-validation/feedback-analysis.md`](./docs/user-validation/feedback-analysis.md))**: 14-domain taxonomy and HIGH/MEDIUM/LOW priority matrix.
+- **Improvement Log ([`docs/user-validation/improvement-log.md`](./docs/user-validation/improvement-log.md))**: Structured record of feedback-driven code improvements.
+- **Validation Results ([`docs/user-validation/validation-results.md`](./docs/user-validation/validation-results.md))**: Factual verification matrix adhering to anti-hallucination rules.
+
 
 ---
 

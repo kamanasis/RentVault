@@ -17,16 +17,48 @@ export const AgreementCard = ({ agreement }) => {
 
   const totalEscrow = (agreement.depositAmount || 0) + (agreement.utilityReserve || 0);
 
+  const getNextActionSummary = (status) => {
+    switch (status) {
+      case 'Draft':
+      case 'Created':
+        return { text: 'Awaiting Tenant Deposit', color: 'text-amber-400 bg-amber-500/10 border-amber-500/30' };
+      case 'Funded':
+      case 'Deposit Locked':
+      case 'Active':
+        return { text: 'Escrow Locked On-Chain', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' };
+      case 'Terminated':
+      case 'Pending Settlement':
+        return { text: 'Settlement Review Pending', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30' };
+      case 'Disputed':
+        return { text: 'Dispute Resolution Active', color: 'text-rose-400 bg-rose-500/10 border-rose-500/30' };
+      case 'Completed':
+      case 'Refunded':
+        return { text: 'Escrow Settled & Refunded', color: 'text-text-muted bg-surface border-border' };
+      default:
+        return null;
+    }
+  };
+
+  const nextAction = getNextActionSummary(agreement.status);
+
   return (
     <Card hoverEffect className="flex flex-col justify-between space-y-5 border-border/80 group">
       <div className="space-y-4">
         {/* Header Row: ID & Status Badge */}
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-mono font-semibold text-primary-glow bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full">
-            {agreement.id}
-          </span>
-          <AgreementStatusBadge status={agreement.status} />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-mono font-semibold text-primary-glow bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full">
+              {agreement.id}
+            </span>
+            <AgreementStatusBadge status={agreement.status} />
+          </div>
+          {nextAction && (
+            <div className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md border inline-flex items-center w-fit ${nextAction.color}`}>
+              <span>Next: {nextAction.text}</span>
+            </div>
+          )}
         </div>
+
 
         {/* Property Name & Address */}
         <div>

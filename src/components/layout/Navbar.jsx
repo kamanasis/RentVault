@@ -125,6 +125,15 @@ export const Navbar = () => {
               </button>
 
               <button
+                onClick={() => setRegistryOpen(true)}
+                title="Onboarded Users & Interaction Registry"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-mono text-cyan-400 hover:bg-cyan-400/10 transition-all cursor-pointer"
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span className="hidden xl:inline">10+ Users</span>
+              </button>
+
+              <button
                 onClick={() => setFeedbackSummaryOpen(true)}
                 title="User Reviews & Feedback"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-mono text-amber-400 hover:bg-amber-400/10 transition-all cursor-pointer"
@@ -133,6 +142,7 @@ export const Navbar = () => {
                 <span className="hidden xl:inline">Reviews</span>
               </button>
             </div>
+
 
             <NetworkBadge network={network || 'TESTNET'} />
             <WalletButton pulse={!connected} />
